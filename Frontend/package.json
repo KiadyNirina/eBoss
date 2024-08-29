@@ -1,0 +1,30 @@
+{
+	"name": "frontend",
+	"version": "0.0.1",
+	"private": true,
+	"scripts": {
+		"dev": "vite dev",
+		"build": "vite build",
+		"preview": "vite preview"
+	},
+	"devDependencies": {
+		"@sveltejs/adapter-auto": "^3.0.0",
+		"@sveltejs/kit": "^2.0.0",
+		"@sveltejs/vite-plugin-svelte": "^3.0.0",
+		"svelte": "^4.2.7",
+		"vite": "^5.0.3"
+	},
+	"type": "module",
+	"dependencies": {
+		"chart.js": "^4.4.3",
+		"framework7-svelte": "^8.3.3",
+		"fullcalendar": "^6.1.13",
+		"html2pdf.js": "^0.10.2",
+		"skeleton-elements": "^4.0.1",
+		"svelte-calendars": "^0.6.0",
+		"svelte-chartjs": "^3.1.5",
+		"svelte-fullcalendar": "^3.0.0",
+		"svelte-routing": "^2.13.0",
+		"ws": "^8.18.0"
+	}
+}
