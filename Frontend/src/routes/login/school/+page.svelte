@@ -14,6 +14,16 @@
         }
     });*/
 
+    let showPassword = false;
+
+    const handleShowPass = () => {
+        if ( showPassword === false ) {
+            showPassword = true;
+        } else {
+            showPassword = false;
+        }
+    }
+
     async function handleSubmit() {
         errorMess = '';
         isSubmitting = false; 
@@ -51,19 +61,23 @@
 
                 <form on:submit|preventDefault={handleSubmit} class="login-form">
                     <input type="email" placeholder="E-mail" bind:value={email} required>
-                    <input type="password" placeholder="Password" bind:value={password} required>
+                    {#if showPassword}
+                        <input type="text" placeholder="Password" bind:value={password} required>
+                    {:else}
+                        <input type="password" placeholder="Password" bind:value={password} required>
+                    {/if}
                     <div class="button">
                         <a id="cancel" href="/login/">Retour</a>
                         {#if isSubmitting}
-                        <button type="submit">Se connecter</button>
+                            <button type="submit">Se connecter</button>
                         {:else}
-                        <button type="submit">Connexion...</button>    
+                            <button type="submit">Connexion...</button>    
                         {/if}
                         
                     </div>
                     <div class="options">
                         <label>
-                            <input type="checkbox"> Angemeldet bleiben
+                            <input type="checkbox" on:click={handleShowPass}> Afficher le mot de passe
                         </label>
                         <a href="#">Mot de passe oublié?</a>
                     </div>
@@ -73,8 +87,6 @@
             </div>
             <div class="promo-section">
                 <h2>Platform pour les établissements scolaires</h2>
-                <a href="#">Ansehen & Features sichern</a>
-                <div class="promo-image"></div>
             </div>
         </div>
     <footer>
@@ -140,7 +152,7 @@ span{
     flex-direction: column;
 }
 
-.login-form input[type="email"], .login-form input[type="password"] {
+.login-form input[type="email"], .login-form input[type="password"], .login-form input[type="text"] {
     padding: 10px;
     margin-bottom: 20px;
     border: 1px solid rgba(255, 255, 255, 0.175);
@@ -148,6 +160,7 @@ span{
     border-radius: 5px;
     font-size: 1em;
     color: white;
+    font-family: 'Courier New', Courier, monospace;
 }
 
 .button{

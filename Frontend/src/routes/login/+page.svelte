@@ -28,8 +28,6 @@
             </div>
             <div class="promo-section">
                 <h2>Platform pour les établissements scolaires</h2>
-                <a href="#">Ansehen & Features sichern</a>
-                <div class="promo-image"></div>
             </div>
         </div>
     <footer>

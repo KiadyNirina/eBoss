@@ -4,9 +4,15 @@
     import { onMount } from "svelte";
 
     let user;
+    let subject = "";
     let student = "";
     let selected_classes = "";
+    let prof = "";
     let prof_classes = [];
+    let type = "";
+    let motif = "";
+    let somme = "";
+    let reste = "";
 
     function toggle_classes(level) {
         if(prof_classes.includes(level)) {
@@ -17,8 +23,6 @@
     }
 
     $: userProfile.subscribe(value => user = value);
-
-    let type = "";
 
     async function fetchSubject() {
         const endpoint = `http://127.0.0.1:8000/school/classMatiere/${user.school_name}/`;
@@ -49,10 +53,11 @@
                 student: student,
                 classe: selected_classes,
                 prof: prof,
-                prof_de: prof_de,
+                prof_de: subject,
                 classes: prof_classes,
                 motif: motif,
-                subject: subject,
+                somme: somme,
+                reste: reste,
             }),
         });
         const data = await response.json();
@@ -91,31 +96,32 @@
                     <input type="text" name="" id="" placeholder="Prénom" bind:value={student}>
                     {#if type == "Ecolage"}
                     <select name="" id="" bind:value={selected_classes}>
+                        <option disabled value="">Selectionnez la classe</option>
                         {#each $classes as classe}
-                            {#each classe.school_classes as cl}
+                            {#each classe.school_classes as cl} 
                                 <option value="{cl}">{cl}</option>
-                            {/each}
+                            {/each} 
                         {/each}
                     </select>
                     {/if}
                 </div>
 
                 {#if type == "Salaire"}
-                    <label for="">Profésseur de :</label>
+                    <label for="">Profésseur de :</label>{subject}
                     <div class="input-checkbox">
                         {#each $matiere as mat}
                             <label for="">{mat.subject}</label>
-                            <input type="checkbox" name="" id=""><br>
+                            <input type="checkbox" name="" id="" bind:value={subject}><br>
                         {/each}
                     </div>
 
                     <label for="">Classe :</label>
                     <div class="input-checkbox">
                         {#each $classes as classe}
-                            {#each classe.school_classes as cl}
-                                <label for="">{cl}</label>
-                                <input type="checkbox" name="" id="" on:change={() => toggle_classes(cl)}><br>
-                            {/each}
+                            <!-- {#each classe.school_classes as cl} -->
+                                <label for="">{classe.school_classes}</label>
+                                <input type="checkbox" name="" id="" on:change={() => toggle_classes(classe.school_classes)}><br>
+                            <!-- {/each} -->
                         {/each}
                     </div>
                         
@@ -123,18 +129,18 @@
                 {/if}
 
                 <div class="input-one">
-                    <textarea name="" rows="2" id="" placeholder="Motif..."></textarea>
+                    <textarea name="" rows="2" id="" placeholder="Motif..." bind:value={motif}></textarea>
                 </div>
 
                 <label for="">Somme et reste à payer :</label>
                 <div class="input">
-                    <input type="number" name="" id="" placeholder="Somme"> <span>Ar</span>
-                    <input type="number" name="" id="" placeholder="Reste à payer"> <span>Ar</span>
+                    <input type="number" name="" id="" placeholder="Somme" bind:value={somme}> <span>Ar</span>
+                    <input type="number" name="" id="" placeholder="Reste à payer" bind:value={reste}> <span>Ar</span>
                 </div>
                 
                 <p>Nb : Tous les champs sont obligatoire</p>
     
-                <button>Enregistrer</button>
+                <button on:click={handleSubmit}>Enregistrer</button>
                 <a href="/school/registration_data"><button id="cancel">Annuler</button></a>
             </form>
         </div>

@@ -24,7 +24,7 @@
         </div>
         <div class="body" id="about">
             <div class="body-content text">
-                <h4>About</h4>
+                <h4>A propos</h4>
                     <p>Une plateforme de gestion d'établissement conçue pour simplifier et optimiser la gestion quotidienne des établissements scolaires.</p>
                     <p>Grâce à une interface intuitive et des fonctionnalités puissantes, elle permet aux administrateurs, enseignants, étudiants et parents de collaborer efficacement et de suivre les progrès des élèves en temps réel. <br>
                     De la gestion des inscriptions et des emplois du temps à la communication entre les différents acteurs de la communauté éducative, ce plateforme centralise toutes les informations essentielles pour une gestion fluide et transparente.</p>
@@ -33,7 +33,7 @@
         </div>
         <div class="body" id="features">
             <div class="body-content">
-                <h4>Features</h4>
+                <h4>Caractéristiques</h4>
                 <p class="title">Optimisez la gestion scolaire avec nos fonctionnalités avancées</p>
                 <p class="desc">Découvrez comment notre site de gestion d'établissement scolaire révolutionne l'administration éducative avec des fonctionnalités intuitives et puissantes.</p>
                 <div class="card-2">
@@ -118,14 +118,14 @@
     }
 
     .content-body{
-        max-width: 1500px;
+        max-width: 1350px;
         margin-left: auto;
         margin-right: auto;
     }
 
     .navbar{
         position: fixed;
-        max-width: 1500px;
+        max-width: 1350px;
         width: 100%;
         backdrop-filter: blur(2px);
         z-index: 100;

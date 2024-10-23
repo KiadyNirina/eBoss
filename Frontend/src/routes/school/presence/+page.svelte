@@ -4,20 +4,10 @@
     import Loading from "../../../lib/loading.svelte";
     import { classes, userProfile, courses, schoolName } from "../../../stores/auth";
 
-    /*let menu = false
-    let isLoading = true;*/
     let selected = false;
     let user;
 
     $: userProfile.subscribe(value => user = value);
-
-    /*const loading = setTimeout(() => {
-        isLoading = false;
-    }, 1000);
-
-    onMount(() => {
-        loading;
-    })*/
 
     async function fetchCourse(school_name, classe_name) {
         const response = await fetch(`http://localhost:8000/school/courseAPI/${school_name}/${classe_name}/`);
@@ -35,12 +25,6 @@
 <div class="content">
     <NavPresence />
     <div class="content-body">
-        <!-- {#if isLoading}
-            <div class="loading">
-                <Loading />
-            </div>
-        
-        {:else} -->
 
         <div class="body">
             <h1>Année scolaire : 2023 - 2024</h1>
@@ -83,7 +67,6 @@
             </ul>
         </div>
         
-        <!--{/if}-->
     </div>
 </div>
 

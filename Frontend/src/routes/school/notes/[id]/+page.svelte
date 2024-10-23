@@ -28,8 +28,8 @@
             <b>Informations de la période</b>
             <div class="student-info">
                 <ul>
-                    <li>Année scolaire : <i>{$notes.school_year}</i></li>
-                    <li>Semestre / Trimestre : <i>1</i></li>
+                    <li>Année scolaire : <i>{note.school_year}</i></li>
+                    <li>Semestre / Trimestre : <i>{note.semester}</i></li>
                     <li>Date de l'examen : <i>27/07/2024</i> à <i>30/07/2024</i></li>
                 </ul>
             </div>

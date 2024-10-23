@@ -53,7 +53,7 @@
     async function handleSubmit() {
 
         const formData = {
-            nameSchool: user.id,
+            nameSchool: user.school_name,
             classe: classe_degree,
             matiere: subject,
             teacher: prof,

@@ -30,28 +30,6 @@
         fetchStudents();
     });
 
-    //let isLoading = true;
-    //let posts = [];
-
-    /*onMount(() => {
-        setTimeout(() => {
-            isLoading = false;
-        }, 2000);
-    },
-    async function () {
-        const endpoint = `http://127.0.0.1:8000/post/`;
-        const response = await fetch(endpoint);
-        posts = await response.json();
-    });*/
-
-    // onMount(async () => {
-    //     const endpoint = `http://127.0.0.1:8000/post/`;
-    //     const response = await fetch(endpoint);
-    //     posts = await response.json();
-    // });
-
-
-
 </script>
 
 <div class="content">
@@ -396,13 +374,13 @@
     }
 
     .container img{
-        height: 65px;
+        height: 40px;
     }
 
     .number{
         border: 5px solid #005358;
         border-radius: 100%;
-        padding: 10px;
+        padding: 0px 10px;
         margin-left: auto;
         margin-bottom: auto;
     }
@@ -410,7 +388,7 @@
     .number1{
         border: 5px solid #00d42e;
         border-radius: 100%;
-        padding: 10px;
+        padding: 0 10px;
         margin-left: auto;
         margin-bottom: auto;
     }
@@ -439,7 +417,7 @@
     }
 
     .container1 p{
-        font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+        font-family: Arial, Helvetica, sans-serif;
         font-weight: bold;
         font-size: 15px;
     }
