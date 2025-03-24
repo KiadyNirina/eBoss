@@ -1,34 +1,18 @@
 <script>
-    import { createEventDispatcher } from "svelte";
-    import { login, getUserProfile, getUserStudent } from '../../../lib/auth';
-    import { goto } from '$app/navigation'
-    import { userProfile } from "../../../stores/auth";
-    import { onMount } from "svelte";
+    import { api } from '../../api.js';
 
     let email = '';
     let password = '';
     let errorMess = '';
-    userProfile.subscribe(value => {
-        if(value){
-            goto('/student/home');
-        }
-    });
 
     async function handleSubmit() {
-        const success = await login(email, password);
-        if(success) {
-            const profile = await getUserStudent();
-
-            if(profile){
-                userProfile.set(profile);
-                userRole.set(profile.role)
-                goto('/student/home')
-            } else {
-                errorMess = 'Connexion non autorisé';
-            }
-            
-        } else {
-            errorMess = 'Compte introuvable';
+        try {
+            const { access } = await api.auth.login({ email, password });
+            sessionStorage.setItem('access_token', access);
+            window.location.href = '/student/home';
+        } catch (error) {
+            console.error('Erreur : ' + error.message);
+            errorMess = error.message;
         }
     }
 </script>
