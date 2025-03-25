@@ -1,5 +1,5 @@
 // src/lib/api.js
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'http://localhost:8000/';
 
 async function fetchWithAuth(endpoint, options = {}) {
     const token = sessionStorage.getItem('access_token');
@@ -20,7 +20,14 @@ async function fetchWithAuth(endpoint, options = {}) {
 
 export const api = {
     auth: {
-        login: (credentials) => fetchWithAuth('auth/login/', { method: 'POST', body: JSON.stringify(credentials) }),
+        signup: (userData) => fetchWithAuth('school/studentRegistration/', {
+            method: 'POST',
+            body: JSON.stringify(userData),
+        }),
+        login: (credentials) => fetchWithAuth('school/schoolLogin/token/', { 
+            method: 'POST', 
+            body: JSON.stringify(credentials) 
+        }),
     },
     students: {
         list: () => fetchWithAuth('students/'),
@@ -31,6 +38,11 @@ export const api = {
         delete: (studentId) => fetchWithAuth(`students/delete/${studentId}/`, {
             method: 'DELETE',
         }),
+    },
+    schools: {
+        list: () => fetchWithAuth('school/schoolClasses/', {
+            method: 'GET',
+        })
     },
     parents: {
         list: () => fetchWithAuth('parents/'),

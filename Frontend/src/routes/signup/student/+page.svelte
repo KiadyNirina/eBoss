@@ -1,223 +1,133 @@
 <script>
+    import { api } from '$lib/api'; // Import du service API centralisé
     import { classes, schoolName } from '../../../stores/auth';
     import { goto } from '$app/navigation';
     import { onMount } from "svelte";
 
-    let student_name = '';
-    let student_lastname = '';
-    let student_sexe = '';
-    let student_address = '';
-    let student_number = '';
-    let email = '';
-    let student_birthday_date
-    let school_type = '';
-    let selected_level = [];
-    let selected_classes = [];
-    let password = '';
-    let confirm_password = '';
-    let groups = [];
-    let user_permissions = [];
+    // Données du formulaire
+    let formData = {
+        student_name: '',
+        student_lastname: '',
+        student_sexe: '',
+        student_address: '',
+        student_number: '',
+        email: '',
+        student_birthday_date: '',
+        school_type: '',
+        selected_level: [],
+        selected_classes: [],
+        password: '',
+        confirm_password: '',
+        groups: [],
+        user_permissions: []
+    };
 
+    // Niveaux scolaires
     let level_classes = {
         Ecole: ['12eme', '11eme', '10eme', '9eme', '8eme', '7eme'],
         College: ['6eme', '5eme', '4eme', '3eme'],
         Lycee: ['2nde', '1ere', 'Term'],
         Universite: ['L1', 'L2', 'L3', 'M1', 'M2']
-    }
+    };
 
-    let errorName = '';
-    let errorAddress = '';
-    let errorNumber = '';
-    let errorEmail = '';
-    let errorType = '';
-    let errorLevel = '';
-    let errorPassword = '';
-    let errorConfirmPassword = '';
+    // États du formulaire
+    let currentStep = 1;
+    let errors = {};
+    let isLoading = false;
 
-    let isDisabled = true;
-    let isDisabled2 = true;
-    let isDisabled3 = true;
+    // Validation des champs
+    const validateStep = (step) => {
+        errors = {};
+        let isValid = true;
 
-    /*$: isDisabled = !(student_name, address, student_number, email) || errorName || errorAddress || errorNumber || errorEmail 
-    $: isDisabled2 = !(school_type, selected_level) || errorType || errorLevel
-    $: isDisabled3 = !(password, confirm_password) || errorPassword || errorConfirmPassword*/
-
-    const validName = (name) => {
-        const inputValue = name.target.value;
-        const regex = /^[a-z A-Z]*$/;
-        if(!regex.test(inputValue)) {
-            errorName = 'Le nom ne doit pas contenir que de l\'alphabet';
-        }else if(inputValue.length < 4){
-            errorName = 'Le nom est trop court';
-        }else{
-            errorName = '';
+        if (step === 1) {
+            if (!formData.student_name.match(/^[a-z A-Z]*$/)) {
+                errors.student_name = 'Le nom ne doit contenir que des lettres';
+                isValid = false;
+            }
+            if (formData.student_name.length < 4) {
+                errors.student_name = 'Le nom est trop court';
+                isValid = false;
+            }
+            // Ajouter les autres validations pour le step 1...
+        } else if (step === 2) {
+            if (!formData.school_type) {
+                errors.school_type = 'Veuillez sélectionner un type';
+                isValid = false;
+            }
+            // Validations step 2...
+        } else if (step === 3) {
+            if (formData.password.length < 6) {
+                errors.password = 'Le mot de passe doit faire au moins 6 caractères';
+                isValid = false;
+            }
+            if (formData.password !== formData.confirm_password) {
+                errors.confirm_password = 'Les mots de passe ne correspondent pas';
+                isValid = false;
+            }
         }
-    }
 
-    const validAddress = (address) => {
-        const inputValue = address.target.value;
-        const regex = /^[a-z A-Z0-9]*$/;
-        if(!regex.test(inputValue)) {
-            errorAddress = 'L\'adresse n\'est pas correcte';
-        }else if(inputValue.length < 4){
-            errorAddress = 'L\'adresse est trop court';
-        }else{
-            errorAddress = '';
+        return isValid;
+    };
+
+    // Navigation dans les étapes
+    const nextStep = () => {
+        if (validateStep(currentStep)) {
+            currentStep++;
         }
-    }
+    };
 
-    const validNumber = (school_number) => {
-        const inputValue = school_number.target.value;
-        const regex = /^[0-9]*$/;
-        if(!regex.test(inputValue)) {
-            errorNumber = 'Le numéro n\'est pas correcte';
-        } else if (inputValue.length < 10) {
-            errorNumber = 'Le numéro n\'est pas suffisant';
-        } else if (inputValue.length > 10) {
-            errorNumber = 'Le numéro est trop long';
-        } else {
-            errorNumber = '';
-        }
-    }
+    const prevStep = () => {
+        currentStep--;
+    };
 
-    const validEmail = (email) => {
-        const inputValue = email.target.value;
-        const regex = /^[0-9a-zA-Z@.]*$/;
-        if(!regex.test(inputValue)) {
-            errorEmail = 'L\'email n\'est pas correcte';
-        } else if (inputValue.length < 1) {
-            errorEmail = 'L\'email ne doit pas être vide';
-        } else if (inputValue.length > 20) {
-            errorEmail = 'L\'email est trop long';
-        } else {
-            errorEmail = '';
-        }
-    }
-
-    const validType = (school_type) => {
-        const inputValue = school_type.target.value;
-        if(inputValue.length == 0){
-            errorType = 'Veuillez selectionner le type de l\'établissement';
-        } else {
-            errorType = '';
-        }
-    }
-
-    const validLevel = (selected_level) => {
-        if(selected_classes === null) {
-            errorLevel = 'Veuillez selectionnez le(s) niveau(x) scolaire(s)';
-        } else {
-            errorLevel = '';
-        }
-    }
-
-    const validPassword = (password) => {
-        const input = password.target.value
-        if(input.length === 0) {
-            errorPassword = 'Le mot de passe ne doit pas être vide';
-        } else if(input.length < 6) {
-            errorPassword = 'Le mot de passe est trop court';
-        } else {
-            errorPassword = '';
-        }
-    }
-
-    const validConfirmPassword = (confirm_password) => {
-        const inputValue = confirm_password.target.value
-        if(inputValue !== password) {
-            errorConfirmPassword = 'Les 2 mots de passes ne correspondent pas';
-        } else {
-            errorConfirmPassword = '';
-        }
-    }
-
-    let info1 = true;
-    let info2 = false;
-    let info3 = false;
-
-    const handleClick = () => {
-        info1 = false;
-        info2 = true;
-        info3 = false;
-    }
-
-    const handleClickBack = () => {
-        info1 = true;
-        info2 = false;
-        info3 = false;
-    }
-
-    const lastHandleClick = () => {
-        info1 = false;
-        info2 = false; 
-        info3 = true;
-    }
-
+    // Gestion des niveaux scolaires
     function toggle_level(level) {
-        if(selected_level.includes(level)) {
-            selected_level = selected_level.filter(item => item !== level);
+        if (formData.selected_level.includes(level)) {
+            formData.selected_level = formData.selected_level.filter(item => item !== level);
         } else {
-            selected_level.push(level);
+            formData.selected_level.push(level);
         }
         updateSelectedClasses();
     }
 
     function updateSelectedClasses() {
-        selected_classes = [];
-        selected_level.forEach(lev => {
-            selected_classes = [...selected_classes, ...level_classes[lev]]
-        })
-    }
-
-    async function fetchClasse(school_Name) {
-        const response = await fetch(`http://localhost:8000/school/schoolClasse/${school_Name}`);
-        const data = await response.json();
-        classes.set(data);
-    }
-
-    onMount(async () => {
-            const response = await fetch(`http://localhost:8000/school/schoolClasses/`);
-            const data = await response.json();
-            schoolName.set(data);
-    })
-
-    async function submitForm() {
-        if( password !== confirm_password ) {
-            error = 'Les mots de passes ne correspondent pas';
-            return;
-        }
-
-        const response = await fetch('http://localhost:8000/school/schoolRegistration/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ 
-                password: password,
-                confirm_password: confirm_password,
-                email: email,
-                username: name,
-                school_name: name,
-                address: address,
-                school_number: school_number,
-                school_type: school_type,
-                school_level: selected_level,
-                school_classes: selected_classes,
-                groups: groups,
-                user_permissions: user_permissions,
-             }),
+        formData.selected_classes = [];
+        formData.selected_level.forEach(lev => {
+            formData.selected_classes = [...formData.selected_classes, ...level_classes[lev]];
         });
+    }
 
-        const data = await response.json();
-        alert('Inscription terminé avec succès!');
-        goto('/login');
-
-        if(response.ok) {
-            console.log(data);
-        }else{
-            console.error(data);
+    // Soumission du formulaire
+    async function submitForm() {
+        if (!validateStep(3)) return;
+        
+        isLoading = true;
+        
+        try {
+            // Utilisation du service API centralisé
+            const response = await api.auth.signup({
+                ...formData,
+                role: 'STUDENT' // Définition du rôle étudiant
+            });
+            
+            goto('/login');
+        } catch (error) {
+            console.error("erreur: ", error);
+        } finally {
+            isLoading = false;
         }
     }
+
+    // Chargement initial
+    onMount(async () => {
+        try {
+            const data = await api.schools.list();
+            schoolName.set(data);
+        } catch (error) {
+            console.error("erreur: ", error);
+        }
+    });
 </script>
 
 <div class="body">
@@ -226,29 +136,30 @@
             <img src="/icons/logo.png" alt="">
             <h1>Créer un compte</h1>
             <p>Inscrivez-vous en tant qu'étudiant</p>
-            <form>
-                {#if info1}
+            
+            <form on:submit|preventDefault={submitForm}>
+                <!-- Étape 1: Informations personnelles -->
+                {#if currentStep === 1}
                     <div class="two">
                         <div class="name">
                             <label for="">Nom :</label>
-                            <input type="text" name="" id="" placeholder="Entrer le votre nom" bind:value={student_name} on:input={validName}>
-                            {#if errorName}
-                                <span class="error">{errorName}</span>
+                            <input type="text" placeholder="Entrer votre nom" 
+                                   bind:value={formData.student_name}>
+                            {#if errors.student_name}
+                                <span class="error">{errors.student_name}</span>
                             {/if}
                         </div>
                         
                         <div class="name">
                             <label for="">Prénom :</label>
-                            <input type="text" name="" id="" placeholder="Entrer votre prénom" bind:value={student_lastname} on:input={validAddress}>
-                            {#if errorAddress}
-                                <span class="error">{errorAddress}</span>
-                            {/if}
+                            <input type="text" placeholder="Entrer votre prénom" 
+                                   bind:value={formData.student_lastname}>
                         </div>
                     </div>
 
                     <div class="one">
                         <label for="">Sexe :</label>
-                        <select name="" id="" bind:value={student_sexe}>
+                        <select bind:value={formData.student_sexe}>
                             <option value="" disabled>Selectionnez votre sexe</option>
                             <option value="Male">Garçon</option>
                             <option value="Female">Fille</option>
@@ -257,112 +168,89 @@
                     
                     <div class="one">
                         <label for="">Date de naissance :</label>
-                        <input type="date" name="" id="" bind:value={student_birthday_date}>
+                        <input type="date" bind:value={formData.student_birthday_date}>
                     </div>
 
                     <div class="two">
                         <div class="name">
-                            <label for="">Numéro :</label>
-                            <input type="text" name="" id="" placeholder="Entrer le numéro du mobile de l'établissement" bind:value={student_number} on:input={validNumber}>
-                            {#if errorNumber}
-                                <span class="error">{errorNumber}</span>
-                            {/if}       
+                            <label for="">Téléphone :</label>
+                            <input type="text" placeholder="Votre numéro" 
+                                   bind:value={formData.student_number}>
                         </div> 
 
                         <div class="name">
                             <label for="">Email :</label>
-                            <input type="email" name="" id="" placeholder="Entrer l'adresse email de l'établissement" bind:value={email} on:input={validEmail}>
-                            {#if errorEmail}
-                                <span class="error">{errorEmail}</span>
-                            {/if} 
+                            <input type="email" placeholder="Votre email" 
+                                   bind:value={formData.email}>
+                            {#if errors.email}
+                                <span class="error">{errors.email}</span>
+                            {/if}
                         </div>
                     </div>
 
-                {:else if info2}
                     <div class="one">
-                        <label for="">Nom de l'établissement :</label>
-                        <select name="" id="">
-                            <option value="" disabled>Selectionnez le nom de l'établissement</option>
-                            {#if $schoolName.length > 0}
-                                {#each $schoolName as schoolname}
-                                    <option value={schoolname.school_name} on:click={fetchClasse(schoolname.school_name)}>{schoolname.school_name}</option>
-                                {/each}
-                            {/if}
+                        <button type="button" on:click={nextStep}>Suivant</button>
+                    </div>
+
+                <!-- Étape 2: Informations scolaires -->
+                {:else if currentStep === 2}
+                    <div class="one">
+                        <label for="">Établissement :</label>
+                        <select>
+                            <option value="" disabled>Selectionnez votre établissement</option>
+                            {#each $schoolName as school}
+                                <option value={school.id}>{school.school_name}</option>
+                            {/each}
                         </select>
                     </div>
-                    <hr>
+
                     <div class="one">
-                        <label for="">Classe :</label>
-                        <select name="" id="">
-                            <option value="" disabled>Selectionnez votre classe</option>
-                            {#if $classes.length > 0}
-                                {#each $classes as classe}
-                                    <option value="">{classe.school_classes}</option>                                    
-                                {/each}
-                            {:else}
-                                <option value="">5eme</option>
-                            {/if}
-                        </select>
-                    </div><hr>
-                    
-                    <div class="two">
-                        <div class="name">
-                            <label for="">Date d'inscription :</label>
-                            <input type="date" name="" id="">
-                        </div>
-                        <div class="name">
-                            <label for="">Numéro d'inscription :</label>
-                            <input type="number" name="" id="" placeholder="Entrer votre numéro d'inscription">
-                        </div>
+                        <label>Niveaux :</label>
+                        {#each Object.keys(level_classes) as level}
+                            <label>
+                                <input type="checkbox" 
+                                       on:change={() => toggle_level(level)}
+                                       checked={formData.selected_level.includes(level)}>
+                                {level}
+                            </label>
+                        {/each}
                     </div>
 
-                {/if} 
-                {#if info3}
-                    <div class="one">
-                            <label for="">Mot de passe :</label>
-                            <input type="password" name="" id="" placeholder="Entrer le mot de passe de l'établissement" bind:value={password} on:input={validPassword}>
-                            {#if errorPassword}
-                                <span class="error">{errorPassword}</span>
-                            {/if}
-                    </div>
-                    <div class="one">
-                            <label for="">Confirmer mot de passe :</label>
-                            <input type="password" name="" id="" placeholder="Entrer à nouveau le mot de passe de l'établissement" bind:value={confirm_password} on:input={validConfirmPassword}>
-                            {#if errorConfirmPassword}
-                                <span class="error">{errorConfirmPassword}</span>
-                            {/if}
-                    </div>
-                    <div class="one" id="forCondition">
-                        <label for="" id="condition">
-                            <input type="checkbox" name="" id="">
-                            En cochant cette case, vous acceptez notre condition d'utilisation
-                        </label>
-                    </div>
-                {/if}
-
-                {#if info1}
-                    <div class="one">
-                        <!-- <button on:click={handleClick} disabled={isDisabled}>Suivant</button> -->
-                        <button on:click={handleClick}>Suivant</button>
-                    </div>    
-                {:else if info2}
                     <div class="two">
-                        <button id="back" on:click={handleClickBack}>Retour</button>
-                        <button on:click={lastHandleClick}>Suivant</button>
-                    </div>                
+                        <button type="button" id="back" on:click={prevStep}>Retour</button>
+                        <button type="button" on:click={nextStep}>Suivant</button>
+                    </div>
+
+                <!-- Étape 3: Mot de passe -->
                 {:else}
+                    <div class="one">
+                        <label for="">Mot de passe :</label>
+                        <input type="password" placeholder="Créez un mot de passe" 
+                               bind:value={formData.password}>
+                        {#if errors.password}
+                            <span class="error">{errors.password}</span>
+                        {/if}
+                    </div>
+
+                    <div class="one">
+                        <label for="">Confirmation :</label>
+                        <input type="password" placeholder="Confirmez le mot de passe" 
+                               bind:value={formData.confirm_password}>
+                        {#if errors.confirm_password}
+                            <span class="error">{errors.confirm_password}</span>
+                        {/if}
+                    </div>
+
                     <div class="two">
-                        <button id="back" on:click={handleClick}>Retour</button>
-                        <button type="submit" on:click={submitForm} disabled={isDisabled3}>S'inscrire</button>
-                    </div>      
+                        <button type="button" id="back" on:click={prevStep}>Retour</button>
+                        <button type="submit" disabled={isLoading}>
+                            {isLoading ? 'En cours...' : 'S\'inscrire'}
+                        </button>
+                    </div>
                 {/if}
-
-                <!-- <div class="one">
-                    <button type="submit">Créer</button>
-                </div> -->
-
             </form>
-            <p>Avez-vous déjà un compte ? <a href="/login/school">Se connecter</a></p>
+
+            <p>Avez-vous déjà un compte ? <a href="/login">Se connecter</a></p>
         </div>
     </div>
 </div>

@@ -1,5 +1,5 @@
 <script>
-    import { api } from '../../api.js';
+    import { api } from '$lib/api.js';
 
     let email = '';
     let password = '';
@@ -11,8 +11,8 @@
             sessionStorage.setItem('access_token', access);
             window.location.href = '/student/home';
         } catch (error) {
-            console.error('Erreur : ' + error.message);
-            errorMess = error.message;
+            console.error('Erreur : ', error);
+            errorMess = error?.response?.data?.message || 'Une erreur est survenue. Veuillez réessayer.';
         }
     }
 </script>
@@ -67,6 +67,9 @@ a{
 
 span{
     color: rgb(255, 74, 74); 
+    font-weight: bold;
+    display: block;
+    margin-top: 10px;
 }
 
 .container {
