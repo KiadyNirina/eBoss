@@ -8,23 +8,24 @@
 		"preview": "vite preview"
 	},
 	"devDependencies": {
-		"@sveltejs/adapter-auto": "^3.0.0",
-		"@sveltejs/kit": "^2.0.0",
-		"@sveltejs/vite-plugin-svelte": "^3.0.0",
-		"svelte": "^4.2.7",
-		"vite": "^5.0.3"
+		"@sveltejs/adapter-auto": "^6.0.1",
+		"@sveltejs/kit": "^2.26.1",
+		"@sveltejs/vite-plugin-svelte": "^6.1.0",
+		"svelte": "^5.36.17",
+		"vite": "^7.0.6"
 	},
 	"type": "module",
 	"dependencies": {
-		"chart.js": "^4.4.3",
-		"framework7-svelte": "^8.3.3",
-		"fullcalendar": "^6.1.13",
-		"html2pdf.js": "^0.10.2",
+		"@iconify/svelte": "^5.0.1",
+		"chart.js": "^4.5.0",
+		"framework7-svelte": "^8.3.4",
+		"fullcalendar": "^6.1.18",
+		"html2pdf.js": "^0.10.3",
 		"skeleton-elements": "^4.0.1",
 		"svelte-calendars": "^0.6.0",
 		"svelte-chartjs": "^3.1.5",
 		"svelte-fullcalendar": "^3.0.0",
 		"svelte-routing": "^2.13.0",
-		"ws": "^8.18.0"
+		"ws": "^8.18.3"
 	}
 }
