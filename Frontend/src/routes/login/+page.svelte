@@ -1,193 +1,179 @@
 <script>
-    /*import { createEventDispatcher } from "svelte";
-    import { login, getUserProfile } from '../../lib/auth';
-    import { goto } from '$app/navigation'
-    import { userProfile } from "../../stores/auth";
+  import Icon from '@iconify/svelte';
+  import { fade } from 'svelte/transition';
+  import { api } from '$lib/api.js';
+  
+  let activeTab = 'etablissement';
+  let email = '';
+  let password = '';
+  let rememberMe = false;
+  let isLoading = false;
+  let errorMessage = '';
+  
+  const userTypes = [
+    { id: 'etablissement', label: 'Établissement', icon: 'heroicons:building-office-2' },
+    { id: 'professeur', label: 'Professeur', icon: 'heroicons:academic-cap' },
+    { id: 'eleve', label: 'Élève', icon: 'heroicons:user' },
+    { id: 'parent', label: 'Parent', icon: 'heroicons:users' }
+  ];
+  
+  async function handleLogin() {
+    if (!email || !password) {
+      errorMessage = 'Veuillez remplir tous les champs';
+      return;
+    }
+    
+    isLoading = true;
+    errorMessage = '';
 
-    let email = '';
-    let password = '';
-    let errorMess = '';*/
-
+    try {
+        const { access } = await api.auth.login({ email, password });
+        sessionStorage.setItem('access_token', access);
+        window.location.href = '/student/home';
+    } catch (error) {
+        console.error('Erreur : ', error);
+        errorMessage = error?.response?.data?.message || 'Une erreur est survenue. Veuillez réessayer.';
+    } finally {
+      isLoading = false;
+    }
+  }
 </script>
 
-<div class="body">
-        <div class="container">
-            <div class="login-section">
-                <img src="/icons/logo.png" alt="">
-                <h1>Connexion</h1>
-                <p>Bienvenue sur eBoss! 👋</p>
+<div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+  <div class="sm:mx-auto sm:w-full sm:max-w-md">
+    <Icon icon="fluent:school-24-filled" class="mx-auto h-12 w-12 text-indigo-600" />
+    <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+      Connectez-vous à votre compte
+    </h2>
+    <p class="mt-2 text-center text-sm text-gray-600">
+      Sélectionnez votre profil pour continuer
+    </p>
+  </div>
 
-                <ul>Se connecter en tant que :
-                    <hr>
-                    <a href="/login/school"><li>Etablissement</li></a>
-                    <a href="/login/student"><li>Etudiant</li></a>
-                    <a href="/login/teacher"><li>Professeur</li></a>
-                    <a href="/login/parent"><li>Parent</li></a>
-                </ul>
-                <a id="cancel" href="/"><button>Retour</button></a>
-            </div>
-            <div class="promo-section">
-                <h2>Platform pour les établissements scolaires</h2>
-            </div>
+  <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+    <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+      <!-- Sélecteur de type d'utilisateur -->
+      <div class="mb-6">
+        <div class="flex space-x-0 overflow-x-auto pb-2">
+          {#each userTypes as type}
+            <button
+              on:click={() => activeTab = type.id}
+              class={`px-4 py-2 rounded-md flex items-center space-x-2 whitespace-nowrap ${activeTab === type.id ? 'bg-indigo-100 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'}`}
+            >
+              <Icon icon={type.icon} class="h-5 w-5" />
+              <span>{type.label}</span>
+            </button>
+          {/each}
         </div>
-    <footer>
-        <p>© copyright 2024</p>
-    </footer>
+      </div>
+      
+      <!-- Formulaire de connexion -->
+      {#if errorMessage}
+        <div transition:fade class="mb-4 bg-red-50 border-l-4 border-red-400 p-4">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <Icon icon="heroicons:exclamation-circle" class="h-5 w-5 text-red-400" />
+            </div>
+            <div class="ml-3">
+              <p class="text-sm text-red-700">{errorMessage}</p>
+            </div>
+          </div>
+        </div>
+      {/if}
+      
+      <form class="space-y-6" on:submit|preventDefault={handleLogin}>
+        <div>
+          <label for="email" class="block text-sm font-medium text-gray-700">
+            Adresse email
+          </label>
+          <div class="mt-1">
+            <input
+              id="email"
+              name="email"
+              type="email"
+              autocomplete="email"
+              bind:value={email}
+              required
+              class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label for="password" class="block text-sm font-medium text-gray-700">
+            Mot de passe
+          </label>
+          <div class="mt-1">
+            <input
+              id="password"
+              name="password"
+              type="password"
+              autocomplete="current-password"
+              bind:value={password}
+              required
+              class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+            />
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between">
+          <div class="flex items-center">
+            <input
+              id="remember-me"
+              name="remember-me"
+              type="checkbox"
+              bind:checked={rememberMe}
+              class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+            />
+            <label for="remember-me" class="ml-2 block text-sm text-gray-900">
+              Se souvenir de moi
+            </label>
+          </div>
+
+          <div class="text-sm">
+            <a href="/forgot-password" class="font-medium text-indigo-600 hover:text-indigo-500">
+              Mot de passe oublié ?
+            </a>
+          </div>
+        </div>
+
+        <div>
+          <button
+            type="submit"
+            disabled={isLoading}
+            class={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+          >
+            {#if isLoading}
+              <Icon icon="heroicons:arrow-path" class="animate-spin h-5 w-5 mr-2" />
+              Connexion en cours...
+            {:else}
+              Se connecter
+            {/if}
+          </button>
+        </div>
+      </form>
+
+      <div class="mt-6">
+        <div class="relative">
+          <div class="absolute inset-0 flex items-center">
+            <div class="w-full border-t border-gray-300"></div>
+          </div>
+          <div class="relative flex justify-center text-sm">
+            <span class="px-2 bg-white text-gray-500">
+              Pas encore de compte ?
+            </span>
+          </div>
+        </div>
+
+        <div class="mt-6">
+          <a
+            href="/signup"
+            class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+          >
+            S'inscrire
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
 </div>
-
-<style>
-
-.body{
-    padding: 2% 10%;
-    font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
-}
-
-a{
-    color: #007bff;
-    text-decoration: none;
-}
-
-.container {
-    display: flex;
-    box-shadow: 0 0 20px rgba(0, 0, 0, 0.605);
-    border-radius: 8px;
-    overflow: hidden;
-    max-width: 1000px;
-    width: 100%;
-    margin: auto;
-}
-
-.promo-section {
-    padding: 40px;
-    flex: 1;
-}
-
-.login-section {
-    background-color: #005358;
-    flex: 1;
-    padding: 50px;
-    text-align: center;
-    color: white;
-}
-
-.login-section h1 {
-    margin: 0;
-    font-size: 1.7em;
-    color: white;
-}
-
-.login-section p {
-    margin: 10px 0;
-    color: white;
-}
-
-.login-section img{
-    height: 70px;
-}
-
-.login-section a{
-    text-decoration: none;
-    color: white;
-}
-
-.login-section ul{
-    padding: 10px 0;
-    border: 1px solid rgba(255, 255, 255, 0.365);
-    border-radius: 5px;
-}
-
-.login-section li{
-    padding: 10px;
-    list-style: none;
-}
-
-hr{
-    border : 1px solid rgba(255, 255, 255, 0.365);
-}
-
-.login-section li:hover{
-    background-color: #003b3e;
-}
-
-.login-form {
-    display: flex;
-    flex-direction: column;
-}
-
-.login-form input[type="email"], .login-form input[type="password"] {
-    padding: 10px;
-    margin-bottom: 20px;
-    border: 1px solid rgba(255, 255, 255, 0.175);
-    background: transparent;
-    border-radius: 5px;
-    font-size: 1em;
-    color: white;
-}
-
-.login-form button {
-    background-color: #007bff;
-    color: #fff;
-    padding: 10px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 1em;
-}
-
-.options {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: 10px;
-}
-
-.options label {
-    color: white;
-    font-size: 12px;
-}
-
-.options a {
-    font-size: 12px;
-}
-
-.promo-section{
-    background: url('/img/school.jfif');
-    background-repeat: no-repeat;
-    background-size: cover;
-}
-
-.promo-section h2 {
-    margin: 0;
-    font-size: 1.5em;
-    color: #333;
-}
-
-.promo-section a {
-    display: block;
-    margin: 20px 0;
-    font-size: 12px;
-}
-
-footer {
-    margin-top: 20px;
-    width: 100%;
-    text-align: center;
-    font-size: 0.8em;
-    color: #666;
-}
-
-#cancel button{
-    width: 100%;
-    padding: 10px;
-    border: none;
-    border-radius: 5px;
-    background-color: #007bff;
-    color: white;
-}
-
-#cancel button:hover{
-    background-color: #0054af;
-    cursor: pointer;
-}
-
-</style>
