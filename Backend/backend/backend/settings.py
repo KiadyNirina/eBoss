@@ -104,7 +104,7 @@ DATABASES = {
     #     'HOST': '/opt/lampp/var/mysql/mysql.sock',
         'NAME': 'eboss',
         'USER': 'root',
-        'PASSWORD': '',
+        'PASSWORD': 'root',
         'HOST': 'localhost',
         'PORT': 3306,
     }
