@@ -1,5 +1,12 @@
 <script>
   import Icon from '@iconify/svelte';
+  import { authApi } from '$lib/api';
+  import { 
+    getEtablissementFormData,
+    getProfesseurFormData,
+    getEleveFormData,
+    getParentFormData 
+  } from '$lib/formData';
   
   let activeTab = 'etablissement';
   let isLoading = false;
@@ -68,106 +75,43 @@
     
     try {
         let formData;
-        let endpoint;
+        let apiMethod;
         
         switch (activeTab) {
             case 'etablissement':
                 if (etablissementData.password !== etablissementData.confirmPassword) {
                     throw new Error('Les mots de passe ne correspondent pas');
                 }
-                formData = {
-                    user: {
-                        email: etablissementData.email,
-                        password: etablissementData.password,
-                        confirm_password: etablissementData.confirmPassword,
-                        first_name: etablissementData.nom.split(' ')[0] || '',
-                        last_name: etablissementData.nom.split(' ').slice(1).join(' ') || '',
-                        telephone: etablissementData.telephone,
-                        user_type: 'etablissement'
-                    },
-                    nom: etablissementData.nom,
-                    type_etablissement: etablissementData.typeEtablissement,
-                    adresse: etablissementData.adresse
-                };
-                endpoint = '/school/register/etablissement/';
+                formData = getEtablissementFormData(etablissementData);
+                apiMethod = authApi.registerEtablissement;
                 break;
-                
+          
             case 'professeur':
                 if (professeurData.password !== professeurData.confirmPassword) {
                     throw new Error('Les mots de passe ne correspondent pas');
                 }
-                formData = {
-                    user: {
-                        email: professeurData.email,
-                        password: professeurData.password,
-                        confirm_password: professeurData.confirmPassword,
-                        first_name: professeurData.prenom,
-                        last_name: professeurData.nom,
-                        telephone: professeurData.telephone,
-                        user_type: 'professeur'
-                    },
-                    matiere: professeurData.matiere,
-                    etablissement: professeurData.etablissement // Ici vous devriez utiliser l'ID de l'établissement
-                };
-                endpoint = '/school/register/professeur/';
+                formData = getProfesseurFormData(professeurData);
+                apiMethod = authApi.registerProfesseur;
                 break;
-                
+
             case 'eleve':
                 if (eleveData.password !== eleveData.confirmPassword) {
                     throw new Error('Les mots de passe ne correspondent pas');
                 }
-                formData = {
-                    user: {
-                        email: eleveData.email,
-                        password: eleveData.password,
-                        confirm_password: eleveData.confirmPassword,
-                        first_name: eleveData.prenom,
-                        last_name: eleveData.nom,
-                        user_type: 'eleve'
-                    },
-                    classe: eleveData.classe,
-                    etablissement: eleveData.etablissement
-                };
-                endpoint = '/school/register/eleve/';
+                formData = getEleveFormData(eleveData);
+                apiMethod = authApi.registerEleve;
                 break;
-                
+
             case 'parent':
                 if (parentData.password !== parentData.confirmPassword) {
                     throw new Error('Les mots de passe ne correspondent pas');
                 }
-                formData = {
-                    user: {
-                        email: parentData.email,
-                        password: parentData.password,
-                        confirm_password: parentData.confirmPassword,
-                        first_name: parentData.prenom,
-                        last_name: parentData.nom,
-                        telephone: parentData.telephone,
-                        user_type: 'parent'
-                    },
-                    enfants_text: parentData.enfants.join(', ')
-                };
-                endpoint = '/school/register/parent/';
+                formData = getParentFormData(parentData);
+                apiMethod = authApi.registerParent;
                 break;
         }
-        console.log('Form data:', formData);
-        const response = await fetch('http://127.0.0.1:8000' + endpoint, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': getCookie('csrftoken'),
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            credentials: 'include', 
-            body: JSON.stringify(formData)
-        });
         
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || "Une erreur s'est produite lors de l'inscription");
-        }
-        
-        // Redirection après inscription réussie
+        await apiMethod(formData);
         window.location.href = '/dashboard';
         
     } catch (error) {
@@ -175,22 +119,6 @@
     } finally {
         isLoading = false;
     }
-  }
-
-  // Fonction utilitaire pour récupérer le cookie CSRF
-  function getCookie(name) {
-      let cookieValue = null;
-      if (document.cookie && document.cookie !== '') {
-          const cookies = document.cookie.split(';');
-          for (let i = 0; i < cookies.length; i++) {
-              const cookie = cookies[i].trim();
-              if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                  cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                  break;
-              }
-          }
-      }
-      return cookieValue;
   }
 </script>
 
