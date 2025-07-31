@@ -159,13 +159,6 @@
         </div>
       {/each}
     </div>
-
-    <div class="mt-16 text-center">
-      <a href="#pricing" class="inline-flex items-center px-6 py-3 border border-transparent text-base font-medium rounded-full shadow-sm text-white bg-green-600 hover:bg-green-700 transition-colors duration-200">
-        Voir tous les modules
-        <Icon icon="mdi:chevron-double-down" class="ml-2" />
-      </a>
-    </div>
   </div>
 
   <!-- Modal -->
