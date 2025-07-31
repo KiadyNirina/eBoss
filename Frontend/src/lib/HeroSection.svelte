@@ -41,7 +41,7 @@
         </div>
         <div class="flex items-center">
           <Icon icon="mdi:account-group" class="text-emerald-500 mr-2" />
-          <span>500+ établissements</span>
+          <span>10+ établissements</span>
         </div>
       </div>
     </div>

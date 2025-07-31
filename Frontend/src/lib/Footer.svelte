@@ -69,7 +69,7 @@
             <h3 class="text-sm font-semibold text-gray-300 tracking-wider uppercase">
               {link.title}
             </h3>
-            <ul class="mt-4 space-y-3">
+            <ul class="mt-4 space-y-1">
               {#each link.items as item}
                 <li>
                   <a href={item.href} class="text-sm text-gray-400 hover:text-white">
