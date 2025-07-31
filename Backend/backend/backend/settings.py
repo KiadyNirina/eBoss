@@ -40,15 +40,15 @@ ALLOWED_HOSTS = []
 
 INSTALLED_APPS = [
     'django.contrib.admin',
+    'base.apps.BaseConfig',
     'django.contrib.auth',
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'rest_framework',
     'rest_framework_simplejwt',
-    'corsheaders',
-    'base',
     'channels',
 ]
 
@@ -64,9 +64,9 @@ CHANNEL_LAYERS = {
 }
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
-    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -107,6 +107,9 @@ DATABASES = {
         'PASSWORD': 'root',
         'HOST': 'localhost',
         'PORT': 3306,
+        'OPTIONS': {
+            'init_command': "SET foreign_key_checks = 0;",
+        }
     }
     # 'default': {
     #     'ENGINE': 'django.db.backends.postgresql',
@@ -147,7 +150,7 @@ REST_FRAMEWORK = {
         ),
 }
 
-AUTH_USER_MODEL = 'base.CustomUser'
+AUTH_USER_MODEL = 'base.User'
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
@@ -177,6 +180,8 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
 
 CORS_ALLOWED_ORIGINS = ['http://127.0.0.1:5173', 'http://localhost:5173']
+CORS_ALLOW_ALL_ORIGINS = True  # Pour le développement seulement!
+CORS_ALLOW_CREDENTIALS = True
 
 # LOGGING = {
 #     'version': 1,
