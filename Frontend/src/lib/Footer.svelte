@@ -41,14 +41,14 @@
 </script>
 
 <footer class="bg-gray-800">
-  <div class="max-w-7xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+  <div class="max-w-7xl mx-auto py-10 px-4 sm:px-6 lg:px-8">
     <div class="xl:grid xl:grid-cols-3 xl:gap-8">
       <div class="space-y-8 xl:col-span-1">
         <div class="flex items-center">
           <img src="/icons/logo.png" class="h-8 w-8" alt="">
           <span class="ml-2 text-xl font-bold text-white">eBoss</span>
         </div>
-        <p class="text-gray-300 text-base">
+        <p class="text-gray-300 text-sm">
           La plateforme de gestion scolaire moderne pour les établissements d'enseignement.
         </p>
         <div class="flex space-x-6">
@@ -72,7 +72,7 @@
             <ul class="mt-4 space-y-3">
               {#each link.items as item}
                 <li>
-                  <a href={item.href} class="text-base text-gray-400 hover:text-white">
+                  <a href={item.href} class="text-sm text-gray-400 hover:text-white">
                     {item.name}
                   </a>
                 </li>
