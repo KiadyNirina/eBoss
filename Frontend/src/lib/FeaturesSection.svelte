@@ -48,7 +48,7 @@
 <section id="features" class="py-12 bg-gray-50">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="lg:text-center">
-      <h2 class="text-base text-indigo-600 font-semibold tracking-wide uppercase">Fonctionnalités</h2>
+      <h2 class="text-base text-green-600 font-semibold tracking-wide uppercase">Fonctionnalités</h2>
       <p class="mt-2 text-3xl leading-8 font-extrabold tracking-tight text-gray-900 sm:text-4xl">
         Tout ce dont votre établissement a besoin
       </p>
@@ -60,9 +60,9 @@
     <div class="mt-10">
       <div class="grid grid-cols-1 gap-10 sm:grid-cols-2 lg:grid-cols-4">
         {#each features as feature}
-          <div class="group relative bg-white p-6 focus-within:ring-2 focus-within:ring-indigo-500 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+          <div class="group relative bg-white p-6 focus-within:ring-2 focus-within:ring-green-500 rounded-lg shadow-sm hover:shadow-md transition-shadow">
             <div>
-              <span class="rounded-lg inline-flex p-3 bg-indigo-50 text-indigo-700 ring-4 ring-white">
+              <span class="rounded-lg inline-flex p-3 bg-green-50 text-green-700 ring-4 ring-white">
                 <Icon icon={feature.icon} class="h-6 w-6" />
               </span>
             </div>
