@@ -1,5 +1,12 @@
 <script>
   import Icon from '@iconify/svelte';
+  import { authApi } from '$lib/api';
+  import { 
+    getEtablissementFormData,
+    getProfesseurFormData,
+    getEleveFormData,
+    getParentFormData 
+  } from '$lib/formData';
   
   let activeTab = 'etablissement';
   let isLoading = false;
@@ -67,49 +74,59 @@
     errorMessage = '';
     
     try {
-      let formData;
-      
-      switch (activeTab) {
-        case 'etablissement':
-          if (etablissementData.password !== etablissementData.confirmPassword) {
-            throw new Error('Les mots de passe ne correspondent pas');
-          }
-          formData = etablissementData;
-          break;
-        case 'professeur':
-          if (professeurData.password !== professeurData.confirmPassword) {
-            throw new Error('Les mots de passe ne correspondent pas');
-          }
-          formData = professeurData;
-          break;
-        case 'eleve':
-          if (eleveData.password !== eleveData.confirmPassword) {
-            throw new Error('Les mots de passe ne correspondent pas');
-          }
-          formData = eleveData;
-          break;
-        case 'parent':
-          if (parentData.password !== parentData.confirmPassword) {
-            throw new Error('Les mots de passe ne correspondent pas');
-          }
-          formData = parentData;
-          break;
-      }
-      
-      // Ici vous ajouteriez votre logique d'inscription
-      // await registerUser(formData, activeTab);
-      // redirectToDashboard();
+        let formData;
+        let apiMethod;
+        
+        switch (activeTab) {
+            case 'etablissement':
+                if (etablissementData.password !== etablissementData.confirmPassword) {
+                    throw new Error('Les mots de passe ne correspondent pas');
+                }
+                formData = getEtablissementFormData(etablissementData);
+                apiMethod = authApi.registerEtablissement;
+                break;
+          
+            case 'professeur':
+                if (professeurData.password !== professeurData.confirmPassword) {
+                    throw new Error('Les mots de passe ne correspondent pas');
+                }
+                formData = getProfesseurFormData(professeurData);
+                apiMethod = authApi.registerProfesseur;
+                break;
+
+            case 'eleve':
+                if (eleveData.password !== eleveData.confirmPassword) {
+                    throw new Error('Les mots de passe ne correspondent pas');
+                }
+                formData = getEleveFormData(eleveData);
+                apiMethod = authApi.registerEleve;
+                break;
+
+            case 'parent':
+                if (parentData.password !== parentData.confirmPassword) {
+                    throw new Error('Les mots de passe ne correspondent pas');
+                }
+                formData = getParentFormData(parentData);
+                apiMethod = authApi.registerParent;
+                break;
+        }
+        
+        await apiMethod(formData);
+        window.location.href = '/dashboard';
+        
     } catch (error) {
-      errorMessage = error.message || "Une erreur s'est produite lors de l'inscription";
+        errorMessage = error.message || "Une erreur s'est produite lors de l'inscription";
     } finally {
-      isLoading = false;
+        isLoading = false;
     }
   }
 </script>
 
 <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
   <div class="sm:mx-auto sm:w-full sm:max-w-md">
-    <Icon icon="fluent:school-24-filled" class="mx-auto h-12 w-12 text-indigo-600" />
+    <a href="/" class="flex h-12 w-12 mx-auto">
+      <img src="/icons/logo.png" class="h-12 w-12" alt="Logo">
+    </a>
     <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
       Créez votre compte
     </h2>
@@ -126,7 +143,7 @@
           {#each userTypes as type}
             <button
               on:click={() => activeTab = type.id}
-              class={`px-4 py-2 rounded-md flex items-center space-x-2 whitespace-nowrap ${activeTab === type.id ? 'bg-indigo-100 text-indigo-700' : 'text-gray-600 hover:bg-gray-100'}`}
+              class={`px-4 py-2 rounded-md flex items-center space-x-2 whitespace-nowrap ${activeTab === type.id ? 'bg-green-100 text-green-700' : 'text-gray-600 hover:bg-gray-100'}`}
             >
               <Icon icon={type.icon} class="h-5 w-5" />
               <span>{type.label}</span>
@@ -159,7 +176,7 @@
                 type="text"
                 bind:value={etablissementData.nom}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
             
@@ -169,7 +186,7 @@
                 id="etab-type"
                 bind:value={etablissementData.typeEtablissement}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               >
                 <option value="">Sélectionnez...</option>
                 <option value="ecole">École primaire</option>
@@ -186,7 +203,7 @@
                 type="email"
                 bind:value={etablissementData.email}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
             
@@ -197,7 +214,7 @@
                 type="tel"
                 bind:value={etablissementData.telephone}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
             
@@ -208,7 +225,7 @@
                 type="text"
                 bind:value={etablissementData.adresse}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
             
@@ -219,7 +236,7 @@
                 type="password"
                 bind:value={etablissementData.password}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
             
@@ -230,7 +247,7 @@
                 type="password"
                 bind:value={etablissementData.confirmPassword}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
           </div>
@@ -239,7 +256,7 @@
             <button
               type="submit"
               disabled={isLoading}
-              class={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              class={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
               {#if isLoading}
                 <Icon icon="heroicons:arrow-path" class="animate-spin h-5 w-5 mr-2" />
@@ -262,7 +279,7 @@
                 type="text"
                 bind:value={professeurData.nom}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
             
@@ -273,7 +290,7 @@
                 type="text"
                 bind:value={professeurData.prenom}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
             
@@ -284,7 +301,7 @@
                 type="email"
                 bind:value={professeurData.email}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
             
@@ -294,7 +311,7 @@
                 id="prof-telephone"
                 type="tel"
                 bind:value={professeurData.telephone}
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
             
@@ -305,7 +322,7 @@
                 type="text"
                 bind:value={professeurData.matiere}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
             
@@ -316,7 +333,7 @@
                 type="text"
                 bind:value={professeurData.etablissement}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
             
@@ -327,7 +344,7 @@
                 type="password"
                 bind:value={professeurData.password}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
             
@@ -338,7 +355,7 @@
                 type="password"
                 bind:value={professeurData.confirmPassword}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
           </div>
@@ -347,7 +364,7 @@
             <button
               type="submit"
               disabled={isLoading}
-              class={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              class={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
               {#if isLoading}
                 <Icon icon="heroicons:arrow-path" class="animate-spin h-5 w-5 mr-2" />
@@ -370,7 +387,7 @@
                 type="text"
                 bind:value={eleveData.nom}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
             
@@ -381,7 +398,7 @@
                 type="text"
                 bind:value={eleveData.prenom}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
             
@@ -392,7 +409,7 @@
                 type="email"
                 bind:value={eleveData.email}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
             
@@ -403,7 +420,7 @@
                 type="text"
                 bind:value={eleveData.classe}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
             
@@ -414,7 +431,7 @@
                 type="text"
                 bind:value={eleveData.etablissement}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
             
@@ -425,7 +442,7 @@
                 type="password"
                 bind:value={eleveData.password}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
             
@@ -436,7 +453,7 @@
                 type="password"
                 bind:value={eleveData.confirmPassword}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
           </div>
@@ -445,7 +462,7 @@
             <button
               type="submit"
               disabled={isLoading}
-              class={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              class={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
               {#if isLoading}
                 <Icon icon="heroicons:arrow-path" class="animate-spin h-5 w-5 mr-2" />
@@ -468,7 +485,7 @@
                 type="text"
                 bind:value={parentData.nom}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
             
@@ -479,7 +496,7 @@
                 type="text"
                 bind:value={parentData.prenom}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
             
@@ -490,7 +507,7 @@
                 type="email"
                 bind:value={parentData.email}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
             
@@ -501,7 +518,7 @@
                 type="tel"
                 bind:value={parentData.telephone}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
             
@@ -511,7 +528,7 @@
                 id="parent-enfants"
                 bind:value={enfantsText}
                 on:input={(e) => updateEnfants(e.target.value)}
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
                 placeholder="Ex: Jean Dupont (3ème A), Marie Dupont (5ème B)"
               ></textarea>
             </div>
@@ -523,7 +540,7 @@
                 type="password"
                 bind:value={parentData.password}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
             
@@ -534,7 +551,7 @@
                 type="password"
                 bind:value={parentData.confirmPassword}
                 required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
           </div>
@@ -543,7 +560,7 @@
             <button
               type="submit"
               disabled={isLoading}
-              class={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+              class={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
             >
               {#if isLoading}
                 <Icon icon="heroicons:arrow-path" class="animate-spin h-5 w-5 mr-2" />
@@ -571,7 +588,7 @@
         <div class="mt-6">
           <a
             href="/login"
-            class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
           >
             Se connecter
           </a>

@@ -1,70 +1,115 @@
-from typing import Any, Dict
 from rest_framework import serializers
-from django.contrib.auth.models import Group, Permission
-from .models import *
+from django.contrib.auth.hashers import make_password
+from .models import User, Etablissement, Professeur, Eleve, Parent
 
-class CustomUserSerializer(serializers.ModelSerializer) :
+class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
-    confirm_password = serializers.CharField(write_only = True)
-    groups = serializers.PrimaryKeyRelatedField(many = True, queryset = Group.objects.all())
-    user_permissions = serializers.PrimaryKeyRelatedField(many = True, queryset = Permission.objects.all())
+    
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'password', 
+                 'first_name', 'last_name', 'telephone', 'user_type']
+        extra_kwargs = {
+            'username': {'required': False},
+            'email': {'required': True},
+            'first_name': {'required': True},
+            'last_name': {'required': True},
+        }
 
-    class Meta :
-        model = CustomUser
-        fields = '__all__'
+    def validate(self, data):
+        if 'username' not in data or not data['username']:
+            data['username'] = data['email'] 
+        
+        return data
+    
     def create(self, validated_data):
-        groups_data = validated_data.pop('groups', [])
-        permissios_data = validated_data.pop('user_permissions', [])
-        password = validated_data.pop('password')
-        confirm_password = validated_data.pop('confirm_password')
+        if not validated_data.get('username'):
+            validated_data['username'] = validated_data['email']
+        
+        validated_data['password'] = make_password(validated_data['password'])
+        return super().create(validated_data)
 
-        if password != confirm_password :
-            raise serializers.ValidationError({"password": "Password fields didin't match."})
-        user = CustomUser.objects.create(**validated_data)
-            # email = validated_data['email'],
-            # username = validated_data['username'],
-            # password = validated_data['password'],
-            # role = validated_data.get('role', 'school')
-        user.set_password(password)
-        user.save()
-
-        user.groups.set(groups_data)
-        user.user_permissions.set(permissios_data)
-
-        return user
-
-
-class StudentListSerializer(serializers.ModelSerializer) :
-    class Meta :
-        model = CustomUser
+class EtablissementSerializer(serializers.ModelSerializer):
+    user = UserSerializer(required=True)
+    
+    class Meta:
+        model = Etablissement
         fields = '__all__'
+        extra_kwargs = {
+            'nom': {'required': True},
+            'type_etablissement': {'required': True},
+        }
+    
+    def create(self, validated_data):
+        user_data = validated_data.pop('user')
+        user_data['user_type'] = 'etablissement'
+        
+        user = User.objects.create(**user_data)
+        
+        etablissement = Etablissement.objects.create(user=user, **validated_data)
+        return etablissement
 
-class MatiereListSerializer(serializers.ModelSerializer) :
-    class Meta :
-        model = Matiere
+class ProfesseurSerializer(serializers.ModelSerializer):
+    user = UserSerializer(required=True)
+    
+    class Meta:
+        model = Professeur
         fields = '__all__'
+        extra_kwargs = {
+            'matiere': {'required': True},
+        }
+    
+    def create(self, validated_data):
+        user_data = validated_data.pop('user')
+        user_data['user_type'] = 'professeur'
+        
+        user_serializer = UserSerializer(data=user_data)
+        user_serializer.is_valid(raise_exception=True)
+        user = user_serializer.save()
+        
+        return Professeur.objects.create(user=user, **validated_data)
 
-class InfoFamilialeSerializer(serializers.ModelSerializer) :
-    class Meta :
-        model = InfoFamiliale
+class EleveSerializer(serializers.ModelSerializer):
+    user = UserSerializer(required=True)
+    
+    class Meta:
+        model = Eleve
         fields = '__all__'
+        extra_kwargs = {
+            'classe': {'required': True},
+        }
+    
+    def create(self, validated_data):
+        user_data = validated_data.pop('user')
+        user_data['user_type'] = 'eleve'
+        
+        user_serializer = UserSerializer(data=user_data)
+        user_serializer.is_valid(raise_exception=True)
+        user = user_serializer.save()
+        
+        return Eleve.objects.create(user=user, **validated_data)
 
-class CourseSerializer(serializers.ModelSerializer) :
-    class Meta :
-        model = Course
+class ParentSerializer(serializers.ModelSerializer):
+    user = UserSerializer(required=True)
+    enfants_text = serializers.CharField(
+        write_only=True, 
+        required=False,
+        help_text="Liste des enfants séparés par des virgules"
+    )
+    
+    class Meta:
+        model = Parent
         fields = '__all__'
-
-class ScheduleSerializer(serializers.ModelSerializer) :
-    class Meta :
-        model = Schedule
-        fields = '__all__'
-
-class NoteSerializer(serializers.ModelSerializer) :
-    class Meta :
-        model = Note
-        fields = '__all__'
-
-class RegistrationDataSerializer(serializers.ModelSerializer) :
-    class Meta :
-        model = RegistrationData
-        fields = '__all__'
+    
+    def create(self, validated_data):
+        user_data = validated_data.pop('user')
+        enfants_text = validated_data.pop('enfants_text', '')
+        user_data['user_type'] = 'parent'
+        
+        user_serializer = UserSerializer(data=user_data)
+        user_serializer.is_valid(raise_exception=True)
+        user = user_serializer.save()
+        
+        parent = Parent.objects.create(user=user, **validated_data)
+        
+        return parent

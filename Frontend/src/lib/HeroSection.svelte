@@ -1,39 +1,65 @@
 <script>
-  //import { Icon } from '@iconify/svelte';
+  import Icon from '@iconify/svelte';
 </script>
 
-<section class="bg-white h-[100vh] flex items-center">
-  <div class="max-w-7xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:px-8">
+<section class="relative bg-gradient-to-br from-green-50 to-emerald-50 flex items-center overflow-hidden">
+  <div class="absolute top-0 left-0 w-full h-full opacity-10">
+    <div class="absolute top-20 left-20 w-64 h-64 rounded-full bg-green-200 mix-blend-multiply filter blur-3xl"></div>
+    <div class="absolute bottom-20 right-20 w-64 h-64 rounded-full bg-emerald-200 mix-blend-multiply filter blur-3xl"></div>
+  </div>
+
+  <div class="max-w-7xl mx-auto py-16 px-4 sm:py-24 sm:px-6 lg:px-8 relative z-10">
     <div class="text-center">
-      <h1 class="text-4xl font-extrabold tracking-tight text-gray-900 sm:text-5xl md:text-6xl">
-        <span class="block">La gestion scolaire</span>
-        <span class="block text-indigo-600">simplifiée et moderne</span>
+      <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-green-100 text-green-800 mb-6">
+        <Icon icon="mdi:school-outline" class="mr-2" />
+        Solution innovante pour l'éducation
+      </span>
+      
+      <h1 class="text-5xl font-extrabold tracking-tight text-gray-900 sm:text-6xl md:text-7xl">
+        <span class="block">Révolutionnez votre</span>
+        <span class="block bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-emerald-500">gestion scolaire</span>
       </h1>
-      <p class="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
-        eBoss est une plateforme tout-en-un pour gérer efficacement votre établissement scolaire avec des outils puissants et intuitifs.
+      
+      <p class="mt-6 max-w-2xl mx-auto text-xl text-gray-600">
+        eBoss modernise votre établissement avec une plateforme intuitive, complète et conçue pour les besoins éducatifs d'aujourd'hui.
       </p>
-      <div class="mt-5 max-w-md mx-auto sm:flex sm:justify-center md:mt-8">
-        <div class="rounded-md shadow">
-          <a href="/register" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 md:py-4 md:text-lg md:px-10">
-            Commencer gratuitement
-          </a>
+      
+      <div class="mt-8 flex flex-col sm:flex-row justify-center gap-4">
+        <a href="/login" class="px-8 py-4 border border-transparent text-lg font-medium rounded-xl text-white bg-gradient-to-r from-green-600 to-emerald-500 hover:from-green-700 hover:to-emerald-600 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+          Commencer maintenant
+        </a>
+        <a href="#features" class="px-8 py-4 border border-gray-300 text-lg font-medium rounded-xl bg-white text-gray-700 hover:bg-gray-50 shadow hover:shadow-md transition-all duration-300 flex items-center justify-center">
+          <Icon icon="mdi:play-circle-outline" class="mr-2" />
+          Voir les fonctionnalités
+        </a>
+      </div>
+      
+      <div class="mt-12 flex items-center justify-center space-x-6 text-gray-500">
+        <div class="flex items-center">
+          <Icon icon="mdi:shield-check" class="text-green-500 mr-2" />
+          <span>100% sécurisé</span>
         </div>
-        <div class="mt-3 rounded-md shadow sm:mt-0 sm:ml-3">
-          <a href="#features" class="w-full flex items-center justify-center px-8 py-3 border border-transparent text-base font-medium rounded-md text-indigo-600 bg-white hover:bg-gray-50 md:py-4 md:text-lg md:px-10">
-            Voir les fonctionnalités
-          </a>
+        <div class="flex items-center">
+          <Icon icon="mdi:account-group" class="text-emerald-500 mr-2" />
+          <span>10+ établissements</span>
         </div>
       </div>
     </div>
     
-    <div class="mt-16">
-      <div class="relative rounded-xl overflow-hidden shadow-xl border border-gray-200">
-        <div class="absolute top-0 left-0 right-0 h-8 bg-gray-100 flex items-center px-4">
-          <div class="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
-          <div class="w-3 h-3 rounded-full bg-yellow-500 mr-2"></div>
-          <div class="w-3 h-3 rounded-full bg-green-500"></div>
+    <div class="mt-20 max-w-5xl mx-auto">
+      <div class="relative rounded-2xl overflow-hidden shadow-2xl border border-gray-200/50 bg-white">
+        <div class="absolute top-0 left-0 right-0 h-10 bg-gray-50 flex items-center px-4 border-b">
+          <div class="flex space-x-2 mr-4">
+            <div class="w-3 h-3 rounded-full bg-red-500"></div>
+            <div class="w-3 h-3 rounded-full bg-yellow-500"></div>
+            <div class="w-3 h-3 rounded-full bg-green-500"></div>
+          </div>
+          <div class="flex-1 bg-gray-100 rounded-full h-5 mx-4"></div>
+          <Icon icon="mdi:dots-horizontal" class="text-gray-400" />
         </div>
-        <!-- <img src="/dashboard-preview.jpg" alt="Prévisualisation du tableau de bord" class="w-full" /> -->
+        <div class="h-96 bg-gradient-to-br from-white to-gray-50 flex items-center justify-center">
+          <Icon icon="mdi:monitor-dashboard" class="w-24 h-24 text-gray-300" />
+        </div>
       </div>
     </div>
   </div>

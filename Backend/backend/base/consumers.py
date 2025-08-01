@@ -1,6 +1,6 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
-from .models import Message
+#from .models import Message
 from django.contrib.auth.models import User
 from django.utils import timezone
 
