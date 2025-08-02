@@ -1,7 +1,7 @@
 <script>
   import Icon from '@iconify/svelte';
   import { fade } from 'svelte/transition';
-  import { api } from '$lib/api.js';
+  import { authApi } from '$lib/api.js';
   
   let activeTab = 'etablissement';
   let email = '';
