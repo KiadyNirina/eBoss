@@ -38,7 +38,7 @@
 
       switch (user_type) {
         case 'etablissement':
-          navigate('/dashboard/etablissement');
+          navigate('/etablissement/dashboard');
           break;
         case 'professeur':
           navigate('/dashboard/professeur');
