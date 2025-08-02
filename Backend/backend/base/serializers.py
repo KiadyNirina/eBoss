@@ -1,6 +1,59 @@
 from rest_framework import serializers
+from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import User, Etablissement, Professeur, Eleve, Parent
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        email_or_username = attrs.get('email') or attrs.get('username')
+        
+        if not email_or_username:
+            raise serializers.ValidationError("Email ou nom d'utilisateur requis")
+        
+        user = authenticate(
+            request=self.context.get('request'),
+            username=email_or_username,
+            password=attrs.get('password')
+        )
+        
+        if not user:
+            raise serializers.ValidationError("Identifiants invalides")
+        
+        if not user.is_active:
+            raise serializers.ValidationError("Ce compte est désactivé")
+        
+        refresh = self.get_token(user)
+        
+        data = {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+            'user_id': user.id,
+            'email': user.email,
+            'user_type': user.user_type,
+            'first_name': user.first_name,
+            'last_name': user.last_name
+        }
+        
+        return data
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    profile = serializers.SerializerMethodField()
+    
+    class Meta:
+        model = User
+        fields = ['id', 'email', 'first_name', 'last_name', 'telephone', 'user_type', 'profile']
+    
+    def get_profile(self, obj):
+        if hasattr(obj, 'etablissement'):
+            return EtablissementSerializer(obj.etablissement).data
+        elif hasattr(obj, 'professeur'):
+            return ProfesseurSerializer(obj.professeur).data
+        elif hasattr(obj, 'eleve'):
+            return EleveSerializer(obj.eleve).data
+        elif hasattr(obj, 'parent'):
+            return ParentSerializer(obj.parent).data
+        return None
 
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)

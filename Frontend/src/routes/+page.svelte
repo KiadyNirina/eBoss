@@ -1,11 +1,11 @@
 <script>
-    import HeroSection from '$lib/HeroSection.svelte';
-    import FeaturesSection from '$lib/FeaturesSection.svelte';
-    import TestimonialsSection from '$lib/TestimonialsSection.svelte';
-    import PricingSection from '$lib/PricingSection.svelte';
-    import CtaSection from '$lib/CtaSection.svelte';
-    import Footer from '$lib/Footer.svelte';
-    import Navbar from '$lib/Navbar.svelte';
+    import HeroSection from '../components/HeroSection.svelte';
+    import FeaturesSection from '../components/FeaturesSection.svelte';
+    import TestimonialsSection from '../components/TestimonialsSection.svelte';
+    import PricingSection from '../components/PricingSection.svelte';
+    import CtaSection from '../components/CtaSection.svelte';
+    import Footer from '../components/Footer.svelte';
+    import Navbar from '../components/Navbar.svelte';
 </script>
 
 <div class="min-h-screen bg-gray-50">
