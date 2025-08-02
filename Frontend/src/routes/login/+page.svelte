@@ -1,7 +1,8 @@
 <script>
   import Icon from '@iconify/svelte';
   import { fade } from 'svelte/transition';
-  import { authApi } from '$lib/api.js';
+  import { authApi, authStore } from '$lib/api';
+  import { navigate } from 'svelte-routing';
   
   let activeTab = 'etablissement';
   let email = '';
@@ -27,12 +28,33 @@
     errorMessage = '';
 
     try {
-        const { access } = await api.auth.login({ email, password });
-        sessionStorage.setItem('access_token', access);
-        window.location.href = '/student/home';
-    } catch (error) {
-        console.error('Erreur : ', error);
-        errorMessage = error?.response?.data?.message || 'Une erreur est survenue. Veuillez réessayer.';
+      const { access, refresh, user_type } = await authApi.login(email, password);
+      
+      authStore.setTokens({ access, refresh });
+      
+      if (rememberMe) {
+        document.cookie = `refresh_token=${refresh}; path=/; max-age=${7 * 24 * 60 * 60}`;
+      }
+
+      switch (user_type) {
+        case 'etablissement':
+          navigate('/dashboard/etablissement');
+          break;
+        case 'professeur':
+          navigate('/dashboard/professeur');
+          break;
+        case 'eleve':
+          navigate('/dashboard/eleve');
+          break;
+        case 'parent':
+          navigate('/dashboard/parent');
+          break;
+        default:
+          navigate('/dashboard');
+      }
+    } catch (err) {
+      errorMessage = err.message || 'Erreur de connexion';
+      authStore.clearTokens();
     } finally {
       isLoading = false;
     }
