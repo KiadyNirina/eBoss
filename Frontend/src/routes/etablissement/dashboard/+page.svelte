@@ -9,6 +9,7 @@
   import TeachersView from '../../../components/etablissement/teachers/TeachersView.svelte';
   import ScheduleView from '../../../components/etablissement/course/ScheduleView.svelte';
   import GradesView from '../../../components/etablissement/grades/GradesView.svelte';
+  import AdmissionsView from '../../../components/etablissement/admissions/AdmissionsView.svelte';
   import { currentView } from '$lib/stores';
 
   let sidebarOpen = false;
@@ -89,9 +90,7 @@
         <GradesView />
       
       {:else if $currentView === 'inscriptions'}
-        <div class="bg-white shadow rounded-lg p-6">
-          <h2 class="text-xl font-semibold text-gray-900 mb-4">Inscriptions</h2>
-        </div>
+        <AdmissionsView />
       
       {:else if $currentView === 'communication'}
         <div class="bg-white shadow rounded-lg p-6">
