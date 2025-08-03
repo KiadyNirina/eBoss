@@ -28,16 +28,16 @@
   });
 
   const navigation = [
-    { name: 'Tableau de bord', icon: 'heroicons:home', view: 'dashboard' },
-    { name: 'Étudiants', icon: 'heroicons:user-group', view: 'etudiants' },
-    { name: 'Professeurs', icon: 'heroicons:academic-cap', view: 'professeurs' },
-    { name: 'Cours & Emploi du temps', icon: 'heroicons:calendar', view: 'cours' },
-    { name: 'Notes & Évaluations', icon: 'mdi:clipboard-list-outline', view: 'notes' },
-    { name: 'Inscriptions', icon: 'heroicons:clipboard-document-check', view: 'inscriptions' },
-    { name: 'Communication', icon: 'heroicons:chat-bubble-left-right', view: 'communication' },
-    { name: 'Finances', icon: 'heroicons:currency-dollar', view: 'finances' },
-    { name: 'Documents', icon: 'heroicons:folder', view: 'documents' },
-    { name: 'Paramètres', icon: 'heroicons:cog', view: 'parametres' }
+    { name: 'Tableau de bord', icon: 'heroicons:home', view: 'dashboard', href: '#' },
+    { name: 'Étudiants', icon: 'heroicons:user-group', view: 'etudiants', href: 'students' },
+    { name: 'Professeurs', icon: 'heroicons:academic-cap', view: 'professeurs', href: '#' },
+    { name: 'Cours & Emploi du temps', icon: 'heroicons:calendar', view: 'cours', href: '#' },
+    { name: 'Notes & Évaluations', icon: 'mdi:clipboard-list-outline', view: 'notes', href: '#' },
+    { name: 'Inscriptions', icon: 'heroicons:clipboard-document-check', view: 'inscriptions', href: '#' },
+    { name: 'Communication', icon: 'heroicons:chat-bubble-left-right', view: 'communication', href: '#' },
+    { name: 'Finances', icon: 'heroicons:currency-dollar', view: 'finances', href: '#' },
+    { name: 'Documents', icon: 'heroicons:folder', view: 'documents', href: '#' },
+    { name: 'Paramètres', icon: 'heroicons:cog', view: 'parametres', href: '#' }
   ];
 </script>
 
@@ -58,7 +58,7 @@
     <nav class="flex-1 px-2 py-4 space-y-1">
       {#each navigation as item}
         <a
-          href="#"
+          href={item.href}
           on:click|preventDefault={() => currentView = item.view}
           class={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${currentView === item.view ? 'bg-green-100 text-green-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
         >
