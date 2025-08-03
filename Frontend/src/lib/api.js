@@ -1,9 +1,11 @@
 // src/lib/api.js
+import { browser } from '$app/environment';
+
 const API_BASE_URL = 'http://127.0.0.1:8000/school';
 
 async function fetchWithAuth(endpoint, options = {}) {
-    const accessToken = localStorage.getItem('access_token');
-    const refreshToken = localStorage.getItem('refresh_token');
+    const accessToken = browser ? localStorage.getItem('access_token') : null;
+    const refreshToken = browser ? localStorage.getItem('refresh_token') : null;
     
     const headers = {
         'Content-Type': 'application/json',
@@ -22,8 +24,7 @@ async function fetchWithAuth(endpoint, options = {}) {
 
     let response = await fetch(`${API_BASE_URL}${endpoint}`, config);
     
-    // Si token expiré, on tente un refresh
-    if (response.status === 401 && refreshToken) {
+    if (response.status === 401 && refreshToken && browser) {
         try {
             const newTokens = await refreshAuthToken(refreshToken);
             headers['Authorization'] = `Bearer ${newTokens.access}`;
@@ -68,7 +69,7 @@ export const authApi = {
     }),
 
     refreshToken: () => {
-        const refreshToken = localStorage.getItem('refresh_token');
+        const refreshToken = browser ? localStorage.getItem('refresh_token') : null;
         if (!refreshToken) throw new Error('No refresh token');
         return refreshAuthToken(refreshToken);
     },
@@ -100,6 +101,15 @@ export const authApi = {
 
 export const authStore = {
     subscribe(callback) {
+        if (!browser) {
+            callback({
+                accessToken: null,
+                refreshToken: null,
+                isAuthenticated: false,
+            });
+            return () => {};
+        }
+
         const handler = () => {
             callback({
                 accessToken: localStorage.getItem('access_token'),
@@ -107,28 +117,31 @@ export const authStore = {
                 isAuthenticated: !!localStorage.getItem('access_token'),
             });
         };
+
         window.addEventListener('storage', handler);
         handler();
         return () => window.removeEventListener('storage', handler);
     },
     
     setTokens({ access, refresh }) {
+        if (!browser) return;
         if (access) localStorage.setItem('access_token', access);
         if (refresh) localStorage.setItem('refresh_token', refresh);
         window.dispatchEvent(new Event('storage'));
     },
     
     clearTokens() {
+        if (!browser) return; 
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
         window.dispatchEvent(new Event('storage'));
     },
     
     getAccessToken() {
-        return localStorage.getItem('access_token');
+        return browser ? localStorage.getItem('access_token') : null;
     },
     
     getRefreshToken() {
-        return localStorage.getItem('refresh_token');
+        return browser ? localStorage.getItem('refresh_token') : null;
     }
 };

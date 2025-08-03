@@ -1,8 +1,32 @@
 <script>
+  import { onMount } from 'svelte';
+  import { writable } from 'svelte/store';
+  import { browser } from '$app/environment';
   import Icon from '@iconify/svelte';
+  import { authApi, authStore } from '$lib/api';
+
   export let currentView;
   export let onClose;
-  
+
+  let user = writable(null);
+  let isAuthenticated = false;
+
+  authStore.subscribe((state) => {
+    isAuthenticated = state.isAuthenticated;
+  });
+
+  onMount(async () => {
+    if (browser && isAuthenticated) {
+      try {
+        const profile = await authApi.getProfile();
+        user.set(profile);
+      } catch (error) {
+        console.error('Erreur lors de la récupération du profil:', error.message);
+        authStore.clearTokens();
+      }
+    }
+  });
+
   const navigation = [
     { name: 'Tableau de bord', icon: 'heroicons:home', view: 'dashboard' },
     { name: 'Étudiants', icon: 'heroicons:user-group', view: 'etudiants' },
@@ -47,14 +71,28 @@
   
   <!-- User Profile -->
   <div class="flex-shrink-0 flex border-t border-gray-200 p-4">
-    <div class="flex items-center">
-      <div class="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center">
-        <Icon icon="heroicons:user-circle" class="h-6 w-6 text-green-600" />
+    {#if $user}
+      <div class="flex items-center">
+        <div class="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center">
+          <Icon icon="heroicons:user-circle" class="h-6 w-6 text-green-600" />
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-medium text-gray-700">
+            {$user.first_name ? `${$user.first_name} ${$user.last_name}` : $user.username || 'Utilisateur'}
+          </p>
+          <a href="#" class="text-xs font-medium text-green-600 hover:text-green-500">Voir profil</a>
+        </div>
       </div>
-      <div class="ml-3">
-        <p class="text-sm font-medium text-gray-700">Admin École</p>
-        <a href="#" class="text-xs font-medium text-green-600 hover:text-green-500">Voir profil</a>
+    {:else}
+      <div class="flex items-center">
+        <div class="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center">
+          <Icon icon="heroicons:user-circle" class="h-6 w-6 text-green-600" />
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-medium text-gray-700">Chargement...</p>
+          <a href="#" class="text-xs font-medium text-green-600 hover:text-green-500">Voir profil</a>
+        </div>
       </div>
-    </div>
+    {/if}
   </div>
 </div>
