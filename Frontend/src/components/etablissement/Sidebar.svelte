@@ -8,7 +8,7 @@
     { name: 'Étudiants', icon: 'heroicons:user-group', view: 'etudiants' },
     { name: 'Professeurs', icon: 'heroicons:academic-cap', view: 'professeurs' },
     { name: 'Cours & Emploi du temps', icon: 'heroicons:calendar', view: 'cours' },
-    { name: 'Notes & Évaluations', icon: 'heroicons:clipboard-list', view: 'notes' },
+    { name: 'Notes & Évaluations', icon: 'mdi:clipboard-list-outline', view: 'notes' },
     { name: 'Inscriptions', icon: 'heroicons:clipboard-document-check', view: 'inscriptions' },
     { name: 'Communication', icon: 'heroicons:chat-bubble-left-right', view: 'communication' },
     { name: 'Finances', icon: 'heroicons:currency-dollar', view: 'finances' },
