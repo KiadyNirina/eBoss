@@ -7,6 +7,7 @@
   import CalendarOverview from '../../../components/etablissement/CalendarOverview.svelte';
   import StudentsView from '../../../components/etablissement/students/StudentsView.svelte';
   import TeachersView from '../../../components/etablissement/teachers/TeachersView.svelte';
+  import ScheduleView from '../../../components/etablissement/course/ScheduleView.svelte';
   import { currentView } from '$lib/stores';
 
   let sidebarOpen = false;
@@ -81,9 +82,7 @@
         <TeachersView />
       
       {:else if $currentView === 'cours'}
-        <div class="bg-white shadow rounded-lg p-6">
-          <h2 class="text-xl font-semibold text-gray-900 mb-4">Cours & Emploi du temps</h2>
-        </div>
+        <ScheduleView />
       
       {:else if $currentView === 'notes'}
         <div class="bg-white shadow rounded-lg p-6">
