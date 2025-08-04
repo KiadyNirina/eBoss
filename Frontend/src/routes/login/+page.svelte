@@ -2,7 +2,6 @@
   import Icon from '@iconify/svelte';
   import { fade } from 'svelte/transition';
   import { authApi, authStore } from '$lib/api';
-  import { navigate } from 'svelte-routing';
   
   let activeTab = 'etablissement';
   let email = '';
@@ -38,19 +37,17 @@
 
       switch (user_type) {
         case 'etablissement':
-          navigate('/etablissement/dashboard');
+          window.location.href = '/etablissement/dashboard';
           break;
         case 'professeur':
-          navigate('/dashboard/professeur');
+          window.location.href = '/professeur/dashboard';
           break;
         case 'eleve':
-          navigate('/dashboard/eleve');
+          window.location.href = '/eleve/dashboard';
           break;
         case 'parent':
-          navigate('/dashboard/parent');
+          window.location.href = '/parent/dashboard';
           break;
-        default:
-          navigate('/dashboard');
       }
     } catch (err) {
       errorMessage = err.message || 'Erreur de connexion';
