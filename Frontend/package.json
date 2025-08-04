@@ -17,6 +17,7 @@
 	"type": "module",
 	"dependencies": {
 		"@iconify/svelte": "^5.0.1",
+		"chart.js": "^4.5.0",
 		"framework7-svelte": "^8.3.4",
 		"fullcalendar": "^6.1.18",
 		"html2pdf.js": "^0.10.3",

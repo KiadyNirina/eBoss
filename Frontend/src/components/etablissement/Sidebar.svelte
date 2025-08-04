@@ -1,14 +1,38 @@
 <script>
+  import { onMount } from 'svelte';
+  import { writable } from 'svelte/store';
+  import { browser } from '$app/environment';
   import Icon from '@iconify/svelte';
-  export let currentView;
+  import { authApi, authStore } from '$lib/api';
+  import { currentView } from '$lib/stores';
+
   export let onClose;
-  
+
+  let user = writable(null);
+  let isAuthenticated = false;
+
+  authStore.subscribe((state) => {
+    isAuthenticated = state.isAuthenticated;
+  });
+
+  onMount(async () => {
+    if (browser && isAuthenticated) {
+      try {
+        const profile = await authApi.getProfile();
+        user.set(profile);
+      } catch (error) {
+        console.error('Erreur lors de la récupération du profil:', error.message);
+        authStore.clearTokens();
+      }
+    }
+  });
+
   const navigation = [
     { name: 'Tableau de bord', icon: 'heroicons:home', view: 'dashboard' },
     { name: 'Étudiants', icon: 'heroicons:user-group', view: 'etudiants' },
     { name: 'Professeurs', icon: 'heroicons:academic-cap', view: 'professeurs' },
     { name: 'Cours & Emploi du temps', icon: 'heroicons:calendar', view: 'cours' },
-    { name: 'Notes & Évaluations', icon: 'heroicons:clipboard-list', view: 'notes' },
+    { name: 'Notes & Évaluations', icon: 'mdi:clipboard-list-outline', view: 'notes' },
     { name: 'Inscriptions', icon: 'heroicons:clipboard-document-check', view: 'inscriptions' },
     { name: 'Communication', icon: 'heroicons:chat-bubble-left-right', view: 'communication' },
     { name: 'Finances', icon: 'heroicons:currency-dollar', view: 'finances' },
@@ -33,28 +57,41 @@
   <div class="flex-1 flex flex-col overflow-y-auto">
     <nav class="flex-1 px-2 py-4 space-y-1">
       {#each navigation as item}
-        <a
-          href="#"
-          on:click|preventDefault={() => currentView = item.view}
-          class={`group flex items-center px-2 py-2 text-sm font-medium rounded-md ${currentView === item.view ? 'bg-green-100 text-green-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}`}
+        <button
+          on:click={() => currentView.set(item.view)}
+          class="group flex items-center px-2 py-2 text-sm font-medium rounded-md w-full text-left {$currentView === item.view ? 'bg-green-100 text-green-700' : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'}"
         >
-          <Icon icon={item.icon} class={`mr-3 flex-shrink-0 h-6 w-6 ${currentView === item.view ? 'text-green-500' : 'text-gray-400 group-hover:text-gray-500'}`} />
+          <Icon icon={item.icon} class="mr-3 flex-shrink-0 h-6 w-6 {$currentView === item.view ? 'text-green-500' : 'text-gray-400 group-hover:text-gray-500'}" />
           {item.name}
-        </a>
+        </button>
       {/each}
     </nav>
   </div>
   
   <!-- User Profile -->
   <div class="flex-shrink-0 flex border-t border-gray-200 p-4">
-    <div class="flex items-center">
-      <div class="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center">
-        <Icon icon="heroicons:user-circle" class="h-6 w-6 text-green-600" />
+    {#if $user}
+      <div class="flex items-center">
+        <div class="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center">
+          <Icon icon="heroicons:user-circle" class="h-6 w-6 text-green-600" />
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-medium text-gray-700">
+            {$user.first_name ? `${$user.first_name} ${$user.last_name}` : $user.username || 'Utilisateur'}
+          </p>
+          <a href="#" class="text-xs font-medium text-green-600 hover:text-green-500">Voir profil</a>
+        </div>
       </div>
-      <div class="ml-3">
-        <p class="text-sm font-medium text-gray-700">Admin École</p>
-        <a href="#" class="text-xs font-medium text-green-600 hover:text-green-500">Voir profil</a>
+    {:else}
+      <div class="flex items-center">
+        <div class="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center">
+          <Icon icon="heroicons:user-circle" class="h-6 w-6 text-green-600" />
+        </div>
+        <div class="ml-3">
+          <p class="text-sm font-medium text-gray-700">Chargement...</p>
+          <a href="#" class="text-xs font-medium text-green-600 hover:text-green-500">Voir profil</a>
+        </div>
       </div>
-    </div>
+    {/if}
   </div>
 </div>

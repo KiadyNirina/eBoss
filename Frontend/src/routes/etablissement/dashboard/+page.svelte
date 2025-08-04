@@ -5,10 +5,16 @@
   import StatsOverview from '../../../components/etablissement/StatsOverview.svelte';
   import RecentActivities from '../../../components/etablissement/RecentActivities.svelte';
   import CalendarOverview from '../../../components/etablissement/CalendarOverview.svelte';
-  
+  import StudentsView from '../../../components/etablissement/students/StudentsView.svelte';
+  import TeachersView from '../../../components/etablissement/teachers/TeachersView.svelte';
+  import ScheduleView from '../../../components/etablissement/course/ScheduleView.svelte';
+  import GradesView from '../../../components/etablissement/grades/GradesView.svelte';
+  import AdmissionsView from '../../../components/etablissement/admissions/AdmissionsView.svelte';
+  import CommunicationView from '../../../components/etablissement/communication/CommunicationView.svelte';
+  import { currentView } from '$lib/stores';
+
   let sidebarOpen = false;
-  let currentView = 'dashboard';
-  
+
   // Simuler des données
   const stats = {
     students: 1245,
@@ -16,7 +22,7 @@
     classes: 36,
     pendingPayments: 12
   };
-  
+
   const activities = [
     { type: 'new_student', name: 'Jean Dupont', class: '3ème A', time: '10 min ago' },
     { type: 'payment', name: 'Sophie Martin', amount: '€250', time: '1h ago' },
@@ -30,14 +36,14 @@
   <div class={`fixed inset-0 z-40 md:hidden ${sidebarOpen ? 'block' : 'hidden'}`}>
     <div class="fixed inset-0 bg-gray-600 bg-opacity-75" on:click={() => sidebarOpen = false}></div>
     <div class="relative flex flex-col w-72 max-w-xs bg-white">
-      <Sidebar on:close={() => sidebarOpen = false} currentView={currentView} />
+      <Sidebar on:close={() => sidebarOpen = false} />
     </div>
   </div>
   
   <!-- Sidebar Desktop -->
   <div class="hidden md:flex md:flex-shrink-0">
     <div class="flex flex-col w-72 border-r border-gray-200 bg-white">
-      <Sidebar {currentView} />
+      <Sidebar />
     </div>
   </div>
   
@@ -47,7 +53,7 @@
     
     <!-- Main Content -->
     <main class="flex-1 overflow-y-auto p-4 md:p-6 bg-gray-50">
-      {#if currentView === 'dashboard'}
+      {#if $currentView === 'dashboard'}
         <div class="space-y-6">
           <div class="flex justify-between items-center">
             <h1 class="text-2xl font-bold text-gray-900">Tableau de bord</h1>
@@ -72,15 +78,39 @@
           </div>
         </div>
       
-      {:else if currentView === 'etudiants'}
+      {:else if $currentView === 'etudiants'}
+        <StudentsView />
+      
+      {:else if $currentView === 'professeurs'}
+        <TeachersView />
+      
+      {:else if $currentView === 'cours'}
+        <ScheduleView />
+      
+      {:else if $currentView === 'notes'}
+        <GradesView />
+      
+      {:else if $currentView === 'inscriptions'}
+        <AdmissionsView />
+      
+      {:else if $currentView === 'communication'}
+        <CommunicationView />
+      
+      {:else if $currentView === 'finances'}
         <div class="bg-white shadow rounded-lg p-6">
-          <h2 class="text-xl font-semibold text-gray-900 mb-4">Gestion des Étudiants</h2>
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Finances</h2>
         </div>
       
-      {:else if currentView === 'professeurs'}
+      {:else if $currentView === 'documents'}
         <div class="bg-white shadow rounded-lg p-6">
-          <h2 class="text-xl font-semibold text-gray-900 mb-4">Gestion des Professeurs</h2>
-        </div>      
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Documents</h2>
+        </div>
+      
+      {:else if $currentView === 'parametres'}
+        <div class="bg-white shadow rounded-lg p-6">
+          <h2 class="text-xl font-semibold text-gray-900 mb-4">Paramètres</h2>
+        </div>
+      
       {/if}
     </main>
   </div>
