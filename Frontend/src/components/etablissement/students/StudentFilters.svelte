@@ -1,30 +1,27 @@
 <script>
   import { createEventDispatcher } from 'svelte';
   import Icon from '@iconify/svelte';
+  import { authApi } from '$lib/api';
 
   export let filters;
+  let classOptions = [];
+  let statusOptions = [];
+  let yearOptions = [];
 
   const dispatch = createEventDispatcher();
 
-  const statusOptions = [
-    { value: '', label: 'Tous les statuts' },
-    { value: 'actif', label: 'Actif' },
-    { value: 'inactif', label: 'Inactif' },
-    { value: 'suspendu', label: 'Suspendu' }
-  ];
+  async function fetchFilterOptions() {
+    try {
+      const data = await authApi.getFilterOptions();
+      classOptions = data.classes;
+      statusOptions = data.statuts;
+      yearOptions = data.annees;
+    } catch (error) {
+      console.error('Erreur lors du chargement des options de filtrage:', error.message);
+    }
+  }
 
-  const classOptions = [
-    { value: '', label: 'Toutes les classes' },
-    { value: '3ème A', label: '3ème A' },
-    { value: '4ème B', label: '4ème B' },
-    { value: '5ème C', label: '5ème C' }
-  ];
-
-  const yearOptions = [
-    { value: '', label: 'Toutes les années' },
-    { value: '2023', label: '2023-2024' },
-    { value: '2022', label: '2022-2023' }
-  ];
+  fetchFilterOptions();
 
   function resetFilters() {
     filters.search = '';

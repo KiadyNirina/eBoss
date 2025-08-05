@@ -52,9 +52,16 @@ class Professeur(models.Model):
         return f"{self.user.get_full_name()} ({self.matiere})"
 
 class Eleve(models.Model):
+    STATUS_CHOICES = (
+        ('actif', 'Actif'),
+        ('inactif', 'Inactif'),
+        ('suspendu', 'Suspendu'),
+    )
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='eleve')
     etablissement = models.ForeignKey(Etablissement, on_delete=models.SET_NULL, null=True, blank=True)
     classe = models.CharField(max_length=50)
+    statut = models.CharField(max_length=20, choices=STATUS_CHOICES, default='actif')
+    annee_scolaire = models.CharField(max_length=9, blank=True, null=True)
     
     def __str__(self):
         return f"{self.user.get_full_name()} ({self.classe})"
