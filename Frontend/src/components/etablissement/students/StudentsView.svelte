@@ -3,31 +3,9 @@
   import StudentTable from './StudentTable.svelte';
   import StudentFilters from './StudentFilters.svelte';
   import BulkActions from './BulkActions.svelte';
+  import { authApi } from '$lib/api';
   
-  // Données simulées
-  let students = [
-    {
-      id: 1,
-      nom: 'Dupont',
-      prenom: 'Jean',
-      classe: '3ème A',
-      email: 'jean.dupont@ecole.fr',
-      telephone: '06 12 34 56 78',
-      statut: 'actif',
-      derniereActivite: 'Aujourd\'hui, 09:45'
-    },
-    {
-      id: 2,
-      nom: 'Martin',
-      prenom: 'Sophie',
-      classe: '4ème B',
-      email: 'sophie.martin@ecole.fr',
-      telephone: '06 23 45 67 89',
-      statut: 'actif',
-      derniereActivite: 'Hier, 14:30'
-    },
-  ];
-  
+  let students = [];
   let selectedStudents = [];
   let searchTerm = '';
   let filters = {
@@ -35,6 +13,40 @@
     statut: '',
     annee: ''
   };
+
+  let currentPage = 1;
+  let totalCount = 0;
+  let nextPage = null;
+  let previousPage = null;
+
+  // Charger les étudiants
+  async function fetchStudents(page = 1) {
+    try {
+      const data = await authApi.getEleves({ ...filters, page });
+      students = data.results.map(student => ({
+        id: student.id,
+        nom: student.user.last_name,
+        prenom: student.user.first_name,
+        classe: student.classe,
+        email: student.user.email,
+        telephone: student.user.telephone,
+        statut: student.statut,
+        derniereActivite: student.derniereActivite || 'N/A'
+      }));
+      totalCount = data.count;
+      nextPage = data.next;
+      previousPage = data.previous;
+      currentPage = page;
+    } catch (error) {
+      console.error('Erreur lors du chargement des étudiants:', error.message);
+    }
+  }
+
+  function goToPage(page) {
+    fetchStudents(page);
+  }
+
+  fetchStudents();
   
   // Fonctions de gestion
   function toggleSelectAll(event) {
@@ -56,6 +68,37 @@
   function applyFilters(newFilters) {
     filters = newFilters;
   }
+
+  async function handleBulkAction(event) {
+    const action = event.detail.action;
+    try {
+      if (action === 'export') {
+        const response = await authApi.bulkAction(action, selectedStudents);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'etudiants.csv';
+        a.click();
+        window.URL.revokeObjectURL(url);
+      } else {
+        await authApi.bulkAction(action, selectedStudents);
+        selectedStudents = [];
+        fetchStudents();
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'action groupée:', error.message);
+    }
+  }
+
+  async function addStudent(studentData) {
+    try {
+      await authApi.createEleve(studentData);
+      fetchStudents();
+    } catch (error) {
+      console.error('Erreur lors de l\'ajout de l\'étudiant:', error.message);
+    }
+  }
 </script>
 
 <div class="">
@@ -68,11 +111,22 @@
       </p>
     </div>
     <div class="flex space-x-3">
-      <button class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+      <button 
+        on:click={() => addStudent({
+          user: { first_name: 'Nouveau', last_name: 'Étudiant', email: 'nouveau@ecole.fr', telephone: '06 00 00 00 00' },
+          classe: '3ème A',
+          statut: 'actif',
+          annee_scolaire: '2023-2024'
+        })}
+        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+      >
         <Icon icon="heroicons:plus-sm" class="-ml-1 mr-2 h-5 w-5" />
         Ajouter un étudiant
       </button>
-      <button class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+      <button 
+        on:click={() => handleBulkAction({ detail: { action: 'export' } })}
+        class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+      >
         <Icon icon="heroicons:arrow-down-tray" class="-ml-1 mr-2 h-5 w-5" />
         Exporter
       </button>
@@ -86,8 +140,8 @@
   {#if selectedStudents.length > 0}
     <BulkActions 
       count={selectedStudents.length} 
-      on:delete={() => console.log('Delete', selectedStudents)}
-      on:export={() => console.log('Export', selectedStudents)}
+      on:delete={handleBulkAction}
+      on:export={handleBulkAction}
     />
   {/if}
   
@@ -114,29 +168,37 @@
     <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
       <div>
         <p class="text-sm text-gray-700">
-          Affichage de <span class="font-medium">1</span> à <span class="font-medium">10</span> sur{' '}
-          <span class="font-medium">{students.length}</span> résultats
+          Affichage de <span class="font-medium">{(currentPage - 1) * 10 + 1}</span> à <span class="font-medium">{Math.min(currentPage * 10, totalCount)}</span> sur{' '}
+          <span class="font-medium">{totalCount}</span> résultats
         </p>
       </div>
       <div>
         <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
-          <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-            <span class="sr-only">Précédent</span>
+          <button
+            on:click={() => goToPage(currentPage - 1)}
+            disabled={!previousPage}
+            class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+          >
             <Icon icon="heroicons:chevron-left" class="h-5 w-5" />
-          </a>
-          <a href="#" aria-current="page" class="z-10 bg-green-50 border-green-500 text-green-600 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
-            1
-          </a>
-          <a href="#" class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
-            2
-          </a>
-          <a href="#" class="bg-white border-gray-300 text-gray-500 hover:bg-gray-50 relative inline-flex items-center px-4 py-2 border text-sm font-medium">
-            3
-          </a>
-          <a href="#" class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50">
-            <span class="sr-only">Suivant</span>
+          </button>
+          {#each Array(Math.ceil(totalCount / 10)) as _, i}
+            <button
+              on:click={() => goToPage(i + 1)}
+              class:bg-green-50={currentPage === i + 1}
+              class:border-green-500={currentPage === i + 1}
+              class:text-green-600={currentPage === i + 1}
+              class="relative inline-flex items-center px-4 py-2 border text-sm font-medium"
+            >
+              {i + 1}
+            </button>
+          {/each}
+          <button
+            on:click={() => goToPage(currentPage + 1)}
+            disabled={!nextPage}
+            class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50"
+          >
             <Icon icon="heroicons:chevron-right" class="h-5 w-5" />
-          </a>
+          </button>
         </nav>
       </div>
     </div>

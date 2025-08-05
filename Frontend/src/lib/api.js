@@ -40,7 +40,7 @@ async function fetchWithAuth(endpoint, options = {}) {
         throw new Error(errorData.detail || errorData.message || "Une erreur s'est produite");
     }
     
-    return response.json();
+    return response;
 }
 
 async function refreshAuthToken(refreshToken) {
@@ -66,7 +66,7 @@ export const authApi = {
     login: (username, password) => fetchWithAuth('/token/', {
         method: 'POST',
         body: JSON.stringify({ username, password }),
-    }),
+    }).then(response => response.json()),
 
     refreshToken: () => {
         const refreshToken = browser ? localStorage.getItem('refresh_token') : null;
@@ -78,25 +78,60 @@ export const authApi = {
     registerEtablissement: (data) => fetchWithAuth('/register/etablissement/', {
         method: 'POST',
         body: JSON.stringify(data),
-    }),
+    }).then(response => response.json()),
 
     registerProfesseur: (data) => fetchWithAuth('/register/professeur/', {
         method: 'POST',
         body: JSON.stringify(data),
-    }),
+    }).then(response => response.json()),
 
     registerEleve: (data) => fetchWithAuth('/register/eleve/', {
         method: 'POST',
         body: JSON.stringify(data),
-    }),
+    }).then(response => response.json()),
 
     registerParent: (data) => fetchWithAuth('/register/parent/', {
         method: 'POST',
         body: JSON.stringify(data),
-    }),
+    }).then(response => response.json()),
 
     // Profil utilisateur
-    getProfile: () => fetchWithAuth('/profile/'),
+    getProfile: () => fetchWithAuth('/profile/').then(response => response.json()),
+
+    // Gestion des élèves
+    getEleves: (filters = {}) => {
+        const query = new URLSearchParams(filters).toString();
+        return fetchWithAuth(`/api/eleves/?${query}`).then(response => response.json());
+    },
+
+    getFilterOptions: () => fetchWithAuth('/api/eleves/filter_options/').then(response => response.json()),
+
+    createEleve: (data) => fetchWithAuth('/api/eleves/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }).then(response => response.json()),
+
+    updateEleve: (id, data) => fetchWithAuth(`/api/eleves/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    }).then(response => response.json()),
+
+    deleteEleve: (id) => fetchWithAuth(`/api/eleves/${id}/`, {
+        method: 'DELETE',
+    }).then(() => ({ message: 'Élève supprimé' })),
+
+    bulkAction: (action, ids) => {
+        if (action === 'export') {
+            return fetchWithAuth('/api/eleves/bulk/', {
+                method: 'POST',
+                body: JSON.stringify({ action, ids }),
+            });
+        }
+        return fetchWithAuth('/api/eleves/bulk/', {
+            method: 'POST',
+            body: JSON.stringify({ action, ids }),
+        }).then(response => response.json());
+    },
 };
 
 export const authStore = {
