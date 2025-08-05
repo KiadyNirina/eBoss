@@ -3,21 +3,22 @@
   import StudentTable from './StudentTable.svelte';
   import StudentFilters from './StudentFilters.svelte';
   import BulkActions from './BulkActions.svelte';
+  import AddStudentModal from './AddStudentModal.svelte';
   import { authApi } from '$lib/api';
-  
+
   let students = [];
   let selectedStudents = [];
-  let searchTerm = '';
   let filters = {
+    search: '',
     classe: '',
     statut: '',
     annee: ''
   };
-
-  let currentPage = 1;
-  let totalCount = 0;
-  let nextPage = null;
-  let previousPage = null;
+  let classOptions = [];
+  let statusOptions = [];
+  let yearOptions = [];
+  let showModal = false;
+  let successMessage = '';
 
   // Charger les étudiants
   async function fetchStudents(page = 1) {
@@ -42,13 +43,21 @@
     }
   }
 
-  function goToPage(page) {
-    fetchStudents(page);
+  // Charger les options de filtrage
+  async function fetchFilterOptions() {
+    try {
+      const data = await authApi.getFilterOptions();
+      classOptions = data.classes;
+      statusOptions = data.statuts;
+      yearOptions = data.annees;
+    } catch (error) {
+      console.error('Erreur lors du chargement des options de filtrage:', error.message);
+    }
   }
 
   fetchStudents();
-  
-  // Fonctions de gestion
+  fetchFilterOptions();
+
   function toggleSelectAll(event) {
     if (event.target.checked) {
       selectedStudents = students.map(student => student.id);
@@ -56,7 +65,7 @@
       selectedStudents = [];
     }
   }
-  
+
   function toggleStudentSelection(id) {
     if (selectedStudents.includes(id)) {
       selectedStudents = selectedStudents.filter(studentId => studentId !== id);
@@ -64,9 +73,10 @@
       selectedStudents = [...selectedStudents, id];
     }
   }
-  
+
   function applyFilters(newFilters) {
     filters = newFilters;
+    fetchStudents();
   }
 
   async function handleBulkAction(event) {
@@ -91,17 +101,34 @@
     }
   }
 
-  async function addStudent(studentData) {
-    try {
-      await authApi.createEleve(studentData);
-      fetchStudents();
-    } catch (error) {
-      console.error('Erreur lors de l\'ajout de l\'étudiant:', error.message);
-    }
+  function openModal() {
+    showModal = true;
+  }
+
+  function handleModalSuccess() {
+    fetchStudents();
+    successMessage = 'Étudiant ajouté avec succès';
+    setTimeout(() => (successMessage = ''), 3000);
+  }
+
+  let currentPage = 1;
+  let totalCount = 0;
+  let nextPage = null;
+  let previousPage = null;
+
+  function goToPage(page) {
+    fetchStudents(page);
   }
 </script>
 
-<div class="">
+<div>
+  <!-- Message de succès -->
+  {#if successMessage}
+    <div class="bg-green-100 border-l-4 border-green-400 p-4 mb-4">
+      <p class="text-green-700">{successMessage}</p>
+    </div>
+  {/if}
+
   <!-- En-tête -->
   <div class="sm:flex sm:items-center justify-between">
     <div class="mb-4 sm:mb-0">
@@ -111,14 +138,9 @@
       </p>
     </div>
     <div class="flex space-x-3">
-      <button 
-        on:click={() => addStudent({
-          user: { first_name: 'Nouveau', last_name: 'Étudiant', email: 'nouveau@ecole.fr', telephone: '06 00 00 00 00' },
-          classe: '3ème A',
-          statut: 'actif',
-          annee_scolaire: '2023-2024'
-        })}
-        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+      <button
+        on:click={openModal}
+        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
       >
         <Icon icon="heroicons:plus-sm" class="-ml-1 mr-2 h-5 w-5" />
         Ajouter un étudiant
@@ -203,4 +225,14 @@
       </div>
     </div>
   </div>
+
+  <!-- Modal -->
+  <AddStudentModal
+    isOpen={showModal}
+    {classOptions}
+    {statusOptions}
+    {yearOptions}
+    on:close={() => (showModal = false)}
+    on:success={handleModalSuccess}
+  />
 </div>

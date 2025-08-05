@@ -7,6 +7,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.views import TokenObtainPairView
+import csv
+from django.http import HttpResponse
 from django.db.models import Q
 from .serializers import (
     CustomTokenObtainPairSerializer,
@@ -142,11 +144,22 @@ class EleveViewSet(viewsets.ModelViewSet):
         if classe:
             queryset = queryset.filter(classe=classe)
         if statut:
-            pass
+            queryset = queryset.filter(statut=statut)
         if annee:
-            pass
+            queryset = queryset.filter(annee_scolaire=annee)
 
         return queryset
+
+    @action(detail=False, methods=['get'])
+    def filter_options(self, request):
+        classes = Eleve.objects.values('classe').distinct()
+        statuts = [{'value': choice[0], 'label': choice[1]} for choice in Eleve.STATUS_CHOICES]
+        annees = Eleve.objects.values('annee_scolaire').distinct().exclude(annee_scolaire__isnull=True)
+        return Response({
+            'classes': [{'value': c['classe'], 'label': c['classe']} for c in classes],
+            'statuts': statuts,
+            'annees': [{'value': a['annee_scolaire'], 'label': a['annee_scolaire']} for a in annees]
+        })
 
     @action(detail=False, methods=['post'])
     def bulk(self, request):
@@ -160,6 +173,20 @@ class EleveViewSet(viewsets.ModelViewSet):
             Eleve.objects.filter(id__in=ids).delete()
             return Response({'message': f'{len(ids)} étudiants supprimés'}, status=status.HTTP_200_OK)
         elif action_type == 'export':
-            return Response({'message': 'Exportation en cours'}, status=status.HTTP_200_OK)
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = 'attachment; filename="etudiants.csv"'
+            writer = csv.writer(response)
+            writer.writerow(['ID', 'Prénom', 'Nom', 'Email', 'Téléphone', 'Classe', 'Établissement'])
+            for eleve in Eleve.objects.filter(id__in=ids).select_related('user', 'etablissement'):
+                writer.writerow([
+                    eleve.id,
+                    eleve.user.first_name,
+                    eleve.user.last_name,
+                    eleve.user.email,
+                    eleve.user.telephone,
+                    eleve.classe,
+                    eleve.etablissement.nom if eleve.etablissement else ''
+                ])
+            return response
         else:
             return Response({'error': 'Action non valide'}, status=status.HTTP_400_BAD_REQUEST)
