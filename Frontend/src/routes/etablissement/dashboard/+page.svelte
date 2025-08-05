@@ -11,6 +11,8 @@
   import GradesView from '../../../components/etablissement/grades/GradesView.svelte';
   import AdmissionsView from '../../../components/etablissement/admissions/AdmissionsView.svelte';
   import CommunicationView from '../../../components/etablissement/communication/CommunicationView.svelte';
+  import FinanceView from '../../../components/etablissement/Finance/FinanceView.svelte';
+  import DocumentsView from '../../../components/etablissement/Documents/DocumentsView.svelte';
   import { currentView } from '$lib/stores';
 
   let sidebarOpen = false;
@@ -97,14 +99,10 @@
         <CommunicationView />
       
       {:else if $currentView === 'finances'}
-        <div class="bg-white shadow rounded-lg p-6">
-          <h2 class="text-xl font-semibold text-gray-900 mb-4">Finances</h2>
-        </div>
+        <FinanceView />
       
       {:else if $currentView === 'documents'}
-        <div class="bg-white shadow rounded-lg p-6">
-          <h2 class="text-xl font-semibold text-gray-900 mb-4">Documents</h2>
-        </div>
+        <DocumentsView />
       
       {:else if $currentView === 'parametres'}
         <div class="bg-white shadow rounded-lg p-6">

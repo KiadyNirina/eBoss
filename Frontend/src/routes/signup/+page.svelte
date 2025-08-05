@@ -112,7 +112,7 @@
         }
         
         await apiMethod(formData);
-        window.location.href = '/dashboard';
+        window.location.href = '/etablissement/dashboard';
         
     } catch (error) {
         errorMessage = error.message || "Une erreur s'est produite lors de l'inscription";

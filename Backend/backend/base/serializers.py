@@ -97,10 +97,11 @@ class EtablissementSerializer(serializers.ModelSerializer):
         user_data = validated_data.pop('user')
         user_data['user_type'] = 'etablissement'
         
-        user = User.objects.create(**user_data)
+        user_serializer = UserSerializer(data=user_data)
+        user_serializer.is_valid(raise_exception=True)
+        user = user_serializer.save()
         
-        etablissement = Etablissement.objects.create(user=user, **validated_data)
-        return etablissement
+        return Etablissement.objects.create(user=user, **validated_data)
 
 class ProfesseurSerializer(serializers.ModelSerializer):
     user = UserSerializer(required=True)
