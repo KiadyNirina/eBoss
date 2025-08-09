@@ -33,54 +33,82 @@ class EtablissementRegistrationView(generics.CreateAPIView):
         print("Données reçues:", request.data)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        self.perform_create(serializer)
-        headers = self.get_success_headers(serializer.data)
+        etablissement = serializer.save()  # On récupère l'instance créée
         
-        # Génération du token après inscription
-        user = serializer.instance.user
+        # Génération du token
+        user = etablissement.user
         refresh = RefreshToken.for_user(user)
         
         return Response({
             "message": "Inscription réussie pour l'établissement",
+            "etablissement": {
+                "id": etablissement.id,
+                "nom": etablissement.nom,
+                "type_etablissement": etablissement.type_etablissement
+            },
             "tokens": {
                 "refresh": str(refresh),
                 "access": str(refresh.access_token),
             }
-        }, status=status.HTTP_201_CREATED, headers=headers)
+        }, status=status.HTTP_201_CREATED)
 
 class AnneeScolaireViewSet(viewsets.ModelViewSet):
-    queryset = AnneeScolaire.objects.all()
+    queryset = AnneeScolaire.objects.all().order_by('-date_debut')
     serializer_class = AnneeScolaireSerializer
     permission_classes = [IsAuthenticated]
 
+    @action(detail=True, methods=['post'])
+    def activate(self, request, pk=None):
+        annee = self.get_object()
+        # Désactive toutes les autres années
+        AnneeScolaire.objects.exclude(pk=pk).update(est_active=False)
+        # Active l'année sélectionnée
+        annee.est_active = True
+        annee.save()
+        return Response({'status': 'année scolaire activée'})
+
     @action(detail=False, methods=['get'])
-    def active(self, request):
+    def current(self, request):
         annee_active = AnneeScolaire.objects.filter(est_active=True).first()
         if not annee_active:
-            return Response({'detail': 'Aucune année scolaire active'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'detail': 'Aucune année scolaire active'}, 
+                          status=status.HTTP_404_NOT_FOUND)
         serializer = self.get_serializer(annee_active)
         return Response(serializer.data)
 
 class ClasseViewSet(viewsets.ModelViewSet):
-    queryset = Classe.objects.all().select_related('annee_scolaire', 'professeur_principal', 'etablissement')
     serializer_class = ClasseSerializer
     permission_classes = [IsAuthenticated]
-    pagination_class = PageNumberPagination
+    
+    def get_serializer_context(self):
+        context = super().get_serializer_context()
+        context['request'] = self.request
+        return context
 
-    def get_queryset(self):
-        queryset = super().get_queryset()
-        etablissement_id = self.request.query_params.get('etablissement')
-        annee_scolaire_id = self.request.query_params.get('annee_scolaire')
-        niveau = self.request.query_params.get('niveau')
+    def perform_create(self, serializer):
+        etablissement = serializer.validated_data['etablissement']
+        annee_scolaire = serializer.validated_data['annee_scolaire']
         
-        if etablissement_id:
-            queryset = queryset.filter(etablissement_id=etablissement_id)
-        if annee_scolaire_id:
-            queryset = queryset.filter(annee_scolaire_id=annee_scolaire_id)
-        if niveau:
-            queryset = queryset.filter(niveau=niveau)
-            
-        return queryset
+        # Crée d'abord l'association
+        etablissement.annees_scolaires.add(annee_scolaire)
+        
+        # Puis sauvegarde la classe
+        serializer.save()
+
+        # Met à jour le cache des associations
+        etablissement.refresh_from_db()
+
+    def perform_update(self, serializer):
+        instance = self.get_object()
+        new_annee = serializer.validated_data.get('annee_scolaire', instance.annee_scolaire)
+        
+        if new_annee != instance.annee_scolaire:
+            if not instance.etablissement.annees_scolaires.filter(id=new_annee.id).exists():
+                raise serializers.ValidationError({
+                    'annee_scolaire': "Cette année scolaire n'est pas associée à l'établissement"
+                })
+        
+        serializer.save()
 
 class ProfesseurRegistrationView(generics.CreateAPIView):
     serializer_class = ProfesseurSerializer

@@ -38,6 +38,8 @@ class AnneeScolaire(models.Model):
 
     class Meta:
         ordering = ['-date_debut']
+        verbose_name = "Année scolaire"
+        verbose_name_plural = "Années scolaires"
 
 class Etablissement(models.Model):
     TYPE_CHOICES = (
@@ -65,10 +67,12 @@ class Classe(models.Model):
     professeur_principal = models.ForeignKey('Professeur', on_delete=models.SET_NULL, null=True, blank=True)
     
     def __str__(self):
-        return f"{self.nom} ({self.annee_scolaire})"
+        section = f" {self.section}" if self.section else ""
+        return f"{self.niveau}{section} - {self.annee_scolaire.nom}"
     
     class Meta:
-        unique_together = ('etablissement', 'annee_scolaire', 'nom')
+        unique_together = ('etablissement', 'annee_scolaire', 'nom', 'niveau', 'section')
+        verbose_name_plural = "Classes"
 
 class Professeur(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='professeur')

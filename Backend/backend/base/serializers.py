@@ -38,9 +38,12 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         return data
 
 class AnneeScolaireSerializer(serializers.ModelSerializer):
+    est_active = serializers.BooleanField(read_only=True)
+    
     class Meta:
         model = AnneeScolaire
-        fields = '__all__'
+        fields = ['id', 'nom', 'date_debut', 'date_fin', 'est_active']
+        read_only_fields = ['id']
 
 class ClasseSerializer(serializers.ModelSerializer):
     annee_scolaire = AnneeScolaireSerializer(read_only=True)
@@ -50,15 +53,23 @@ class ClasseSerializer(serializers.ModelSerializer):
         write_only=True
     )
     
-    professeur_principal = serializers.PrimaryKeyRelatedField(
-        queryset=Professeur.objects.all(),
-        required=False,
-        allow_null=True
-    )
-    
     class Meta:
         model = Classe
         fields = '__all__'
+    
+    def validate(self, data):
+        etablissement = data.get('etablissement')
+        annee_scolaire = data.get('annee_scolaire')
+        
+        if self.context['request'].method == 'POST':
+            return data
+            
+        if etablissement and annee_scolaire:
+            if not etablissement.annees_scolaires.filter(id=annee_scolaire.id).exists():
+                raise serializers.ValidationError(
+                    "Cette année scolaire n'est pas associée à l'établissement"
+                )
+        return data
 
 class UserProfileSerializer(serializers.ModelSerializer):
     profile = serializers.SerializerMethodField()
