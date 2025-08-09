@@ -207,12 +207,35 @@ class EleveViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'])
     def filter_options(self, request):
-        classes = Classe.objects.values('id', 'nom').distinct()
-        statuts = [{'value': choice[0], 'label': choice[1]} for choice in Eleve.STATUS_CHOICES]
+        etablissement_id = request.query_params.get('etablissement')
         
+        if not etablissement_id and hasattr(request.user, 'etablissement'):
+            etablissement_id = request.user.etablissement.id
+
+        if not etablissement_id:
+            return Response({'error': 'Établissement requis'}, status=400)
+
+        classes = Classe.objects.filter(
+            etablissement_id=etablissement_id
+        ).distinct().values('id', 'nom', 'annee_scolaire__nom')
+
+        annees = AnneeScolaire.objects.filter(
+            etablissement__id=etablissement_id
+        ).distinct().values('id', 'nom')
+
         return Response({
-            'classes': [{'value': c['id'], 'label': c['nom']} for c in classes],
-            'statuts': statuts
+            'classes': [{
+                'value': c['id'],
+                'label': f"{c['nom']} ({c['annee_scolaire__nom']})" 
+            } for c in classes],
+            'annees': [{
+                'value': a['id'],
+                'label': a['nom']
+            } for a in annees],
+            'statuts': [{
+                'value': choice[0], 
+                'label': choice[1]
+            } for choice in Eleve.STATUS_CHOICES]
         })
 
     @action(detail=False, methods=['post'])
