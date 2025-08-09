@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import User, Etablissement, Professeur, Eleve, Parent
+from .models import User, Etablissement, Professeur, Eleve, Parent, AnneeScolaire, Classe
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
@@ -36,6 +36,29 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         }
         
         return data
+
+class AnneeScolaireSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AnneeScolaire
+        fields = '__all__'
+
+class ClasseSerializer(serializers.ModelSerializer):
+    annee_scolaire = AnneeScolaireSerializer(read_only=True)
+    annee_scolaire_id = serializers.PrimaryKeyRelatedField(
+        queryset=AnneeScolaire.objects.all(),
+        source='annee_scolaire',
+        write_only=True
+    )
+    
+    professeur_principal = serializers.PrimaryKeyRelatedField(
+        queryset=Professeur.objects.all(),
+        required=False,
+        allow_null=True
+    )
+    
+    class Meta:
+        model = Classe
+        fields = '__all__'
 
 class UserProfileSerializer(serializers.ModelSerializer):
     profile = serializers.SerializerMethodField()
@@ -72,18 +95,18 @@ class UserSerializer(serializers.ModelSerializer):
     def validate(self, data):
         if 'username' not in data or not data['username']:
             data['username'] = data['email'] 
-        
         return data
     
     def create(self, validated_data):
         if not validated_data.get('username'):
             validated_data['username'] = validated_data['email']
-        
         validated_data['password'] = make_password(validated_data['password'])
         return super().create(validated_data)
 
 class EtablissementSerializer(serializers.ModelSerializer):
     user = UserSerializer(required=True)
+    annees_scolaires = AnneeScolaireSerializer(many=True, read_only=True)
+    classes = ClasseSerializer(many=True, read_only=True)
     
     class Meta:
         model = Etablissement
@@ -105,6 +128,11 @@ class EtablissementSerializer(serializers.ModelSerializer):
 
 class ProfesseurSerializer(serializers.ModelSerializer):
     user = UserSerializer(required=True)
+    classes = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Classe.objects.all(),
+        required=False
+    )
     
     class Meta:
         model = Professeur
@@ -115,16 +143,23 @@ class ProfesseurSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         user_data = validated_data.pop('user')
+        classes = validated_data.pop('classes', [])
         user_data['user_type'] = 'professeur'
         
         user_serializer = UserSerializer(data=user_data)
         user_serializer.is_valid(raise_exception=True)
         user = user_serializer.save()
         
-        return Professeur.objects.create(user=user, **validated_data)
+        professeur = Professeur.objects.create(user=user, **validated_data)
+        professeur.classes.set(classes)
+        return professeur
 
 class EleveSerializer(serializers.ModelSerializer):
     user = UserSerializer(required=True)
+    classe = serializers.PrimaryKeyRelatedField(
+        queryset=Classe.objects.all(),
+        required=True
+    )
     
     class Meta:
         model = Eleve
@@ -145,10 +180,10 @@ class EleveSerializer(serializers.ModelSerializer):
 
 class ParentSerializer(serializers.ModelSerializer):
     user = UserSerializer(required=True)
-    enfants_text = serializers.CharField(
-        write_only=True, 
-        required=False,
-        help_text="Liste des enfants séparés par des virgules"
+    enfants = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=Eleve.objects.all(),
+        required=False
     )
     
     class Meta:
@@ -157,7 +192,7 @@ class ParentSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         user_data = validated_data.pop('user')
-        enfants_text = validated_data.pop('enfants_text', '')
+        enfants = validated_data.pop('enfants', [])
         user_data['user_type'] = 'parent'
         
         user_serializer = UserSerializer(data=user_data)
@@ -165,5 +200,5 @@ class ParentSerializer(serializers.ModelSerializer):
         user = user_serializer.save()
         
         parent = Parent.objects.create(user=user, **validated_data)
-        
+        parent.enfants.set(enfants)
         return parent
