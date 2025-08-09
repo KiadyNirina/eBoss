@@ -27,6 +27,18 @@ class User(AbstractUser):
         self.clean()
         super().save(*args, **kwargs)
 
+class AnneeScolaire(models.Model):
+    nom = models.CharField(max_length=50)  # Ex: "2023-2024"
+    date_debut = models.DateField()
+    date_fin = models.DateField()
+    est_active = models.BooleanField(default=False)
+    
+    def __str__(self):
+        return self.nom
+
+    class Meta:
+        ordering = ['-date_debut']
+
 class Etablissement(models.Model):
     TYPE_CHOICES = (
         ('ecole', 'École primaire'),
@@ -39,14 +51,30 @@ class Etablissement(models.Model):
     type_etablissement = models.CharField(max_length=20, choices=TYPE_CHOICES)
     nom = models.CharField(max_length=255)
     adresse = models.TextField()
+    annees_scolaires = models.ManyToManyField(AnneeScolaire, blank=True)
     
     def __str__(self):
         return self.nom
+
+class Classe(models.Model):
+    etablissement = models.ForeignKey(Etablissement, on_delete=models.CASCADE, related_name='classes')
+    annee_scolaire = models.ForeignKey(AnneeScolaire, on_delete=models.CASCADE, related_name='classes')
+    nom = models.CharField(max_length=100)  # Ex: "CE1 A" ou "Terminale S"
+    niveau = models.CharField(max_length=50)  # Ex: "CE1", "Terminale", etc.
+    section = models.CharField(max_length=10, blank=True, null=True)  # Ex: "A", "B", "S", "ES", etc.
+    professeur_principal = models.ForeignKey('Professeur', on_delete=models.SET_NULL, null=True, blank=True)
+    
+    def __str__(self):
+        return f"{self.nom} ({self.annee_scolaire})"
+    
+    class Meta:
+        unique_together = ('etablissement', 'annee_scolaire', 'nom')
 
 class Professeur(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='professeur')
     etablissement = models.ForeignKey(Etablissement, on_delete=models.SET_NULL, null=True, blank=True)
     matiere = models.CharField(max_length=100)
+    classes = models.ManyToManyField(Classe, blank=True, related_name='professeurs')
     
     def __str__(self):
         return f"{self.user.get_full_name()} ({self.matiere})"
@@ -59,12 +87,11 @@ class Eleve(models.Model):
     )
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='eleve')
     etablissement = models.ForeignKey(Etablissement, on_delete=models.SET_NULL, null=True, blank=True)
-    classe = models.CharField(max_length=50)
+    classe = models.ForeignKey(Classe, on_delete=models.SET_NULL, null=True, blank=True)
     statut = models.CharField(max_length=20, choices=STATUS_CHOICES, default='actif')
-    annee_scolaire = models.CharField(max_length=9, blank=True, null=True)
     
     def __str__(self):
-        return f"{self.user.get_full_name()} ({self.classe})"
+        return f"{self.user.get_full_name()} ({self.classe.nom if self.classe else 'Non assigné'})"
 
 class Parent(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='parent')
