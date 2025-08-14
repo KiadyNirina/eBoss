@@ -11,6 +11,11 @@
   let activeTab = 'etablissement';
   let isLoading = false;
   let errorMessage = '';
+  let successMessage = '';
+  
+  // Liste des années scolaires et classes
+  let anneesScolaires = [];
+  let classes = [];
   
   const userTypes = [
     { id: 'etablissement', label: 'Établissement', icon: 'heroicons:building-office-2' },
@@ -27,7 +32,18 @@
     adresse: '',
     typeEtablissement: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    // Nouveaux champs
+    anneeScolaire: {
+      nom: '',
+      date_debut: '',
+      date_fin: ''
+    },
+    classes: [{
+      nom: '',
+      niveau: '',
+      section: ''
+    }]
   };
   
   let professeurData = {
@@ -63,6 +79,20 @@
 
   $: enfantsText = parentData.enfants.join(', ');
 
+  // Fonction pour ajouter une nouvelle classe
+  function addClasse() {
+    etablissementData.classes.push({
+      nom: '',
+      niveau: '',
+      section: ''
+    });
+  }
+  
+  // Fonction pour supprimer une classe
+  function removeClasse(index) {
+    etablissementData.classes.splice(index, 1);
+  }
+
   function updateEnfants(input) {
     parentData.enfants = input
       ? input.split(',').map(item => item.trim()).filter(item => item !== '')
@@ -72,6 +102,7 @@
   async function handleSubmit() {
     isLoading = true;
     errorMessage = '';
+    successMessage = '';
     
     try {
         let formData;
@@ -80,10 +111,59 @@
         switch (activeTab) {
             case 'etablissement':
                 if (etablissementData.password !== etablissementData.confirmPassword) {
-                    throw new Error('Les mots de passe ne correspondent pas');
+                  throw new Error('Les mots de passe ne correspondent pas');
                 }
-                formData = getEtablissementFormData(etablissementData);
-                apiMethod = authApi.registerEtablissement;
+                
+                // Validation des données
+                if (!etablissementData.anneeScolaire.nom || 
+                    !etablissementData.anneeScolaire.date_debut || 
+                    !etablissementData.anneeScolaire.date_fin) {
+                  throw new Error('Veuillez remplir tous les champs de l\'année scolaire');
+                }
+                
+                if (etablissementData.classes.length === 0) {
+                  throw new Error('Veuillez ajouter au moins une classe');
+                }
+                
+                for (const classe of etablissementData.classes) {
+                  if (!classe.nom || !classe.niveau) {
+                    throw new Error('Veuillez remplir tous les champs des classes');
+                  }
+                }
+
+                // Création de l'établissement
+                const etablissement = await authApi.registerEtablissement(
+                  getEtablissementFormData(etablissementData)
+                );
+
+                console.log(etablissement);
+                
+                // Création de l'année scolaire
+                const anneeScolaire = await authApi.createAnneeScolaire({
+                  ...etablissementData.anneeScolaire,
+                  etablissement: etablissement.etablissement.id
+                });
+                
+                // Création des classes
+                for (const classe of etablissementData.classes) {
+                  const classePayload = {
+                    nom: classe.nom,
+                    niveau: classe.niveau,
+                    section: classe.section || null,
+                    etablissement: etablissement.etablissement.id,
+                    annee_scolaire_id: anneeScolaire.id,
+                  };
+                  
+                  console.log("Envoi de la classe:", classePayload); 
+                  
+                  const createdClasse = await authApi.createClasse(classePayload);
+                  
+                  if (!createdClasse?.id) {
+                    console.error("Échec création classe:", createdClasse);
+                  }
+                }
+                
+                successMessage = 'Établissement créé avec succès avec ses classes et année scolaire';
                 break;
           
             case 'professeur':
@@ -110,9 +190,14 @@
                 apiMethod = authApi.registerParent;
                 break;
         }
-        
-        await apiMethod(formData);
-        window.location.href = '/etablissement/dashboard';
+
+        if (activeTab === 'etablissement') {
+          setTimeout(() => {
+            window.location.href = '/etablissement/dashboard';
+          }, 2000);
+        } else {
+          window.location.href = '/etablissement/dashboard';
+        }
         
     } catch (error) {
         errorMessage = error.message || "Une erreur s'est produite lors de l'inscription";
@@ -228,7 +313,116 @@
                 class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
               />
             </div>
+          </div>
+          
+          <!-- Section Année scolaire -->
+          <div class="border-t border-gray-200 pt-6">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Année scolaire</h3>
+            <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
+              <div>
+                <label for="annee-nom" class="block text-sm font-medium text-gray-700">Nom (ex: 2023-2024)</label>
+                <input
+                  id="annee-nom"
+                  type="text"
+                  bind:value={etablissementData.anneeScolaire.nom}
+                  required
+                  class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                />
+              </div>
+              
+              <div>
+                <label for="annee-debut" class="block text-sm font-medium text-gray-700">Date de début</label>
+                <input
+                  id="annee-debut"
+                  type="date"
+                  bind:value={etablissementData.anneeScolaire.date_debut}
+                  required
+                  class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                />
+              </div>
+              
+              <div>
+                <label for="annee-fin" class="block text-sm font-medium text-gray-700">Date de fin</label>
+                <input
+                  id="annee-fin"
+                  type="date"
+                  bind:value={etablissementData.anneeScolaire.date_fin}
+                  required
+                  class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                />
+              </div>
+            </div>
+          </div>
+          
+          <!-- Section Classes -->
+          <div class="border-t border-gray-200 pt-6">
+            <div class="flex justify-between items-center mb-4">
+              <h3 class="text-lg font-medium text-gray-900">Classes</h3>
+              <button
+                type="button"
+                on:click={addClasse}
+                class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-md text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              >
+                <Icon icon="heroicons:plus" class="h-4 w-4 mr-1" />
+                Ajouter une classe
+              </button>
+            </div>
             
+            {#each etablissementData.classes as classe, index (index)}
+              <div class="grid grid-cols-1 gap-6 sm:grid-cols-3 mb-4 p-4 bg-gray-50 rounded-lg">
+                <div>
+                  <label for="classe-nom-{index}" class="block text-sm font-medium text-gray-700">Nom de la classe</label>
+                  <input
+                    id="classe-nom-{index}"
+                    type="text"
+                    bind:value={classe.nom}
+                    required
+                    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                    placeholder="Ex: CE1 A"
+                  />
+                </div>
+                
+                <div>
+                  <label for="classe-niveau-{index}" class="block text-sm font-medium text-gray-700">Niveau</label>
+                  <input
+                    id="classe-niveau-{index}"
+                    type="text"
+                    bind:value={classe.niveau}
+                    required
+                    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                    placeholder="Ex: CE1, 6ème, Terminale"
+                  />
+                </div>
+                
+                <div class="flex items-end space-x-2">
+                  <div class="flex-1">
+                    <label for="classe-section-{index}" class="block text-sm font-medium text-gray-700">Section (optionnel)</label>
+                    <input
+                      id="classe-section-{index}"
+                      type="text"
+                      bind:value={classe.section}
+                      class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                      placeholder="Ex: A, B, S, ES"
+                    />
+                  </div>
+                  
+                  {#if etablissementData.classes.length > 1}
+                    <button
+                      type="button"
+                      on:click={() => removeClasse(index)}
+                      class="mb-1 p-1 text-red-500 hover:text-red-700 focus:outline-none"
+                      title="Supprimer cette classe"
+                    >
+                      <Icon icon="heroicons:trash" class="h-5 w-5" />
+                    </button>
+                  {/if}
+                </div>
+              </div>
+            {/each}
+          </div>
+          
+          <!-- Mot de passe -->
+          <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
             <div>
               <label for="etab-password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
               <input
@@ -252,6 +446,19 @@
             </div>
           </div>
           
+          {#if successMessage}
+            <div class="bg-green-50 border-l-4 border-green-400 p-4">
+              <div class="flex">
+                <div class="flex-shrink-0">
+                  <Icon icon="heroicons:check-circle" class="h-5 w-5 text-green-400" />
+                </div>
+                <div class="ml-3">
+                  <p class="text-sm text-green-700">{successMessage}</p>
+                </div>
+              </div>
+            </div>
+          {/if}
+          
           <div>
             <button
               type="submit"
@@ -260,9 +467,9 @@
             >
               {#if isLoading}
                 <Icon icon="heroicons:arrow-path" class="animate-spin h-5 w-5 mr-2" />
-                Inscription en cours...
+                Création en cours...
               {:else}
-                S'inscrire en tant qu'établissement
+                Créer l'établissement
               {/if}
             </button>
           </div>

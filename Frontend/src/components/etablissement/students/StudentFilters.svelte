@@ -13,6 +13,7 @@
   async function fetchFilterOptions() {
     try {
       const data = await authApi.getFilterOptions();
+      console.log('Filter options:', data);
       classOptions = data.classes;
       statusOptions = data.statuts;
       yearOptions = data.annees;

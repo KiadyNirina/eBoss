@@ -95,6 +95,22 @@ export const authApi = {
         body: JSON.stringify(data),
     }).then(response => response.json()),
 
+    getAnneesScolaires: () => fetchWithAuth('/api/annees-scolaires/').then(response => response.json()),
+    
+    createAnneeScolaire: (data) => fetchWithAuth('/api/annees-scolaires/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }).then(response => response.json()),
+
+    getClasses: (filters = {}) => {
+        const query = new URLSearchParams(filters).toString();
+        return fetchWithAuth(`/api/classes/?${query}`).then(response => response.json());
+    },
+    createClasse: (data) => fetchWithAuth('/api/classes/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }).then(response => response.json()),
+
     // Profil utilisateur
     getProfile: () => fetchWithAuth('/profile/').then(response => response.json()),
 
