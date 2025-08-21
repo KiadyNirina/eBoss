@@ -24,7 +24,8 @@
   async function fetchStudents(page = 1) {
     try {
       const data = await authApi.getEleves({ ...filters, page });
-      students = data.results.map(student => ({
+      console.log('Fetched students:', data);
+      students = data.map(student => ({
         id: student.id,
         nom: student.user.last_name,
         prenom: student.user.first_name,
