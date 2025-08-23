@@ -79,6 +79,13 @@ class AnneeScolaireViewSet(viewsets.ModelViewSet):
 class ClasseViewSet(viewsets.ModelViewSet):
     serializer_class = ClasseSerializer
     permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        etablissement_id = self.request.query_params.get('etablissement')
+        queryset = Classe.objects.all()
+        if etablissement_id:
+            queryset = queryset.filter(etablissement_id=etablissement_id)
+        return queryset
     
     def get_serializer_context(self):
         context = super().get_serializer_context()

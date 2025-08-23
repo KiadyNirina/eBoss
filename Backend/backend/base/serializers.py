@@ -167,10 +167,7 @@ class ProfesseurSerializer(serializers.ModelSerializer):
 
 class EleveSerializer(serializers.ModelSerializer):
     user = UserSerializer(required=True)
-    classe = serializers.PrimaryKeyRelatedField(
-        queryset=Classe.objects.all(),
-        required=True
-    )
+    classe = serializers.PrimaryKeyRelatedField(queryset=Classe.objects.all(), required=True)
     
     class Meta:
         model = Eleve

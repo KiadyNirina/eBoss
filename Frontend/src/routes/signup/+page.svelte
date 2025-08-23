@@ -98,6 +98,50 @@
       ? input.split(',').map(item => item.trim()).filter(item => item !== '')
       : [];
   }
+
+  function setDefaultClasses(type) {
+    switch (type) {
+      case 'ecole':
+        etablissementData.classes = [
+          { nom: 'CP', niveau: 'CP', section: '' },
+          { nom: 'CE1', niveau: 'CE1', section: '' },
+          { nom: 'CE2', niveau: 'CE2', section: '' },
+          { nom: 'CM1', niveau: 'CM1', section: '' },
+          { nom: 'CM2', niveau: 'CM2', section: '' }
+        ];
+        break;
+      case 'college':
+        etablissementData.classes = [
+          { nom: '6ème', niveau: '6ème', section: '' },
+          { nom: '5ème', niveau: '5ème', section: '' },
+          { nom: '4ème', niveau: '4ème', section: '' },
+          { nom: '3ème', niveau: '3ème', section: '' }
+        ];
+        break;
+      case 'lycee':
+        etablissementData.classes = [
+          { nom: 'Seconde', niveau: 'Seconde', section: '' },
+          { nom: 'Première', niveau: 'Première', section: '' },
+          { nom: 'Terminale', niveau: 'Terminale', section: '' }
+        ];
+        break;
+      case 'universite':
+        etablissementData.classes = [
+          { nom: 'Licence 1', niveau: 'L1', section: '' },
+          { nom: 'Licence 2', niveau: 'L2', section: '' },
+          { nom: 'Licence 3', niveau: 'L3', section: '' },
+          { nom: 'Master 1', niveau: 'M1', section: '' },
+          { nom: 'Master 2', niveau: 'M2', section: '' }
+        ];
+        break;
+      default:
+        etablissementData.classes = [{ nom: '', niveau: '', section: '' }];
+    }
+  }
+
+  $: if (activeTab === 'etablissement' && etablissementData.typeEtablissement) {
+    setDefaultClasses(etablissementData.typeEtablissement);
+  }
   
   async function handleSubmit() {
     isLoading = true;
