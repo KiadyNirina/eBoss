@@ -35,7 +35,7 @@
         statut: student.statut,
         derniereActivite: student.derniereActivite || 'N/A'
       }));
-      totalCount = data.count;
+      totalCount = data.count || 1;
       nextPage = data.next;
       previousPage = data.previous;
       currentPage = page;
