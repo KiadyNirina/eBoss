@@ -31,7 +31,7 @@
         id: student.id,
         nom: student.user.last_name,
         prenom: student.user.first_name,
-        classe: student.classe,
+        classe: student.classe.nom,
         email: student.user.email,
         telephone: student.user.telephone,
         statut: student.statut,
