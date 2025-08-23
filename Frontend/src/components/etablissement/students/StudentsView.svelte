@@ -16,7 +16,8 @@
     annee: '',
     etablissement: $user.profile.id
   };
-  let classOptions = [];
+  let classOptions = []; // Pour les filtres
+  let classForStudent = []; // Pour le modal
   let statusOptions = [];
   let yearOptions = [];
   let showModal = false;
@@ -46,13 +47,29 @@
     }
   }
 
+  // Charger les classes pour le modal
+  async function fetchClasses() {
+    try {
+      const filtersForClasses = { etablissement: $user.profile.id };
+      const classes = await authApi.getClasses(filtersForClasses);
+      classForStudent = classes || [];
+      console.log('Classes for modal:', classForStudent);
+      return classForStudent;
+    } catch (error) {
+      console.error('Erreur lors de la récupération des classes:', error.message);
+      classForStudent = [];
+      return [];
+    }
+  }
+
   // Charger les options de filtrage
   async function fetchFilterOptions() {
     try {
       const data = await authApi.getFilterOptions();
-      classOptions = data.classes;
-      statusOptions = data.statuts;
-      yearOptions = data.annees;
+      classOptions = data.classes || [];
+      statusOptions = data.statuts || [];
+      yearOptions = data.annees || [];
+      console.log('Filter options:', { classOptions, statusOptions, yearOptions });
     } catch (error) {
       console.error('Erreur lors du chargement des options de filtrage:', error.message);
     }
@@ -60,9 +77,20 @@
 
   // Appeler les fonctions au chargement
   $: if ($user.profile.id) {
+    console.log('User profile ID:', $user.profile.id);
     filters.etablissement = $user.profile.id;
     fetchStudents();
     fetchFilterOptions();
+    fetchClasses();
+  }
+
+  // Ouvre le modal et vérifie les classes
+  async function openModal() {
+    if (classForStudent.length === 0) {
+      await fetchClasses(); // Recharge si classForStudent est vide
+    }
+    console.log('classForStudent before opening modal:', classForStudent);
+    showModal = true;
   }
 
   function toggleSelectAll(event) {
@@ -108,10 +136,6 @@
     }
   }
 
-  function openModal() {
-    showModal = true;
-  }
-
   function handleModalSuccess() {
     fetchStudents();
     successMessage = 'Étudiant ajouté avec succès';
@@ -147,43 +171,44 @@
     <div class="flex space-x-3">
       <button
         on:click={openModal}
-        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
+        disabled={classForStudent.length === 0}
+        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
       >
         <Icon icon="heroicons:plus-sm" class="-ml-1 mr-2 h-5 w-5" />
         Ajouter un étudiant
       </button>
-      <button 
+      <button
         on:click={() => handleBulkAction({ detail: { action: 'export' } })}
-        class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+        class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md shadow-sm text-gray-700 bg-white hover:bg-gray-50"
       >
         <Icon icon="heroicons:arrow-down-tray" class="-ml-1 mr-2 h-5 w-5" />
         Exporter
       </button>
     </div>
   </div>
-  
+
   <!-- Filtres et recherche -->
   <StudentFilters {filters} on:apply={applyFilters} />
-  
+
   <!-- Actions groupées -->
   {#if selectedStudents.length > 0}
-    <BulkActions 
-      count={selectedStudents.length} 
+    <BulkActions
+      count={selectedStudents.length}
       on:delete={handleBulkAction}
       on:export={handleBulkAction}
     />
   {/if}
-  
+
   <!-- Tableau des étudiants -->
   <div class="mt-6 shadow-sm border border-gray-200 rounded-lg overflow-hidden">
-    <StudentTable 
-      {students} 
+    <StudentTable
+      {students}
       {selectedStudents}
       on:toggleSelectAll={toggleSelectAll}
       on:toggleStudent={toggleStudentSelection}
     />
   </div>
-  
+
   <!-- Pagination -->
   <div class="mt-6 flex items-center justify-between">
     <div class="flex-1 flex justify-between sm:hidden">
@@ -205,12 +230,16 @@
     <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
       <div>
         <p class="text-sm text-gray-700">
-          Affichage de <span class="font-medium">{(currentPage - 1) * 10 + 1}</span> à <span class="font-medium">{Math.min(currentPage * 10, totalCount)}</span> sur{' '}
+          Affichage de <span class="font-medium">{(currentPage - 1) * 10 + 1}</span> à
+          <span class="font-medium">{Math.min(currentPage * 10, totalCount)}</span> sur
           <span class="font-medium">{totalCount}</span> résultats
         </p>
       </div>
       <div>
-        <nav class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+        <nav
+          class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px"
+          aria-label="Pagination"
+        >
           <button
             on:click={() => goToPage(currentPage - 1)}
             disabled={!previousPage}
@@ -244,7 +273,7 @@
   <!-- Modal -->
   <AddStudentModal
     isOpen={showModal}
-    {classOptions}
+    classOptions={classForStudent}
     {statusOptions}
     {yearOptions}
     on:close={() => (showModal = false)}

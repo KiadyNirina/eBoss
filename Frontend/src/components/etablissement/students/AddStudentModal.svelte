@@ -2,6 +2,7 @@
   import Icon from '@iconify/svelte';
   import { authApi } from '$lib/api';
   import { createEventDispatcher } from 'svelte';
+  import { user } from '$lib/stores';
 
   export let isOpen = false;
   export let classOptions = [];
@@ -15,34 +16,75 @@
       first_name: '',
       last_name: '',
       email: '',
-      telephone: ''
+      telephone: '',
+      password: '',
+      password_confirm: '',
+      user_type: 'eleve'
     },
-    classe: '',
+    classe: null,
     statut: 'actif',
-    annee_scolaire: ''
+    annee_scolaire: '',
+    etablissement: $user.profile.id
   };
   let error = '';
+  let selectedClassId = '';
 
   async function handleSubmit() {
     try {
-      await authApi.createEleve(formData);
+      if (!selectedClassId) {
+        error = 'Veuillez sélectionner une classe';
+        return;
+      }
+
+      // Trouver l'objet classe pour débogage
+      const selectedClass = classOptions.find(option => option.id === parseInt(selectedClassId));
+      if (!selectedClass) {
+        error = 'Classe sélectionnée invalide';
+        return;
+      }
+
+      console.log("Selected class object:", selectedClass);
+
+      formData.classe = parseInt(selectedClassId);
+      console.log("Form data before submission:", formData);
+
+      // Créer les données à envoyer
+      const submitData = {
+        ...formData,
+        classe: parseInt(selectedClassId)
+      };
+
+      console.log("Submit data:", submitData);
+      await authApi.createEleve(submitData);
       dispatch('close');
       dispatch('success', { message: 'Étudiant ajouté avec succès' });
-      formData = {
-        user: { first_name: '', last_name: '', email: '', telephone: '' },
-        classe: '',
-        statut: 'actif',
-        annee_scolaire: ''
-      };
       error = '';
+      selectedClassId = '';
     } catch (err) {
       error = err.message || 'Une erreur est survenue lors de l\'ajout de l\'étudiant';
+      console.error('Submission error:', err);
     }
   }
 
   function closeModal() {
     dispatch('close');
     error = '';
+    selectedClassId = '';
+    formData = {
+      user: {
+        first_name: '',
+        last_name: '',
+        email: '',
+        telephone: '',
+        password: '',
+        password_confirm: '',
+        user_type: 'eleve'
+      },
+      classe: null,
+      statut: 'actif',
+      annee_scolaire: '',
+      etablissement: $user.profile.id
+    };
   }
 </script>
 
@@ -115,13 +157,13 @@
           <label for="classe" class="block text-sm font-medium text-gray-700">Classe</label>
           <select
             id="classe"
-            bind:value={formData.classe}
+            bind:value={selectedClassId}
             class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm"
             required
           >
             <option value="">Sélectionner une classe</option>
             {#each classOptions as option}
-              <option value={option.value}>{option.label}</option>
+              <option value={option.id}>{option.nom}</option>
             {/each}
           </select>
         </div>
@@ -141,7 +183,6 @@
           </select>
         </div>
 
-        <!-- Année scolaire -->
         <div class="mb-4">
           <label for="annee" class="block text-sm font-medium text-gray-700">Année scolaire</label>
           <select
@@ -157,7 +198,30 @@
           </select>
         </div>
 
-        <!-- Message d'erreur -->
+        <div class="mb-4">
+          <label for="password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
+          <input
+            type="password"
+            id="password"
+            bind:value={formData.user.password}
+            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm"
+            placeholder="Mot de passe"
+            required
+          />
+        </div>
+
+        <div class="mb-4">
+          <label for="password_confirm" class="block text-sm font-medium text-gray-700">Confirmer le mot de passe</label>
+          <input
+            type="password"
+            id="password_confirm"
+            bind:value={formData.user.password_confirm}
+            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm"
+            placeholder="Confirmer le mot de passe"
+            required
+          />
+        </div>
+
         {#if error}
           <p class="text-red-600 text-sm mb-4">{error}</p>
         {/if}
