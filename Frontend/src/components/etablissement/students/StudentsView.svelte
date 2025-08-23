@@ -58,8 +58,12 @@
     }
   }
 
-  fetchStudents();
-  fetchFilterOptions();
+  // Appeler les fonctions au chargement
+  $: if ($user.profile.id) {
+    filters.etablissement = $user.profile.id;
+    fetchStudents();
+    fetchFilterOptions();
+  }
 
   function toggleSelectAll(event) {
     if (event.target.checked) {
@@ -77,8 +81,8 @@
     }
   }
 
-  function applyFilters(newFilters) {
-    filters = newFilters;
+  function applyFilters(event) {
+    filters = event.detail;
     fetchStudents();
   }
 
@@ -183,12 +187,20 @@
   <!-- Pagination -->
   <div class="mt-6 flex items-center justify-between">
     <div class="flex-1 flex justify-between sm:hidden">
-      <a href="#" class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+      <button
+        on:click={() => goToPage(currentPage - 1)}
+        disabled={!previousPage}
+        class="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+      >
         Précédent
-      </a>
-      <a href="#" class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50">
+      </button>
+      <button
+        on:click={() => goToPage(currentPage + 1)}
+        disabled={!nextPage}
+        class="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+      >
         Suivant
-      </a>
+      </button>
     </div>
     <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
       <div>
