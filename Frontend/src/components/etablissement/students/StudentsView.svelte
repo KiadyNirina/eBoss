@@ -5,6 +5,7 @@
   import BulkActions from './BulkActions.svelte';
   import AddStudentModal from './AddStudentModal.svelte';
   import { authApi } from '$lib/api';
+  import { user } from '$lib/stores';
 
   let students = [];
   let selectedStudents = [];
@@ -12,7 +13,8 @@
     search: '',
     classe: '',
     statut: '',
-    annee: ''
+    annee: '',
+    etablissement: $user.profile.id
   };
   let classOptions = [];
   let statusOptions = [];
