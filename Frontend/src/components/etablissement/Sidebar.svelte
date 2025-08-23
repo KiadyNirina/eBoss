@@ -1,31 +1,8 @@
 <script>
-  import { onMount } from 'svelte';
-  import { writable } from 'svelte/store';
-  import { browser } from '$app/environment';
   import Icon from '@iconify/svelte';
-  import { authApi, authStore } from '$lib/api';
-  import { currentView } from '$lib/stores';
+  import { currentView, user } from '$lib/stores';
 
   export let onClose;
-
-  let user = writable(null);
-  let isAuthenticated = false;
-
-  authStore.subscribe((state) => {
-    isAuthenticated = state.isAuthenticated;
-  });
-
-  onMount(async () => {
-    if (browser && isAuthenticated) {
-      try {
-        const profile = await authApi.getProfile();
-        user.set(profile);
-      } catch (error) {
-        console.error('Erreur lors de la récupération du profil:', error.message);
-        authStore.clearTokens();
-      }
-    }
-  });
 
   const navigation = [
     { name: 'Tableau de bord', icon: 'heroicons:home', view: 'dashboard' },
