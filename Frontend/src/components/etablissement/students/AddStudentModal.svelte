@@ -63,6 +63,7 @@
         return '';
         
       case 'telephone':
+        if(!value.trim()) return 'Le téléphone est obligatoire';
         if (value && !/^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/.test(value.replace(/\s/g, ''))) {
           return 'Format de téléphone invalide (ex: 06 12 34 56 78)';
         }
@@ -94,6 +95,20 @@
     }
   }
 
+  // Validation temps réel sur chaque frappe
+  function handleFieldInput(field, value, category = 'user') {
+    if (category === 'user') {
+      errors.user[field] = validateField(field, value);
+    } else {
+      errors[field] = validateField(field, value);
+    }
+  }
+
+  // Toujours garder blur pour marquer un champ "touché"
+  function handleFieldBlur(field, value, category = 'user') {
+    handleFieldInput(field, value, category);
+  }
+
   function validateForm() {
     let isValid = true;
     
@@ -113,46 +128,29 @@
     return isValid;
   }
 
-  function handleFieldBlur(field, value, category = 'user') {
-    if (category === 'user') {
-      errors.user[field] = validateField(field, value);
-    } else {
-      errors[field] = validateField(field, value);
-    }
-  }
-
   async function handleSubmit() {
+    errors.general = '';
+
+    if (!validateForm()) {
+      errors.general = 'Veuillez corriger les erreurs dans le formulaire';
+      return;
+    }
+
+    if (!selectedClassId) {
+      errors.classe = 'Veuillez sélectionner une classe';
+      return;
+    }
+
+    const selectedClass = classOptions.find(option => option.id === parseInt(selectedClassId));
+    if (!selectedClass) {
+      errors.classe = 'Classe sélectionnée invalide';
+      return;
+    }
+
+    formData.classe = parseInt(selectedClassId);
+    const submitData = { ...formData, classe: parseInt(selectedClassId) };
+
     try {
-      // Réinitialiser les erreurs
-      errors.general = '';
-      
-      if (!validateForm()) {
-        errors.general = 'Veuillez corriger les erreurs dans le formulaire';
-        return;
-      }
-
-      if (!selectedClassId) {
-        errors.classe = 'Veuillez sélectionner une classe';
-        return;
-      }
-
-      // Trouver l'objet classe pour débogage
-      const selectedClass = classOptions.find(option => option.id === parseInt(selectedClassId));
-      if (!selectedClass) {
-        errors.classe = 'Classe sélectionnée invalide';
-        return;
-      }
-
-      console.log("Selected class object:", selectedClass);
-
-      formData.classe = parseInt(selectedClassId);
-      
-      const submitData = {
-        ...formData,
-        classe: parseInt(selectedClassId)
-      };
-
-      console.log("Submit data:", submitData);
       await authApi.createEleve(submitData);
       dispatch('close');
       dispatch('success', { message: 'Étudiant ajouté avec succès' });
@@ -228,6 +226,7 @@
               type="text"
               id="first_name"
               bind:value={formData.user.first_name}
+              on:input={() => handleFieldInput('first_name', formData.user.first_name)}
               on:blur={() => handleFieldBlur('first_name', formData.user.first_name)}
               class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm"
               class:border-red-500={errors.user.first_name}
@@ -258,6 +257,7 @@
               type="text"
               id="last_name"
               bind:value={formData.user.last_name}
+              on:input={() => handleFieldInput('last_name', formData.user.last_name)}
               on:blur={() => handleFieldBlur('last_name', formData.user.last_name)}
               class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm"
               class:border-red-500={errors.user.last_name}
@@ -288,6 +288,7 @@
               type="email"
               id="email"
               bind:value={formData.user.email}
+              on:input={() => handleFieldInput('email', formData.user.email)}
               on:blur={() => handleFieldBlur('email', formData.user.email)}
               class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm"
               class:border-red-500={errors.user.email}
@@ -318,6 +319,7 @@
               type="tel"
               id="telephone"
               bind:value={formData.user.telephone}
+              on:input={() => handleFieldInput('telephone', formData.user.telephone)}
               on:blur={() => handleFieldBlur('telephone', formData.user.telephone)}
               class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm"
               class:border-red-500={errors.user.telephone}
@@ -347,6 +349,7 @@
             <select
               id="classe"
               bind:value={selectedClassId}
+              on:input={() => handleFieldInput('classe', selectedClassId)}
               on:blur={() => handleFieldBlur('classe', selectedClassId, 'other')}
               class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm"
               class:border-red-500={errors.classe}
@@ -374,6 +377,7 @@
           <select
             id="statut"
             bind:value={formData.statut}
+            on:input={() => handleFieldInput('classe', formData.statut)}
             class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm"
           >
             {#each statusOptions as option}
@@ -394,6 +398,7 @@
             <select
               id="annee"
               bind:value={formData.annee_scolaire}
+              on:input={() => handleFieldInput('annee_scolaire', formData.annee_scolaire)}
               on:blur={() => handleFieldBlur('annee_scolaire', formData.annee_scolaire, 'other')}
               class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm"
               class:border-red-500={errors.annee_scolaire}
@@ -428,6 +433,7 @@
               type="password"
               id="password"
               bind:value={formData.user.password}
+              on:input={() => handleFieldInput('password', formData.user.password)}
               on:blur={() => handleFieldBlur('password', formData.user.password)}
               class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm"
               class:border-red-500={errors.user.password}
@@ -458,6 +464,7 @@
               type="password"
               id="password_confirm"
               bind:value={formData.user.password_confirm}
+              on:input={() => handleFieldInput('password_confirm', formData.user.password_confirm)}
               on:blur={() => handleFieldBlur('password_confirm', formData.user.password_confirm)}
               class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm"
               class:border-red-500={errors.user.password_confirm}
@@ -476,7 +483,7 @@
         </div>
 
         {#if errors.general}
-          <p class="text-red-600 text-sm mb-4">{errors.general}</p>
+          <p class="bg-red-200 text-red-600 p-4 text-sm mb-4">{errors.general}</p>
         {/if}
 
         <!-- Boutons -->
