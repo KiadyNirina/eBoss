@@ -3,6 +3,8 @@
   import { authApi } from '$lib/api';
   import { createEventDispatcher } from 'svelte';
   import { user } from '$lib/stores';
+  import { fade, fly } from 'svelte/transition';
+  import { quintOut } from 'svelte/easing';
 
   export let isOpen = false;
   export let classOptions = [];
@@ -42,6 +44,8 @@
   };
   
   let selectedClassId = '';
+  let isLoading = false;
+  let isClosing = false;
 
   function validateField(field, value) {
     switch (field) {
@@ -129,6 +133,8 @@
   }
 
   async function handleSubmit() {
+    if (isLoading) return;
+    
     errors.general = '';
 
     if (!validateForm()) {
@@ -151,15 +157,25 @@
     const submitData = { ...formData, classe: parseInt(selectedClassId) };
 
     try {
+      isLoading = true;
       await authApi.createEleve(submitData);
-      dispatch('close');
+      await closeModalWithAnimation();
       dispatch('success', { message: 'Étudiant ajouté avec succès' });
-      resetForm();
       
     } catch (err) {
       errors.general = err.message || 'Une erreur est survenue lors de l\'ajout de l\'étudiant';
       console.error('Submission error:', err);
+    } finally {
+      isLoading = false;
     }
+  }
+
+  async function closeModalWithAnimation() {
+    isClosing = true;
+    await new Promise(resolve => setTimeout(resolve, 300));
+    dispatch('close');
+    resetForm();
+    isClosing = false;
   }
 
   function resetForm() {
@@ -195,18 +211,28 @@
   }
 
   function closeModal() {
-    dispatch('close');
-    resetForm();
+    closeModalWithAnimation();
   }
 </script>
 
 {#if isOpen}
-  <div class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+  <div 
+    class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50"
+    transition:fade={{ duration: 200 }}
+  >
     <!-- Contenu du modal -->
-    <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md max-h-[80vh] overflow-y-auto">
+    <div 
+      class="bg-white rounded-lg shadow-xl p-6 w-full max-w-md max-h-[80vh] overflow-y-auto"
+      in:fly="{{ y: -50, duration: 300, easing: quintOut }}"
+      out:fly="{{ y: -50, duration: 200, easing: quintOut }}"
+    >
       <div class="flex justify-between items-center mb-4">
         <h2 class="text-xl font-bold text-gray-900">Ajouter un étudiant</h2>
-        <button on:click={closeModal} class="text-gray-500 hover:text-gray-700">
+        <button 
+          on:click={closeModal} 
+          class="text-gray-500 hover:text-gray-700 transition-colors duration-200"
+          disabled={isLoading}
+        >
           <Icon icon="heroicons:x-mark" class="h-6 w-6" />
         </button>
       </div>
@@ -228,10 +254,11 @@
               bind:value={formData.user.first_name}
               on:input={() => handleFieldInput('first_name', formData.user.first_name)}
               on:blur={() => handleFieldBlur('first_name', formData.user.first_name)}
-              class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm transition-colors duration-200"
               class:border-red-500={errors.user.first_name}
               class:border-gray-300={!errors.user.first_name}
               placeholder="Prénom"
+              disabled={isLoading}
             />
             {#if errors.user.first_name}
               <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -259,10 +286,11 @@
               bind:value={formData.user.last_name}
               on:input={() => handleFieldInput('last_name', formData.user.last_name)}
               on:blur={() => handleFieldBlur('last_name', formData.user.last_name)}
-              class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm transition-colors duration-200"
               class:border-red-500={errors.user.last_name}
               class:border-gray-300={!errors.user.last_name}
               placeholder="Nom"
+              disabled={isLoading}
             />
             {#if errors.user.last_name}
               <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -290,10 +318,11 @@
               bind:value={formData.user.email}
               on:input={() => handleFieldInput('email', formData.user.email)}
               on:blur={() => handleFieldBlur('email', formData.user.email)}
-              class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm transition-colors duration-200"
               class:border-red-500={errors.user.email}
               class:border-gray-300={!errors.user.email}
               placeholder="Email"
+              disabled={isLoading}
             />
             {#if errors.user.email}
               <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -321,10 +350,11 @@
               bind:value={formData.user.telephone}
               on:input={() => handleFieldInput('telephone', formData.user.telephone)}
               on:blur={() => handleFieldBlur('telephone', formData.user.telephone)}
-              class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm transition-colors duration-200"
               class:border-red-500={errors.user.telephone}
               class:border-gray-300={!errors.user.telephone}
               placeholder="06 12 34 56 78"
+              disabled={isLoading}
             />
             {#if errors.user.telephone}
               <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -351,9 +381,10 @@
               bind:value={selectedClassId}
               on:input={() => handleFieldInput('classe', selectedClassId)}
               on:blur={() => handleFieldBlur('classe', selectedClassId, 'other')}
-              class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm transition-colors duration-200"
               class:border-red-500={errors.classe}
               class:border-gray-300={!errors.classe}
+              disabled={isLoading}
             >
               <option value="">Sélectionner une classe</option>
               {#each classOptions as option}
@@ -377,8 +408,8 @@
           <select
             id="statut"
             bind:value={formData.statut}
-            on:input={() => handleFieldInput('classe', formData.statut)}
-            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm"
+            class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm transition-colors duration-200"
+            disabled={isLoading}
           >
             {#each statusOptions as option}
               <option value={option.value}>{option.label}</option>
@@ -400,9 +431,10 @@
               bind:value={formData.annee_scolaire}
               on:input={() => handleFieldInput('annee_scolaire', formData.annee_scolaire)}
               on:blur={() => handleFieldBlur('annee_scolaire', formData.annee_scolaire, 'other')}
-              class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm transition-colors duration-200"
               class:border-red-500={errors.annee_scolaire}
               class:border-gray-300={!errors.annee_scolaire}
+              disabled={isLoading}
             >
               <option value="">Sélectionner une année</option>
               {#each yearOptions as option}
@@ -435,10 +467,11 @@
               bind:value={formData.user.password}
               on:input={() => handleFieldInput('password', formData.user.password)}
               on:blur={() => handleFieldBlur('password', formData.user.password)}
-              class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm transition-colors duration-200"
               class:border-red-500={errors.user.password}
               class:border-gray-300={!errors.user.password}
               placeholder="Mot de passe"
+              disabled={isLoading}
             />
             {#if errors.user.password}
               <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -466,10 +499,11 @@
               bind:value={formData.user.password_confirm}
               on:input={() => handleFieldInput('password_confirm', formData.user.password_confirm)}
               on:blur={() => handleFieldBlur('password_confirm', formData.user.password_confirm)}
-              class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm transition-colors duration-200"
               class:border-red-500={errors.user.password_confirm}
               class:border-gray-300={!errors.user.password_confirm}
               placeholder="Confirmer le mot de passe"
+              disabled={isLoading}
             />
             {#if errors.user.password_confirm}
               <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
@@ -483,7 +517,12 @@
         </div>
 
         {#if errors.general}
-          <p class="bg-red-200 text-red-600 p-4 text-sm mb-4">{errors.general}</p>
+          <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p class="text-red-600 text-sm flex items-center">
+              <Icon icon="heroicons:exclamation-triangle" class="h-4 w-4 mr-2" />
+              {errors.general}
+            </p>
+          </div>
         {/if}
 
         <!-- Boutons -->
@@ -491,15 +530,26 @@
           <button
             type="button"
             on:click={closeModal}
-            class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50"
+            class="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={isLoading}
           >
             Annuler
           </button>
           <button
             type="submit"
-            class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-green-600 hover:bg-green-700"
+            class="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-green-600 hover:bg-green-700 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed min-w-20"
+            disabled={isLoading || isClosing}
           >
-            Ajouter
+            {#if isLoading}
+              <!-- Animation de loading -->
+              <svg class="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Ajout...
+            {:else}
+              Ajouter
+            {/if}
           </button>
         </div>
       </form>
