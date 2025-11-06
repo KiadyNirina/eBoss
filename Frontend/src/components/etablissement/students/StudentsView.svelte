@@ -28,16 +28,21 @@
     try {
       const data = await authApi.getEleves({ ...filters, page });
       console.log('Fetched students:', data);
-      students = data.map(student => ({
-        id: student.id,
-        nom: student.user.last_name,
-        prenom: student.user.first_name,
-        classe: student.classe.nom,
-        email: student.user.email,
-        telephone: student.user.telephone,
-        statut: student.statut,
-        derniereActivite: student.derniereActivite || 'N/A'
-      }));
+      students = data.map(student => {
+        const classeObj = classForStudent.find(c => c.id === student.classe);
+        const classeNom = classeObj ? classeObj.nom : `Classe #${student.classe}`;
+
+        return {
+          id: student.id,
+          nom: student.user.last_name,
+          prenom: student.user.first_name,
+          classe: classeNom,
+          email: student.user.email,
+          telephone: student.user.telephone,
+          statut: student.statut,
+          derniereActivite: student.derniereActivite || 'N/A'
+        };
+      });
       totalCount = data.count || 1;
       nextPage = data.next;
       previousPage = data.previous;
@@ -79,9 +84,11 @@
   $: if ($user.profile.id) {
     console.log('User profile ID:', $user.profile.id);
     filters.etablissement = $user.profile.id;
-    fetchStudents();
-    fetchFilterOptions();
-    fetchClasses();
+    (async () => {
+      await fetchClasses();
+      await fetchFilterOptions();
+      await fetchStudents();
+    })();
   }
 
   // Ouvre le modal et vérifie les classes

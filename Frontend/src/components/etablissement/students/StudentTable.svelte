@@ -5,6 +5,8 @@
   export let selectedStudents;
   export let toggleSelectAll;
   export let toggleStudent;
+
+  console.log('Students:', students);
   
   function getStatusBadge(status) {
     const statusClasses = {
