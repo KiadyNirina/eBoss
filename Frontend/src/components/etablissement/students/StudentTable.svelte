@@ -1,10 +1,13 @@
 <script>
   import Icon from '@iconify/svelte';
+  import { createEventDispatcher } from 'svelte';
   
   export let students;
   export let selectedStudents;
   export let toggleSelectAll;
   export let toggleStudent;
+
+  const dispatch = createEventDispatcher();
 
   console.log('Students:', students);
   
@@ -101,7 +104,8 @@
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
             <div class="flex justify-end space-x-3">
-              <a href="#" class="text-green-600 hover:text-green-900">
+              <a href="#" class="text-green-600 hover:text-green-900" 
+              on:click={() => dispatch('edit', { student })}>
                 <Icon icon="heroicons:pencil-square" class="h-5 w-5" />
               </a>
               <a href="#" class="text-gray-600 hover:text-gray-900">

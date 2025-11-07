@@ -90,7 +90,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return None
 
 class UserSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True, required=False)
     
     class Meta:
         model = User
@@ -113,6 +113,15 @@ class UserSerializer(serializers.ModelSerializer):
             validated_data['username'] = validated_data['email']
         validated_data['password'] = make_password(validated_data['password'])
         return super().create(validated_data)
+    
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance
 
 class EtablissementSerializer(serializers.ModelSerializer):
     user = UserSerializer(required=True)
@@ -166,7 +175,7 @@ class ProfesseurSerializer(serializers.ModelSerializer):
         return professeur
 
 class EleveSerializer(serializers.ModelSerializer):
-    user = UserSerializer(required=True)
+    user = UserSerializer(required=False)
     classe = serializers.PrimaryKeyRelatedField(queryset=Classe.objects.all(), required=True)
     
     class Meta:
@@ -185,6 +194,19 @@ class EleveSerializer(serializers.ModelSerializer):
         user = user_serializer.save()
         
         return Eleve.objects.create(user=user, **validated_data)
+    
+    def update(self, instance, validated_data):
+        user_data = validated_data.pop('user', None)
+        if user_data:
+            for attr, value in user_data.items():
+                if value is not None:
+                    setattr(instance.user, attr, value)
+            instance.user.save()
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
 
 class ParentSerializer(serializers.ModelSerializer):
     user = UserSerializer(required=True)

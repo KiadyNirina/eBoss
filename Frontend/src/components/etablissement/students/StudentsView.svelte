@@ -4,6 +4,7 @@
   import StudentFilters from './StudentFilters.svelte';
   import BulkActions from './BulkActions.svelte';
   import AddStudentModal from './AddStudentModal.svelte';
+  import EditStudentModal from './EditStudentModal.svelte';
   import { authApi } from '$lib/api';
   import { user } from '$lib/stores';
 
@@ -23,6 +24,10 @@
   let showModal = false;
   let successMessage = '';
 
+  let editModalOpen = false;
+  let currentStudent = null;
+  let selectedClassId = null;
+
   // Charger les étudiants
   async function fetchStudents(page = 1) {
     try {
@@ -37,6 +42,7 @@
           nom: student.user.last_name,
           prenom: student.user.first_name,
           classe: classeNom,
+          classeId: student.classe || null, 
           email: student.user.email,
           telephone: student.user.telephone,
           statut: student.statut,
@@ -98,6 +104,12 @@
     }
     console.log('classForStudent before opening modal:', classForStudent);
     showModal = true;
+  }
+
+  function openEditModal(student) {
+    currentStudent = student;
+    editModalOpen = true;
+    selectedClassId = student.classeId;
   }
 
   function toggleSelectAll(event) {
@@ -213,6 +225,7 @@
       {selectedStudents}
       on:toggleSelectAll={toggleSelectAll}
       on:toggleStudent={toggleStudentSelection}
+      on:edit={(event) => openEditModal(event.detail.student)}
     />
   </div>
 
@@ -284,6 +297,16 @@
     {statusOptions}
     {yearOptions}
     on:close={() => (showModal = false)}
+    on:success={handleModalSuccess}
+  />
+
+  <EditStudentModal
+    isOpen={editModalOpen}
+    student={currentStudent}
+    classOptions={classForStudent}
+    {statusOptions}
+    {yearOptions}
+    on:close={() => (editModalOpen = false)}
     on:success={handleModalSuccess}
   />
 </div>
