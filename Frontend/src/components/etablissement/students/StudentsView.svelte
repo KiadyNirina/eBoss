@@ -243,8 +243,8 @@
     <StudentTable
       {students}
       {selectedStudents}
-      on:toggleSelectAll={toggleSelectAll}
-      on:toggleStudent={toggleStudentSelection}
+      {toggleSelectAll}
+      toggleStudent={toggleStudentSelection}
       on:edit={(event) => openEditModal(event.detail.student)}
     />
   </div>

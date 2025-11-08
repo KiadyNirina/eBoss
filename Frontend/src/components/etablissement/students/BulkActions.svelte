@@ -1,5 +1,8 @@
 <script>
   import Icon from '@iconify/svelte';
+  import { createEventDispatcher } from 'svelte';
+
+  const dispatch = createEventDispatcher();
   
   export let count;
 </script>
@@ -14,14 +17,14 @@
     </div>
     <div class="flex space-x-3">
       <button
-        on:click={() => dispatch('export')}
+        on:click={() => dispatch('export', { action: 'export' })}
         class="inline-flex items-center px-3 py-1 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
       >
         <Icon icon="heroicons:arrow-down-tray" class="-ml-1 mr-1 h-4 w-4" />
         Exporter
       </button>
       <button
-        on:click={() => dispatch('delete')}
+        on:click={() => dispatch('delete', { action: 'delete' })}
         class="inline-flex items-center px-3 py-1 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
       >
         <Icon icon="heroicons:trash" class="-ml-1 mr-1 h-4 w-4" />
