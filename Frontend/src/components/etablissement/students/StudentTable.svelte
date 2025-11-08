@@ -131,6 +131,13 @@
     </thead>
 
     <tbody class="bg-white divide-y divide-gray-200">
+      {#if students.length === 0}
+        <tr>
+          <td colspan="9" class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">
+            Aucun étudiant trouvé.
+          </td>
+        </tr>
+      {/if}
       {#each students as student}
         <tr class={selectedStudents.includes(student.id) ? 'bg-green-50' : 'hover:bg-gray-50'}>
           <td class="px-6 py-4 whitespace-nowrap">
