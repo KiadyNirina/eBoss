@@ -51,7 +51,8 @@
           statut: student.statut,
           annee_scolaire : anneeScolaireNom,
           annee_scolaire_id: student.annee_scolaire,
-          derniereActivite: student.derniereActivite || 'N/A'
+          derniereActivite: student.derniereActivite || 'N/A',
+          date_joined: student.user.date_joined
         };
       });
       totalCount = data.count || 1;
