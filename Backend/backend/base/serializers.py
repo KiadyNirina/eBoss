@@ -177,6 +177,7 @@ class ProfesseurSerializer(serializers.ModelSerializer):
 class EleveSerializer(serializers.ModelSerializer):
     user = UserSerializer(required=False)
     classe = serializers.PrimaryKeyRelatedField(queryset=Classe.objects.all(), required=True)
+    annee_scolaire = serializers.SerializerMethodField()
     
     class Meta:
         model = Eleve
@@ -184,6 +185,12 @@ class EleveSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'classe': {'required': True},
         }
+
+    def get_annee_scolaire(self, obj):
+        # Accéder à l'année scolaire via la classe
+        if obj.classe and obj.classe.annee_scolaire:
+            return obj.classe.annee_scolaire.id
+        return "Non assigné"
     
     def create(self, validated_data):
         user_data = validated_data.pop('user')

@@ -34,7 +34,7 @@
     formData.classe = student.classeId || null;
     selectedClassId = student.classeId || '';
     formData.statut = student.statut || 'actif';
-    formData.annee_scolaire = student.annee_scolaire || '';
+    formData.annee_scolaire = student.annee_scolaire_id || '';
   }
 
   console.log('Editing student:', student);

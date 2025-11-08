@@ -21,6 +21,7 @@
   let classForStudent = []; // Pour le modal
   let statusOptions = [];
   let yearOptions = [];
+  let yearForStudent = [];
   let showModal = false;
   let successMessage = '';
 
@@ -36,6 +37,8 @@
       students = data.map(student => {
         const classeObj = classForStudent.find(c => c.id === student.classe);
         const classeNom = classeObj ? classeObj.nom : `Classe #${student.classe}`;
+        const anneeScolaireObj = yearForStudent.find(y => y.id === student.annee_scolaire);
+        const anneeScolaireNom = anneeScolaireObj ? anneeScolaireObj.nom : `Annee scolaire #${student.annee_scolaire}`;
 
         return {
           id: student.id,
@@ -46,6 +49,8 @@
           email: student.user.email,
           telephone: student.user.telephone,
           statut: student.statut,
+          annee_scolaire : anneeScolaireNom,
+          annee_scolaire_id: student.annee_scolaire,
           derniereActivite: student.derniereActivite || 'N/A'
         };
       });
@@ -73,6 +78,19 @@
     }
   }
 
+  async function fetchAnneeScolaire() {
+    try {
+      const annee_scolaires = await authApi.getAnneesScolaires();
+      yearForStudent = annee_scolaires || [];
+      console.log('Annee scolaire fetched :', yearForStudent);
+      return yearForStudent; 
+    } catch (err) {
+      console.error('Erreur lors de la récupération des annees scolaires:', err.message);
+      yearForStudent = [];
+      return [];
+    }
+  }
+
   // Charger les options de filtrage
   async function fetchFilterOptions() {
     try {
@@ -91,6 +109,7 @@
     console.log('User profile ID:', $user.profile.id);
     filters.etablissement = $user.profile.id;
     (async () => {
+      await fetchAnneeScolaire();
       await fetchClasses();
       await fetchFilterOptions();
       await fetchStudents();
