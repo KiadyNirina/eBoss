@@ -7,6 +7,7 @@
   import EditStudentModal from './EditStudentModal.svelte';
   import { authApi } from '$lib/api';
   import { user } from '$lib/stores';
+  import { fade } from 'svelte/transition';
 
   let students = [];
   let selectedStudents = [];
@@ -24,6 +25,7 @@
   let yearForStudent = [];
   let showModal = false;
   let successMessage = '';
+  let errorMessage = '';
 
   let editModalOpen = false;
   let currentStudent = null;
@@ -157,6 +159,11 @@
     const action = event.detail.action;
     try {
       if (action === 'export') {
+        if(selectedStudents.length === 0) {
+          errorMessage = '⚠️ Aucun étudiant sélectionné pour l\'exportation';
+          setTimeout(() => errorMessage = '', 3000);
+          return;
+        }
         const response = await authApi.bulkAction(action, selectedStudents);
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -165,11 +172,14 @@
         a.download = 'etudiants.csv';
         a.click();
         window.URL.revokeObjectURL(url);
+        successMessage = '📦 Exportation réussie';
       } else {
         await authApi.bulkAction(action, selectedStudents);
         selectedStudents = [];
         fetchStudents();
+        successMessage = '✅ Étudiants supprimés avec succès';
       }
+      setTimeout(() => successMessage = '', 3000);
     } catch (error) {
       console.error('Erreur lors de l\'action groupée:', error.message);
     }
@@ -194,8 +204,14 @@
 <div>
   <!-- Message de succès -->
   {#if successMessage}
-    <div class="bg-green-100 border-l-4 border-green-400 p-4 mb-4">
+    <div in:fade out:fade class="bg-green-100 border-l-4 border-green-400 p-4 mb-4">
       <p class="text-green-700">{successMessage}</p>
+    </div>
+  {/if}
+
+  {#if errorMessage}
+    <div in:fade out:fade class="bg-red-100 border-l-4 border-red-400 p-4 mb-4">
+      <p class="text-red-700">{errorMessage}</p>
     </div>
   {/if}
 
