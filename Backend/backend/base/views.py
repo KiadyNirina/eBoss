@@ -254,8 +254,15 @@ class EleveViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Aucun étudiant sélectionné'}, status=status.HTTP_400_BAD_REQUEST)
 
         if action_type == 'delete':
-            Eleve.objects.filter(id__in=ids).delete()
-            return Response({'message': f'{len(ids)} étudiants supprimés'}, status=status.HTTP_200_OK)
+            # Récupérer les élèves sélectionnés avec leur user
+            eleves = Eleve.objects.filter(id__in=ids).select_related('user')
+            # Supprimer les utilisateurs associés
+            for eleve in eleves:
+                if eleve.user:
+                    eleve.user.delete()
+            # Supprimer les élèves (si user est supprimé avec cascade)
+            eleves.delete()
+            return Response({'message': f'{len(ids)} étudiants et leurs comptes utilisateurs ont été supprimés'}, status=status.HTTP_200_OK)
         elif action_type == 'export':
             response = HttpResponse(content_type='text/csv')
             response['Content-Disposition'] = 'attachment; filename="etudiants.csv"'
