@@ -5,6 +5,8 @@
   import { user } from '$lib/stores';
   import { fade, fly } from 'svelte/transition';
   import { quintOut } from 'svelte/easing';
+  import { onMount } from 'svelte';
+  import { browser } from '$app/environment';
 
   export let isOpen = false;
   export let classOptions = [];
@@ -12,6 +14,15 @@
   export let yearOptions = [];
 
   const dispatch = createEventDispatcher();
+
+  let etablissementId = null;
+  
+  onMount(() => {
+    if (browser && $user?.profile?.id) {
+      etablissementId = $user.profile.id;
+      formData.etablissement = etablissementId;
+    }
+  });
 
   let formData = {
     user: {
@@ -26,7 +37,7 @@
     classe: null,
     statut: 'actif',
     annee_scolaire: '',
-    etablissement: $user.profile.id
+    etablissement: null // Initialisé à null, sera mis à jour dans onMount
   };
   
   let errors = {
@@ -116,6 +127,12 @@
   function validateForm() {
     let isValid = true;
     
+    // Vérifier que l'ID établissement est disponible
+    if (!etablissementId && browser) {
+      errors.general = 'Impossible de déterminer l\'établissement. Veuillez rafraîchir la page.';
+      return false;
+    }
+    
     // Valider les champs user
     Object.keys(formData.user).forEach(field => {
       const error = validateField(field, formData.user[field]);
@@ -136,6 +153,15 @@
     if (isLoading) return;
     
     errors.general = '';
+
+    // Vérifier l'établissement avant soumission
+    if (!etablissementId) {
+      errors.general = 'Établissement non trouvé. Veuillez vous reconnecter.';
+      return;
+    }
+
+    // Mettre à jour l'ID établissement dans formData
+    formData.etablissement = etablissementId;
 
     if (!validateForm()) {
       errors.general = 'Veuillez corriger les erreurs dans le formulaire';
@@ -206,7 +232,7 @@
       classe: null,
       statut: 'actif',
       annee_scolaire: '',
-      etablissement: $user.profile.id
+      etablissement: etablissementId
     };
   }
 
@@ -384,7 +410,7 @@
               class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm transition-colors duration-200"
               class:border-red-500={errors.classe}
               class:border-gray-300={!errors.classe}
-              disabled={isLoading}
+              disabled={isLoading || classOptions.length === 0}
             >
               <option value="">Sélectionner une classe</option>
               {#each classOptions as option}
@@ -399,6 +425,11 @@
           </div>
           {#if errors.classe}
             <p class="mt-1 text-sm text-red-600">{errors.classe}</p>
+          {/if}
+          {#if classOptions.length === 0 && !isLoading}
+            <p class="mt-1 text-sm text-amber-600">
+              ⚠️ Aucune classe disponible. Veuillez d'abord créer des classes.
+            </p>
           {/if}
         </div>
 

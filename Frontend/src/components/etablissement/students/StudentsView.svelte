@@ -16,7 +16,7 @@
     classe: '',
     statut: '',
     annee: '',
-    etablissement: $user.profile.id
+    etablissement: null
   };
   let classOptions = []; // Pour les filtres
   let classForStudent = []; // Pour le modal
@@ -69,7 +69,7 @@
   // Charger les classes pour le modal
   async function fetchClasses() {
     try {
-      const filtersForClasses = { etablissement: $user.profile.id };
+      const filtersForClasses = { etablissement: $user?.profile?.id };
       const classes = await authApi.getClasses(filtersForClasses);
       classForStudent = classes || [];
       console.log('Classes for modal:', classForStudent);
@@ -108,8 +108,7 @@
   }
 
   // Appeler les fonctions au chargement
-  $: if ($user.profile.id) {
-    console.log('User profile ID:', $user.profile.id);
+  $: if ($user?.profile?.id) {
     filters.etablissement = $user.profile.id;
     (async () => {
       await fetchAnneeScolaire();
