@@ -15,14 +15,7 @@
 
   const dispatch = createEventDispatcher();
 
-  let etablissementId = null;
-  
-  onMount(() => {
-    if (browser && $user?.profile?.id) {
-      etablissementId = $user.profile.id;
-      formData.etablissement = etablissementId;
-    }
-  });
+  let etablissementId = $user?.profile?.id ?? null;
 
   let formData = {
     user: {
@@ -37,7 +30,7 @@
     classe: null,
     statut: 'actif',
     annee_scolaire: '',
-    etablissement: null // Initialisé à null, sera mis à jour dans onMount
+    etablissement: etablissementId
   };
   
   let errors = {
