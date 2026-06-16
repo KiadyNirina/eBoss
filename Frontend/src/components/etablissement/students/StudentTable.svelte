@@ -120,22 +120,22 @@
         </th>
 
         <!-- Date d inscription -->
-        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+        <!-- <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
             on:click={() => sortBy('date_joined')}>
           Date d'inscription
           {#if sortKey === 'date_joined'}
             <Icon icon={sortOrder === 'asc' ? 'mdi:arrow-up' : 'mdi:arrow-down'} class="inline-block w-4 h-4 ml-1" />
           {/if}
-        </th>
+        </th> -->
 
         <!-- Dernière activité -->
-        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
+        <!-- <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer"
             on:click={() => sortBy('derniereActivite')}>
           Dernière activité
           {#if sortKey === 'derniereActivite'}
             <Icon icon={sortOrder === 'asc' ? 'mdi:arrow-up' : 'mdi:arrow-down'} class="inline-block w-4 h-4 ml-1" />
           {/if}
-        </th>
+        </th> -->
 
         <th class="px-6 py-3"></th>
       </tr>
@@ -187,8 +187,8 @@
             {/if}
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{student.annee_scolaire}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{new Date(student.date_joined).toLocaleDateString('fr-FR')}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.derniereActivite}</td>
+          <!-- <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{new Date(student.date_joined).toLocaleDateString('fr-FR')}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{student.derniereActivite}</td> -->
           <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
             <div class="flex justify-end space-x-3">
               <a href="#" class="text-green-600 hover:text-green-900" on:click={() => dispatch('edit', { student })}>
