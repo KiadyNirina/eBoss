@@ -7,7 +7,10 @@
   import EditStudentModal from './EditStudentModal.svelte';
   import { authApi } from '$lib/api';
   import { user } from '$lib/stores';
-  import { fade } from 'svelte/transition';
+  import { fade, scale } from 'svelte/transition';
+  import { tick } from 'svelte';
+
+  let pageTop;
 
   let students = [];
   let selectedStudents = [];
@@ -198,12 +201,65 @@
   function goToPage(page) {
     fetchStudents(page);
   }
+
+  let deleteModalOpen = false;
+  let studentToDelete = null;
+  let deleting = false;
+
+  function openDeleteModal(student) {
+    studentToDelete = student;
+    deleteModalOpen = true;
+  }
+
+  async function confirmDelete() {
+    deleting = true;
+
+    try {
+      await authApi.deleteEleve(studentToDelete.id);
+
+      students = students.filter(
+        s => s.id !== studentToDelete.id
+      );
+
+      deleteModalOpen = false;
+
+      successMessage = '✅ Étudiant supprimé avec succès';
+
+      await tick();
+
+      pageTop?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+
+      setTimeout(() => {
+        successMessage = '';
+      }, 4000);
+
+    } catch (error) {
+      errorMessage = '❌ Erreur lors de la suppression';
+
+      await tick();
+
+      pageTop?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+
+    } finally {
+      deleting = false;
+    }
+  }
 </script>
 
-<div>
+<div bind:this={pageTop}>
   <!-- Message de succès -->
   {#if successMessage}
-    <div in:fade out:fade class="bg-green-100 border-l-4 border-green-400 p-4 mb-4">
+    <div
+      in:scale={{ duration: 250 }}
+      out:fade
+      class="bg-green-100 border-l-4 border-green-500 p-4 mb-4 shadow-md rounded-r-lg"
+    >
       <p class="text-green-700">{successMessage}</p>
     </div>
   {/if}
@@ -261,6 +317,7 @@
       {toggleSelectAll}
       toggleStudent={toggleStudentSelection}
       on:edit={(event) => openEditModal(event.detail.student)}
+      on:delete={(event) => openDeleteModal(event.detail.student)}
     />
   </div>
 
@@ -344,4 +401,62 @@
     on:close={() => (editModalOpen = false)}
     on:success={handleModalSuccess}
   />
+
+  {#if deleteModalOpen}
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+    transition:fade
+  >
+    <div
+      class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md"
+      transition:scale={{ duration: 200 }}
+    >
+      <div class="flex justify-center mb-4">
+        <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
+          <Icon
+            icon="heroicons:trash"
+            class="h-8 w-8 text-red-600"
+          />
+        </div>
+      </div>
+
+      <h3 class="text-xl font-bold text-center text-gray-900">
+        Supprimer l'étudiant ?
+      </h3>
+
+      <p class="mt-3 text-center text-gray-600">
+        Cette action est irréversible.
+        <br>
+        <span class="font-semibold">
+          {studentToDelete?.prenom} {studentToDelete?.nom}
+        </span>
+      </p>
+
+      <div class="mt-6 flex justify-end gap-3">
+        <button
+          disabled={deleting}
+          on:click={() => deleteModalOpen = false}
+          class="px-4 py-2 border rounded-lg"
+        >
+          Annuler
+        </button>
+
+        <button
+          disabled={deleting}
+          on:click={confirmDelete}
+          class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2"
+        >
+          {#if deleting}
+            <span
+              class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+            ></span>
+            Suppression...
+          {:else}
+            Supprimer
+          {/if}
+        </button>
+      </div>
+    </div>
+  </div>
+  {/if}
 </div>

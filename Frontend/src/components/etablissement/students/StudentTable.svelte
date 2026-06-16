@@ -1,11 +1,13 @@
 <script>
   import Icon from '@iconify/svelte';
   import { createEventDispatcher } from 'svelte';
+  import { fly } from 'svelte/transition';
 
   export let students;
   export let selectedStudents;
   export let toggleSelectAll;
   export let toggleStudent;
+  let deletingIds = [];
 
   const dispatch = createEventDispatcher();
 
@@ -47,6 +49,15 @@
       class: statusClasses[status] || 'bg-gray-100 text-gray-800',
       label: statusLabels[status] || status
     };
+  }
+
+  async function deleteStudent(student) {
+    deletingIds = [...deletingIds, student.id];
+
+    setTimeout(() => {
+      dispatch('delete', { student });
+      deletingIds = deletingIds.filter(id => id !== student.id);
+    }, 300);
   }
 </script>
 
@@ -138,8 +149,15 @@
           </td>
         </tr>
       {/if}
-      {#each students as student}
-        <tr class={selectedStudents.includes(student.id) ? 'bg-green-50' : 'hover:bg-gray-50'}>
+      {#each students as student (student.id)}
+        {#if !deletingIds.includes(student.id)}
+        <tr
+          out:fly={{
+            x: 200,
+            duration: 300
+          }}
+          class={selectedStudents.includes(student.id) ? 'bg-green-50' : 'hover:bg-gray-50'}
+        >
           <td class="px-6 py-4 whitespace-nowrap">
             <input
               type="checkbox"
@@ -179,12 +197,17 @@
               <a href="#" class="text-gray-600 hover:text-gray-900">
                 <Icon icon="heroicons:eye" class="h-5 w-5" />
               </a>
-              <a href="#" class="text-red-600 hover:text-red-900">
+              <button
+                type="button"
+                class="text-red-600 hover:text-red-900"
+                on:click={() => deleteStudent(student)}
+              >
                 <Icon icon="heroicons:trash" class="h-5 w-5" />
-              </a>
+              </button>
             </div>
           </td>
         </tr>
+        {/if}
       {/each}
     </tbody>
   </table>
