@@ -6,16 +6,16 @@
   export let onClose;
 
   const navigation = [
-    { name: 'Tableau de bord', icon: 'heroicons:home', href: 'dashboard' },
-    { name: 'Étudiants', icon: 'heroicons:user-group', href: 'etudiants' },
-    { name: 'Professeurs', icon: 'heroicons:academic-cap', href: 'professeurs' },
-    { name: 'Cours & Emploi du temps', icon: 'heroicons:calendar', href: 'cours' },
-    { name: 'Notes & Évaluations', icon: 'mdi:clipboard-list-outline', href: 'notes' },
-    { name: 'Inscriptions', icon: 'heroicons:clipboard-document-check', href: 'inscriptions' },
-    { name: 'Communication', icon: 'heroicons:chat-bubble-left-right', href: 'communication' },
-    { name: 'Finances', icon: 'heroicons:currency-dollar', href: 'finances' },
-    { name: 'Documents', icon: 'heroicons:folder', href: 'documents' },
-    { name: 'Paramètres', icon: 'heroicons:cog', href: 'parametres' }
+    { name: 'Tableau de bord', icon: 'heroicons:home', href: '/etablissement/dashboard' },
+    { name: 'Étudiants', icon: 'heroicons:user-group', href: '/etablissement/etudiants' },
+    { name: 'Professeurs', icon: 'heroicons:academic-cap', href: '/etablissement/professeurs' },
+    { name: 'Cours & Emploi du temps', icon: 'heroicons:calendar', href: '/etablissement/cours' },
+    { name: 'Notes & Évaluations', icon: 'mdi:clipboard-list-outline', href: '/etablissement/notes' },
+    { name: 'Inscriptions', icon: 'heroicons:clipboard-document-check', href: '/etablissement/inscriptions' },
+    { name: 'Communication', icon: 'heroicons:chat-bubble-left-right', href: '/etablissement/communication' },
+    { name: 'Finances', icon: 'heroicons:currency-dollar', href: '/etablissement/finances' },
+    { name: 'Documents', icon: 'heroicons:folder', href: '/etablissement/documents' },
+    { name: 'Paramètres', icon: 'heroicons:cog', href: '/etablissement/parametres' }
   ];
 </script>
 
