@@ -281,7 +281,6 @@
     <div class="flex space-x-3">
       <button
         on:click={openModal}
-        disabled={classForStudent.length === 0}
         class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 disabled:opacity-50"
       >
         <Icon icon="heroicons:plus-sm" class="-ml-1 mr-2 h-5 w-5" />
