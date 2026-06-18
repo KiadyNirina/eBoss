@@ -57,6 +57,23 @@ class Etablissement(models.Model):
     
     def __str__(self):
         return self.nom
+    
+class Matiere(models.Model):
+    nom = models.CharField(max_length=100)
+    description = models.TextField(blank=True, null=True)
+    etablissement = models.ForeignKey(
+        Etablissement,
+        on_delete=models.CASCADE,
+        related_name='matieres'
+    )
+
+    def __str__(self):
+        return self.nom
+
+    class Meta:
+        unique_together = ('nom', 'etablissement')
+        verbose_name = "Matière"
+        verbose_name_plural = "Matières"
 
 class Classe(models.Model):
     etablissement = models.ForeignKey(Etablissement, on_delete=models.CASCADE, related_name='classes')
@@ -65,6 +82,7 @@ class Classe(models.Model):
     niveau = models.CharField(max_length=50)  # Ex: "CE1", "Terminale", etc.
     section = models.CharField(max_length=10, blank=True, null=True)  # Ex: "A", "B", "S", "ES", etc.
     professeur_principal = models.ForeignKey('Professeur', on_delete=models.SET_NULL, null=True, blank=True)
+    matieres = models.ManyToManyField(Matiere,blank=True,related_name='classes')
     
     def __str__(self):
         section = f" {self.section}" if self.section else ""
@@ -76,12 +94,12 @@ class Classe(models.Model):
 
 class Professeur(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='professeur')
-    etablissement = models.ForeignKey(Etablissement, on_delete=models.SET_NULL, null=True, blank=True)
-    matiere = models.CharField(max_length=100)
+    etablissement = models.ForeignKey(Etablissement, on_delete=models.SET_NULL, null=True, blank=True, related_name='professeurs')
+    matieres = models.ManyToManyField(Matiere, blank=True, related_name='professeurs')
     classes = models.ManyToManyField(Classe, blank=True, related_name='professeurs')
     
     def __str__(self):
-        return f"{self.user.get_full_name()} ({self.matiere})"
+        return self.user.get_full_name()
 
 class Eleve(models.Model):
     STATUS_CHOICES = (
