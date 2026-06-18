@@ -172,6 +172,9 @@ class ProfesseurSerializer(serializers.ModelSerializer):
         professeur = Professeur.objects.create(user=user, **validated_data)
         professeur.classes.set(classes)
         return professeur
+    
+    def get_classes(self, obj):
+        return [c.nom for c in obj.classes.all()]
 
 class EleveSerializer(serializers.ModelSerializer):
     user = UserSerializer(required=False)

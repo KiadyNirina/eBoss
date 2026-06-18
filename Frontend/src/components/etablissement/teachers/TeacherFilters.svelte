@@ -2,38 +2,32 @@
   import { createEventDispatcher } from 'svelte';
   import Icon from '@iconify/svelte';
   import { authApi } from '$lib/api';
+  import { onMount } from 'svelte';
 
   export let filters;
 
-  let subjectOptions = [];
-  let statusOptions = [];
-  let yearOptions = [];
-
   const dispatch = createEventDispatcher();
 
-  async function fetchFilterOptions() {
-    try {
-      const data = await authApi.getTeacherFilterOptions();
+  let subjectOptions = [];
+  let yearOptions = [];
 
-      console.log('Teacher filter options:', data);
+  onMount(async () => {
+    try {
+      const data = await authApi.getProfesseurFilterOptions();
 
       subjectOptions = data.matieres || [];
-      statusOptions = data.statuts || [];
       yearOptions = data.annees || [];
     } catch (error) {
       console.error(
-        'Erreur lors du chargement des options de filtrage :',
-        error.message
+        'Erreur lors du chargement des filtres',
+        error
       );
     }
-  }
-
-  fetchFilterOptions();
+  });
 
   function resetFilters() {
     filters.search = '';
     filters.matiere = '';
-    filters.statut = '';
     filters.annee = '';
 
     dispatch('apply', filters);
@@ -66,19 +60,21 @@
       <label for="subject" class="block text-sm font-medium text-gray-700">Matière</label>
       <select
         id="subject"
-        name="subject"
         bind:value={filters.matiere}
         class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-lg bg-gray-50 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-        aria-label="Filtrer par matière"
       >
+        <option value="">Toutes</option>
+
         {#each subjectOptions as option}
-          <option value={option.value}>{option.label}</option>
+          <option value={option.value}>
+            {option.label}
+          </option>
         {/each}
       </select>
     </div>
     
     <!-- Filtre Statut -->
-    <div>
+    <!-- <div>
       <label for="status" class="block text-sm font-medium text-gray-700">Statut</label>
       <select
         id="status"
@@ -91,20 +87,22 @@
           <option value={option.value}>{option.label}</option>
         {/each}
       </select>
-    </div>
+    </div> -->
     
     <!-- Filtre Année -->
     <div>
       <label for="year" class="block text-sm font-medium text-gray-700">Année scolaire</label>
       <select
         id="year"
-        name="year"
         bind:value={filters.annee}
         class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-lg bg-gray-50 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-        aria-label="Filtrer par année scolaire"
       >
+        <option value="">Toutes</option>
+
         {#each yearOptions as option}
-          <option value={option.value}>{option.label}</option>
+          <option value={option.value}>
+            {option.label}
+          </option>
         {/each}
       </select>
     </div>

@@ -157,6 +157,16 @@ export const authApi = {
             body: JSON.stringify({ action, ids }),
         }).then(response => response.json());
     },
+
+    
+    getProfesseurFilterOptions: () => fetchWithAuth('/api/professeurs/filter_options/').then(response => response.json()),
+
+    getProfesseurs: (filters = {}) => {
+        const query = new URLSearchParams(filters).toString();
+
+        return fetchWithAuth(`/api/professeurs/?${query}`)
+            .then(response => response.json());
+    },
 };
 
 export const authStore = {

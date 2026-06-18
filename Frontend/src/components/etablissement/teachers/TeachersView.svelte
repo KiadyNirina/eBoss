@@ -3,38 +3,18 @@
   import TeacherTable from './TeacherTable.svelte';
   import TeacherFilters from './TeacherFilters.svelte';
   import BulkActions from './BulkActions.svelte';
+  import { authApi } from '$lib/api';
+  import { onMount } from 'svelte';
   
-  // Données simulées
-  let teachers = [
-    {
-      id: 1,
-      nom: 'Martin',
-      prenom: 'Sophie',
-      matieres: ['Mathématiques', 'Physique'],
-      classes: ['4ème B', '3ème A'],
-      email: 'sophie.martin@ecole.fr',
-      telephone: '06 23 45 67 89',
-      statut: 'actif',
-      embauche: '15/08/2018'
-    },
-    {
-      id: 2,
-      nom: 'Bernard',
-      prenom: 'Pierre',
-      matieres: ['Histoire-Géographie'],
-      classes: ['5ème C', '4ème A'],
-      email: 'pierre.bernard@ecole.fr',
-      telephone: '06 34 56 78 90',
-      statut: 'actif',
-      embauche: '01/09/2020'
-    },
-  ];
+  let teachers = [];
+  let loading = false;
   
   let selectedTeachers = [];
   let searchTerm = '';
   let filters = {
+    search: '',
     matiere: '',
-    statut: '',
+    // statut: '',
     annee: ''
   };
   
@@ -55,9 +35,32 @@
     }
   }
   
-  function applyFilters(newFilters) {
-    filters = newFilters;
+  async function applyFilters(event) {
+    filters = event.detail;
+
+    await loadProfesseurs();
   }
+
+  async function loadProfesseurs() {
+    loading = true;
+
+    try {
+      const data = await authApi.getProfesseurs(filters);
+
+      teachers = data.results || data;
+    } catch (error) {
+      console.error(
+        'Erreur lors du chargement des professeurs',
+        error
+      );
+    } finally {
+      loading = false;
+    }
+  }
+
+  onMount(async () => {
+    await loadProfesseurs();
+  });
 </script>
 
 <div class="">

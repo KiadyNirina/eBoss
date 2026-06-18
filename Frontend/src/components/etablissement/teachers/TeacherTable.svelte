@@ -51,9 +51,9 @@
             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Contact
             </th>
-            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <!-- <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Statut
-            </th>
+            </th> -->
             <th scope="col" class="relative px-6 py-3">
                 <span class="sr-only">Actions</span>
             </th>
@@ -76,18 +76,16 @@
                     <Icon icon="heroicons:academic-cap" class="h-6 w-6 text-green-600" />
                     </div>
                     <div class="ml-4">
-                    <div class="text-sm font-medium text-gray-900">{teacher.prenom} {teacher.nom}</div>
-                    <div class="text-sm text-gray-500">Embauché le {teacher.embauche}</div>
+                    <div class="text-sm font-medium text-gray-900">{teacher.user.first_name} {teacher.user.last_name}</div>
+                    <div class="text-sm text-gray-500">{teacher.user.email}</div>
                     </div>
                 </div>
                 </td>
                 <td class="px-6 py-4">
                 <div class="flex flex-wrap gap-1">
-                    {#each teacher.matieres as matiere}
                     <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-800">
-                        {matiere}
+                        {teacher.matiere}
                     </span>
-                    {/each}
                 </div>
                 </td>
                 <td class="px-6 py-4">
@@ -100,17 +98,16 @@
                 </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
-                <div class="text-sm text-gray-900">{teacher.email}</div>
-                <div class="text-sm text-gray-500">{teacher.telephone}</div>
+                <div class="text-sm text-gray-500">{teacher.user.telephone}</div>
                 </td>
-                <td class="px-6 py-4 whitespace-nowrap">
+                <!-- <td class="px-6 py-4 whitespace-nowrap">
                 {#if teacher.statut}
                     {@const status = getStatusBadge(teacher.statut)}
                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full {status.class}">
                     {status.label}
                     </span>
                 {/if}
-                </td>
+                </td> -->
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div class="flex justify-end space-x-3">
                     <a href="#" class="text-green-600 hover:text-green-900">
