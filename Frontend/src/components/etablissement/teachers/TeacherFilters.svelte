@@ -1,38 +1,41 @@
 <script>
   import { createEventDispatcher } from 'svelte';
   import Icon from '@iconify/svelte';
+  import { authApi } from '$lib/api';
 
   export let filters;
 
+  let subjectOptions = [];
+  let statusOptions = [];
+  let yearOptions = [];
+
   const dispatch = createEventDispatcher();
 
-  const statusOptions = [
-    { value: '', label: 'Tous les statuts' },
-    { value: 'actif', label: 'Actif' },
-    { value: 'inactif', label: 'Inactif' },
-    { value: 'congé', label: 'En congé' }
-  ];
+  async function fetchFilterOptions() {
+    try {
+      const data = await authApi.getTeacherFilterOptions();
 
-  const subjectOptions = [
-    { value: '', label: 'Toutes les matières' },
-    { value: 'maths', label: 'Mathématiques' },
-    { value: 'francais', label: 'Français' },
-    { value: 'histoire', label: 'Histoire-Géographie' },
-    { value: 'physique', label: 'Physique-Chimie' }
-  ];
+      console.log('Teacher filter options:', data);
 
-  const yearOptions = [
-    { value: '', label: 'Toutes les années' },
-    { value: '2023', label: '2023-2024' },
-    { value: '2022', label: '2022-2023' }
-  ];
+      subjectOptions = data.matieres || [];
+      statusOptions = data.statuts || [];
+      yearOptions = data.annees || [];
+    } catch (error) {
+      console.error(
+        'Erreur lors du chargement des options de filtrage :',
+        error.message
+      );
+    }
+  }
 
-  // Fonction pour réinitialiser les filtres
+  fetchFilterOptions();
+
   function resetFilters() {
     filters.search = '';
     filters.matiere = '';
     filters.statut = '';
     filters.annee = '';
+
     dispatch('apply', filters);
   }
 </script>

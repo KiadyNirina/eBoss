@@ -7,6 +7,7 @@ router = DefaultRouter()
 router.register(r'annees-scolaires', AnneeScolaireViewSet, basename='anneescolaire')
 router.register(r'classes', ClasseViewSet, basename='classe')
 router.register(r'eleves', EleveViewSet, basename='eleve')
+router.register(r'professeurs', ProfesseurViewSet, basename='professeur')
 
 urlpatterns = [
     path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),

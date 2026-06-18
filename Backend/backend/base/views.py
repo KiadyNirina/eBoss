@@ -146,10 +146,15 @@ class ProfesseurViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
+
+        if hasattr(self.request.user, 'etablissement'):
+            queryset = queryset.filter(
+                etablissement=self.request.user.etablissement
+            )
+
         search = self.request.query_params.get('search')
         matiere = self.request.query_params.get('matiere')
-        etablissement = self.request.query_params.get('etablissement')
-        
+
         if search:
             queryset = queryset.filter(
                 Q(user__first_name__icontains=search) |
@@ -157,11 +162,53 @@ class ProfesseurViewSet(viewsets.ModelViewSet):
                 Q(user__email__icontains=search)
             )
         if matiere:
-            queryset = queryset.filter(matiere__icontains=matiere)
-        if etablissement:
-            queryset = queryset.filter(etablissement_id=etablissement)
-            
+            queryset = queryset.filter(
+                matiere__icontains=matiere
+            )
+
         return queryset
+
+    @action(detail=False, methods=['get'])
+    def filter_options(self, request):
+
+        if not hasattr(request.user, 'etablissement'):
+            return Response(
+                {'error': 'Établissement requis'},
+                status=400
+            )
+
+        etablissement = request.user.etablissement
+
+        professeurs = Professeur.objects.filter(
+            etablissement=etablissement
+        )
+
+        matieres = (
+            professeurs
+            .values_list('matiere', flat=True)
+            .distinct()
+        )
+
+        annees = AnneeScolaire.objects.filter(
+            etablissement=etablissement
+        )
+
+        return Response({
+            'matieres': [
+                {
+                    'value': m,
+                    'label': m
+                }
+                for m in matieres if m
+            ],
+            'annees': [
+                {
+                    'value': a.id,
+                    'label': a.nom
+                }
+                for a in annees
+            ]
+        })
 
 class EleveRegistrationView(generics.CreateAPIView):
     serializer_class = EleveSerializer
