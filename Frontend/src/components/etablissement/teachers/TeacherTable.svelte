@@ -83,16 +83,18 @@
                 </td>
                 <td class="px-6 py-4">
                 <div class="flex flex-wrap gap-1">
+                    {#each teacher.matieres ?? [] as matiere}
                     <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-800">
-                        {teacher.matiere}
+                        {matiere.nom}
                     </span>
+                    {/each}
                 </div>
                 </td>
                 <td class="px-6 py-4">
                 <div class="flex flex-wrap gap-1">
-                    {#each teacher.classes as classe}
+                    {#each teacher.classes ?? [] as classe}
                     <span class="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800">
-                        {classe}
+                        {classe.nom}
                     </span>
                     {/each}
                 </div>

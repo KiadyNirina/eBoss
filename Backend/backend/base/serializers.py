@@ -170,11 +170,8 @@ class EtablissementSerializer(serializers.ModelSerializer):
 
 class ProfesseurSerializer(serializers.ModelSerializer):
     user = UserSerializer(required=True)
-    classes = serializers.PrimaryKeyRelatedField(
-        many=True,
-        queryset=Classe.objects.all(),
-        required=False
-    )
+    classes = serializers.SerializerMethodField()
+    matieres = serializers.SerializerMethodField()
     
     class Meta:
         model = Professeur
@@ -206,8 +203,24 @@ class ProfesseurSerializer(serializers.ModelSerializer):
 
         return professeur
     
-    def get_classes(self, obj):
-        return [c.nom for c in obj.classes.all()]
+    def get_classes(self,obj):
+        return [
+            {
+                "id": c.id,
+                "nom": c.nom
+            }
+            for c in obj.classes.all()
+        ]
+
+
+    def get_matieres(self,obj):
+        return [
+            {
+                "id": m.id,
+                "nom": m.nom
+            }
+            for m in obj.matieres.all()
+        ]
 
 class EleveSerializer(serializers.ModelSerializer):
     user = UserSerializer(required=False)
