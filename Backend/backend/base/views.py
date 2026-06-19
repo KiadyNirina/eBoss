@@ -206,7 +206,13 @@ class ProfesseurViewSet(viewsets.ModelViewSet):
 
         matieres = Matiere.objects.filter(
             etablissement=etablissement
-        ).distinct()
+        )
+
+        classes = Classe.objects.filter(
+            etablissement=etablissement
+        ).select_related(
+            'annee_scolaire'
+        )
 
         annees = AnneeScolaire.objects.filter(
             etablissement=etablissement
@@ -219,6 +225,13 @@ class ProfesseurViewSet(viewsets.ModelViewSet):
                     'label': m.nom
                 }
                 for m in matieres if m
+            ],
+            'classes': [
+                {
+                    'value': c.id,
+                    'label': f"{c.nom} ({c.annee_scolaire.nom})"
+                }
+                for c in classes
             ],
             'annees': [
                 {

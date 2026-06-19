@@ -120,6 +120,10 @@ export const authApi = {
         body: JSON.stringify(data),
     }).then(response => response.json()),
 
+    getMatieres: () => 
+        fetchWithAuth('/api/matieres/')
+        .then(response => response.json()),
+
     // Profil utilisateur
     getProfile: () => fetchWithAuth('/profile/').then(response => response.json()),
 
@@ -167,6 +171,11 @@ export const authApi = {
         return fetchWithAuth(`/api/professeurs/?${query}`)
             .then(response => response.json());
     },
+
+    createProfesseur: (data) => fetchWithAuth('/api/professeurs/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }).then(response => response.json()),
 };
 
 export const authStore = {

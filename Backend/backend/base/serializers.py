@@ -186,14 +186,24 @@ class ProfesseurSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user_data = validated_data.pop('user')
         classes = validated_data.pop('classes', [])
+        matieres = validated_data.pop('matieres', [])
+
         user_data['user_type'] = 'professeur'
-        
+
         user_serializer = UserSerializer(data=user_data)
         user_serializer.is_valid(raise_exception=True)
+
         user = user_serializer.save()
-        
-        professeur = Professeur.objects.create(user=user, **validated_data)
+
+        professeur = Professeur.objects.create(
+            user=user,
+            **validated_data
+        )
+
+        # relation ManyToMany
         professeur.classes.set(classes)
+        professeur.matieres.set(matieres)
+
         return professeur
     
     def get_classes(self, obj):
