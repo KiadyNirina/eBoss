@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import User, Etablissement, Professeur, Eleve, Parent, AnneeScolaire, Classe
+from .models import User, Etablissement, Professeur, Eleve, Parent, AnneeScolaire, Classe, Matiere
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
@@ -69,6 +69,29 @@ class ClasseSerializer(serializers.ModelSerializer):
                 raise serializers.ValidationError(
                     "Cette année scolaire n'est pas associée à l'établissement"
                 )
+        return data
+
+class MatiereSerializer(serializers.ModelSerializer):
+    etablissement = serializers.PrimaryKeyRelatedField(
+        queryset=Etablissement.objects.all()
+    )
+
+    class Meta:
+        model = Matiere
+        fields = ['id', 'nom', 'description', 'etablissement']
+
+    def validate(self, data):
+        nom = data.get('nom')
+        etablissement = data.get('etablissement')
+
+        if Matiere.objects.filter(
+            nom__iexact=nom,
+            etablissement=etablissement
+        ).exists():
+            raise serializers.ValidationError(
+                "Cette matière existe déjà dans cet établissement."
+            )
+
         return data
 
 class UserProfileSerializer(serializers.ModelSerializer):

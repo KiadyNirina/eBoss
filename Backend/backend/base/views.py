@@ -18,7 +18,8 @@ from .serializers import (
     ParentSerializer,
     UserProfileSerializer,
     AnneeScolaireSerializer,
-    ClasseSerializer
+    ClasseSerializer,
+    MatiereSerializer
 )
 from .models import *
 
@@ -117,6 +118,26 @@ class ClasseViewSet(viewsets.ModelViewSet):
         
         serializer.save()
 
+class MatiereViewSet(viewsets.ModelViewSet):
+    serializer_class = MatiereSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Matiere.objects.select_related('etablissement')
+
+        etablissement_id = self.request.query_params.get('etablissement')
+        search = self.request.query_params.get('search')
+
+        if etablissement_id:
+            queryset = queryset.filter(etablissement_id=etablissement_id)
+
+        if search:
+            queryset = queryset.filter(
+                nom__icontains=search
+            )
+
+        return queryset.order_by('nom')
+
 class ProfesseurRegistrationView(generics.CreateAPIView):
     serializer_class = ProfesseurSerializer
     permission_classes = [AllowAny]
@@ -163,7 +184,7 @@ class ProfesseurViewSet(viewsets.ModelViewSet):
             )
         if matiere:
             queryset = queryset.filter(
-                matiere__icontains=matiere
+                matieres__id=matiere
             )
 
         return queryset
@@ -183,11 +204,9 @@ class ProfesseurViewSet(viewsets.ModelViewSet):
             etablissement=etablissement
         )
 
-        matieres = (
-            professeurs
-            .values_list('matiere', flat=True)
-            .distinct()
-        )
+        matieres = Matiere.objects.filter(
+            etablissement=etablissement
+        ).distinct()
 
         annees = AnneeScolaire.objects.filter(
             etablissement=etablissement
@@ -196,8 +215,8 @@ class ProfesseurViewSet(viewsets.ModelViewSet):
         return Response({
             'matieres': [
                 {
-                    'value': m,
-                    'label': m
+                    'value': m.id,
+                    'label': m.nom
                 }
                 for m in matieres if m
             ],
