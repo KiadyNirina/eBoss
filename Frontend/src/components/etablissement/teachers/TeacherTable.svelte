@@ -84,6 +84,13 @@
             </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
+            {#if teachers.length === 0}
+                <tr>
+                <td colspan="9" class="px-6 py-4 whitespace-nowrap text-center text-sm text-gray-500">
+                    Aucun professeur trouvé.
+                </td>
+                </tr>
+            {/if}
             {#each teachers as teacher}
             <tr class={selectedTeachers.includes(teacher.id) ? 'bg-green-50' : 'hover:bg-gray-50'}>
                 <td class="px-6 py-4 whitespace-nowrap">
