@@ -172,6 +172,7 @@ class ProfesseurSerializer(serializers.ModelSerializer):
     user = UserSerializer(required=True)
     classes = serializers.SerializerMethodField()
     matieres = serializers.SerializerMethodField()
+    annee_scolaire = serializers.SerializerMethodField()
     
     class Meta:
         model = Professeur
@@ -202,6 +203,32 @@ class ProfesseurSerializer(serializers.ModelSerializer):
         professeur.matieres.set(matieres)
 
         return professeur
+
+    def get_annee_scolaire(self, obj):
+        """
+        Récupère les années scolaires des classes du professeur
+        """
+        # Récupérer toutes les classes du professeur
+        classes = obj.classes.all()
+        
+        if not classes.exists():
+            return None
+        
+        # Récupérer les années scolaires uniques
+        annees = classes.values_list('annee_scolaire__id', 'annee_scolaire__nom').distinct()
+        
+        # Si une seule classe, retourner juste l'ID
+        if len(annees) == 1:
+            return annees[0]  # Retourne l'ID de l'année scolaire
+        
+        # Si plusieurs classes avec des années différentes, retourner une liste
+        return [
+            {
+                "id": annee_id,
+                "nom": annee_nom
+            }
+            for annee_id, annee_nom in annees
+        ]
     
     def get_classes(self,obj):
         return [

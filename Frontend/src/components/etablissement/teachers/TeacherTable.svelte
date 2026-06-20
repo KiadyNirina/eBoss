@@ -6,7 +6,28 @@
   
   export let toggleSelectAll;
   export let toggleTeacher;
-  
+
+  function getAnneesList(anneeData) {
+    if (!anneeData) return [];
+    
+    if (Array.isArray(anneeData) && anneeData.length === 2 && typeof anneeData[1] === 'string') {
+      return [{ id: anneeData[0], nom: anneeData[1] }];
+    }
+    
+    if (Array.isArray(anneeData) && anneeData.length > 0 && Array.isArray(anneeData[0])) {
+      return anneeData.map(item => ({
+        id: item[0],
+        nom: item[1]
+      }));
+    }
+    
+    if (typeof anneeData === 'object' && anneeData.id) {
+      return [{ id: anneeData.id, nom: anneeData.nom || `Année ${anneeData.id}` }];
+    }
+    
+    return [{ id: anneeData, nom: `Année ${anneeData}` }];
+  }
+
   function getStatusBadge(status) {
     const statusClasses = {
       actif: 'bg-green-100 text-green-800',
@@ -50,6 +71,9 @@
             </th>
             <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Contact
+            </th>
+            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Année Scolaire
             </th>
             <!-- <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Statut
@@ -101,6 +125,20 @@
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
                 <div class="text-sm text-gray-500">{teacher.user.telephone}</div>
+                </td>
+                <td class="px-6 py-4">
+                    <div class="flex flex-wrap gap-1">
+                        {#if teacher.annee_scolaire}
+                            {@const annees = getAnneesList(teacher.annee_scolaire)}
+                            {#each annees as annee}
+                                <span class="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800">
+                                    {annee.nom}
+                                </span>
+                            {/each}
+                        {:else}
+                            <span class="text-sm text-gray-400">Non assigné</span>
+                        {/if}
+                    </div>
                 </td>
                 <!-- <td class="px-6 py-4 whitespace-nowrap">
                 {#if teacher.statut}
