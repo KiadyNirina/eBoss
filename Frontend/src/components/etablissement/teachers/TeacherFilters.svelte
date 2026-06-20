@@ -35,7 +35,7 @@
 </script>
 
 <div class="mt-6 bg-white shadow-sm rounded-lg p-6 border border-gray-200">
-  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+  <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
     <!-- Recherche -->
     <div>
       <label for="search" class="block text-sm font-medium text-gray-700">Recherche</label>
