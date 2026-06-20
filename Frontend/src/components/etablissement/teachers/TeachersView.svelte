@@ -6,6 +6,7 @@
   import { authApi } from '$lib/api';
   import { onMount } from 'svelte';
   import AddTeacherModal from './AddTeacherModal.svelte';
+  import EditTeacherModal from './EditTeacherModal.svelte';
   
   let teachers = [];
   let loading = false;
@@ -22,6 +23,8 @@
   let classOptions = [];
   let yearOptions = [];
   let showAddTeacherModal = false;
+  let showEditTeacherModal = false;
+  let teacherToEdit = null;
 
   function openAddTeacherModal() {
     showAddTeacherModal = true;
@@ -31,7 +34,22 @@
     showAddTeacherModal = false;
   }
 
+  function openEditTeacherModal(teacher) {
+    teacherToEdit = teacher;
+    showEditTeacherModal = true;
+  }
+
+  function closeEditTeacherModal() {
+    showEditTeacherModal = false;
+    teacherToEdit = null;
+  }
+
   function handleTeacherSuccess(event) {
+    console.log(event.detail.message);
+    loadProfesseurs();
+  }
+
+  function handleTeacherUpdate(event) {
     console.log(event.detail.message);
     loadProfesseurs();
   }
@@ -90,6 +108,29 @@
     }
   }
 
+  // Gestionnaire pour l'édition depuis le tableau
+  function handleEditTeacher(event) {
+    const teacherId = event.detail;
+    const teacher = teachers.find(t => t.id === teacherId);
+    if (teacher) {
+      openEditTeacherModal(teacher);
+    }
+  }
+
+  // Gestionnaire pour la suppression
+  async function handleDeleteTeacher(event) {
+    const teacherId = event.detail;
+    if (confirm('Êtes-vous sûr de vouloir supprimer ce professeur ?')) {
+      try {
+        await authApi.deleteProfesseur(teacherId);
+        await loadProfesseurs();
+        selectedTeachers = selectedTeachers.filter(id => id !== teacherId);
+      } catch (error) {
+        console.error('Erreur lors de la suppression', error);
+      }
+    }
+  }
+
   onMount(async () => {
     await loadProfesseurs();
     await loadFilterOptions();
@@ -140,6 +181,8 @@
       {selectedTeachers}
       on:toggleSelectAll={toggleSelectAll}
       on:toggleTeacher={toggleTeacherSelection}
+      on:edit={handleEditTeacher}
+      on:delete={handleDeleteTeacher}
     />
   </div>
   
@@ -185,6 +228,7 @@
   </div>
 </div>
 
+<!-- Modal d'ajout -->
 {#if showAddTeacherModal}
 <AddTeacherModal
   isOpen={showAddTeacherModal}
@@ -193,5 +237,18 @@
   yearOptions={yearOptions}
   on:close={closeAddTeacherModal}
   on:success={handleTeacherSuccess}
+/>
+{/if}
+
+<!-- Modal d'édition -->
+{#if showEditTeacherModal && teacherToEdit}
+<EditTeacherModal
+  isOpen={showEditTeacherModal}
+  teacher={teacherToEdit}
+  subjectOptions={matiereOptions}
+  classOptions={classOptions}
+  yearOptions={yearOptions}
+  on:close={closeEditTeacherModal}
+  on:success={handleTeacherUpdate}
 />
 {/if}

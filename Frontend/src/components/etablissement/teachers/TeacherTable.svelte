@@ -1,11 +1,14 @@
 <script>
   import Icon from '@iconify/svelte';
+  import { createEventDispatcher } from 'svelte';
   
   export let teachers;
   export let selectedTeachers;
   
   export let toggleSelectAll;
   export let toggleTeacher;
+
+  const dispatch = createEventDispatcher();
 
   function getAnneesList(anneeData) {
     if (!anneeData) return [];
@@ -45,6 +48,14 @@
       class: statusClasses[status] || 'bg-gray-100 text-gray-800',
       label: statusLabels[status] || status
     };
+  }
+
+  function handleEdit(teacherId) {
+    dispatch('edit', teacherId);
+  }
+
+  function handleDelete(teacherId) {
+    dispatch('delete', teacherId);
   }
 </script>
 
@@ -114,7 +125,7 @@
                 </td>
                 <td class="px-6 py-4">
                 <div class="flex flex-wrap gap-1">
-                    {#each teacher.matieres ?? [] as matiere}
+                    {#each teacher.matieres_details ?? [] as matiere}
                     <span class="px-2 py-1 text-xs rounded bg-gray-100 text-gray-800">
                         {matiere.nom}
                     </span>
@@ -123,7 +134,7 @@
                 </td>
                 <td class="px-6 py-4">
                 <div class="flex flex-wrap gap-1">
-                    {#each teacher.classes ?? [] as classe}
+                    {#each teacher.classes_details ?? [] as classe}
                     <span class="px-2 py-1 text-xs rounded bg-blue-100 text-blue-800">
                         {classe.nom}
                     </span>
@@ -157,15 +168,20 @@
                 </td> -->
                 <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div class="flex justify-end space-x-3">
-                    <a href="#" class="text-green-600 hover:text-green-900">
-                    <Icon icon="heroicons:pencil-square" class="h-5 w-5" />
-                    </a>
-                    <a href="#" class="text-gray-600 hover:text-gray-900">
-                    <Icon icon="heroicons:eye" class="h-5 w-5" />
-                    </a>
-                    <a href="#" class="text-red-600 hover:text-red-900">
-                    <Icon icon="heroicons:trash" class="h-5 w-5" />
-                    </a>
+                    <button 
+                        on:click={() => handleEdit(teacher.id)}
+                        class="text-green-600 hover:text-green-900 transition-colors"
+                        title="Modifier"
+                    >
+                        <Icon icon="heroicons:pencil-square" class="h-5 w-5" />
+                    </button>
+                    <button 
+                        on:click={() => handleDelete(teacher.id)}
+                        class="text-red-600 hover:text-red-900 transition-colors"
+                        title="Supprimer"
+                    >
+                        <Icon icon="heroicons:trash" class="h-5 w-5" />
+                    </button>
                 </div>
                 </td>
             </tr>

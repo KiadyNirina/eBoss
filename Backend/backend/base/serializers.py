@@ -170,8 +170,25 @@ class EtablissementSerializer(serializers.ModelSerializer):
 
 class ProfesseurSerializer(serializers.ModelSerializer):
     user = UserSerializer(required=True)
-    classes = serializers.SerializerMethodField()
-    matieres = serializers.SerializerMethodField()
+
+    # Écriture
+    classes = serializers.PrimaryKeyRelatedField(
+        queryset=Classe.objects.all(),
+        many=True,
+        write_only=True,
+        required=False
+    )
+
+    matieres = serializers.PrimaryKeyRelatedField(
+        queryset=Matiere.objects.all(),
+        many=True,
+        write_only=True,
+        required=False
+    )
+
+    # Lecture
+    classes_details = serializers.SerializerMethodField()
+    matieres_details = serializers.SerializerMethodField()
     annee_scolaire = serializers.SerializerMethodField()
     
     class Meta:
@@ -204,6 +221,32 @@ class ProfesseurSerializer(serializers.ModelSerializer):
 
         return professeur
 
+    def update(self, instance, validated_data):
+        user_data = validated_data.pop('user', None)
+        classes = validated_data.pop('classes', None)
+        matieres = validated_data.pop('matieres', None)
+
+        if user_data:
+            user = instance.user
+
+            for attr, value in user_data.items():
+                setattr(user, attr, value)
+
+            user.save()
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+
+        instance.save()
+
+        if classes is not None:
+            instance.classes.set(classes)
+
+        if matieres is not None:
+            instance.matieres.set(matieres)
+
+        return instance
+
     def get_annee_scolaire(self, obj):
         """
         Récupère les années scolaires des classes du professeur
@@ -219,9 +262,11 @@ class ProfesseurSerializer(serializers.ModelSerializer):
         
         # Si une seule classe, retourner juste l'ID
         if len(annees) == 1:
-            return annees[0]  # Retourne l'ID de l'année scolaire
-        
-        # Si plusieurs classes avec des années différentes, retourner une liste
+            return {
+                "id": annees[0][0],
+                "nom": annees[0][1]
+            }
+
         return [
             {
                 "id": annee_id,
@@ -230,7 +275,7 @@ class ProfesseurSerializer(serializers.ModelSerializer):
             for annee_id, annee_nom in annees
         ]
     
-    def get_classes(self,obj):
+    def get_classes_details(self, obj):
         return [
             {
                 "id": c.id,
@@ -239,8 +284,7 @@ class ProfesseurSerializer(serializers.ModelSerializer):
             for c in obj.classes.all()
         ]
 
-
-    def get_matieres(self,obj):
+    def get_matieres_details(self, obj):
         return [
             {
                 "id": m.id,

@@ -176,6 +176,15 @@ export const authApi = {
         method: 'POST',
         body: JSON.stringify(data),
     }).then(response => response.json()),
+
+    updateProfesseur: (id, data) => fetchWithAuth(`/api/professeurs/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    }).then(response => response.json()),
+
+    deleteProfesseur: (id) => fetchWithAuth(`/api/professeurs/${id}/`, {
+        method: 'DELETE',
+    }).then(() => ({ message: 'Professeur supprimé' })),
 };
 
 export const authStore = {
