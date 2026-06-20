@@ -160,7 +160,7 @@ class ProfesseurRegistrationView(generics.CreateAPIView):
         }, status=status.HTTP_201_CREATED, headers=headers)
 
 class ProfesseurViewSet(viewsets.ModelViewSet):
-    queryset = Professeur.objects.all().select_related('user', 'etablissement').prefetch_related('classes')
+    queryset = Professeur.objects.all().select_related('user', 'etablissement').prefetch_related('classes','matieres')
     serializer_class = ProfesseurSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = PageNumberPagination
@@ -172,9 +172,13 @@ class ProfesseurViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(
                 etablissement=self.request.user.etablissement
             )
+        else:
+            return queryset.none()
 
         search = self.request.query_params.get('search')
         matiere = self.request.query_params.get('matiere')
+        classe = self.request.query_params.get('classe')
+        annee = self.request.query_params.get('annee')
 
         if search:
             queryset = queryset.filter(
@@ -185,7 +189,17 @@ class ProfesseurViewSet(viewsets.ModelViewSet):
         if matiere:
             queryset = queryset.filter(
                 matieres__id=matiere
-            )
+            ).distinct()
+
+        if classe:
+            queryset = queryset.filter(
+                classes__id=classe
+            ).distinct()
+
+        if annee:
+            queryset = queryset.filter(
+                classes__annee_scolaire__id=annee
+            ).distinct()
 
         return queryset
 
