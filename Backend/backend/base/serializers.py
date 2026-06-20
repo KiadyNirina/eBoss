@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import User, Etablissement, Professeur, Eleve, Parent, AnneeScolaire, Classe
+from .models import User, Etablissement, Professeur, Eleve, Parent, AnneeScolaire, Classe, Matiere
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
@@ -71,6 +71,29 @@ class ClasseSerializer(serializers.ModelSerializer):
                 )
         return data
 
+class MatiereSerializer(serializers.ModelSerializer):
+    etablissement = serializers.PrimaryKeyRelatedField(
+        queryset=Etablissement.objects.all()
+    )
+
+    class Meta:
+        model = Matiere
+        fields = ['id', 'nom', 'description', 'etablissement']
+
+    def validate(self, data):
+        nom = data.get('nom')
+        etablissement = data.get('etablissement')
+
+        if Matiere.objects.filter(
+            nom__iexact=nom,
+            etablissement=etablissement
+        ).exists():
+            raise serializers.ValidationError(
+                "Cette matière existe déjà dans cet établissement."
+            )
+
+        return data
+
 class UserProfileSerializer(serializers.ModelSerializer):
     profile = serializers.SerializerMethodField()
     
@@ -90,12 +113,11 @@ class UserProfileSerializer(serializers.ModelSerializer):
         return None
 
 class UserSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True, required=False)
     
     class Meta:
         model = User
-        fields = ['username', 'email', 'password', 
-                 'first_name', 'last_name', 'telephone', 'user_type']
+        fields = '__all__'
         extra_kwargs = {
             'username': {'required': False},
             'email': {'required': True},
@@ -113,6 +135,15 @@ class UserSerializer(serializers.ModelSerializer):
             validated_data['username'] = validated_data['email']
         validated_data['password'] = make_password(validated_data['password'])
         return super().create(validated_data)
+    
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        if password:
+            instance.set_password(password)
+        instance.save()
+        return instance
 
 class EtablissementSerializer(serializers.ModelSerializer):
     user = UserSerializer(required=True)
@@ -139,11 +170,8 @@ class EtablissementSerializer(serializers.ModelSerializer):
 
 class ProfesseurSerializer(serializers.ModelSerializer):
     user = UserSerializer(required=True)
-    classes = serializers.PrimaryKeyRelatedField(
-        many=True,
-        queryset=Classe.objects.all(),
-        required=False
-    )
+    classes = serializers.SerializerMethodField()
+    matieres = serializers.SerializerMethodField()
     
     class Meta:
         model = Professeur
@@ -155,19 +183,49 @@ class ProfesseurSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         user_data = validated_data.pop('user')
         classes = validated_data.pop('classes', [])
+        matieres = validated_data.pop('matieres', [])
+
         user_data['user_type'] = 'professeur'
-        
+
         user_serializer = UserSerializer(data=user_data)
         user_serializer.is_valid(raise_exception=True)
+
         user = user_serializer.save()
-        
-        professeur = Professeur.objects.create(user=user, **validated_data)
+
+        professeur = Professeur.objects.create(
+            user=user,
+            **validated_data
+        )
+
+        # relation ManyToMany
         professeur.classes.set(classes)
+        professeur.matieres.set(matieres)
+
         return professeur
+    
+    def get_classes(self,obj):
+        return [
+            {
+                "id": c.id,
+                "nom": c.nom
+            }
+            for c in obj.classes.all()
+        ]
+
+
+    def get_matieres(self,obj):
+        return [
+            {
+                "id": m.id,
+                "nom": m.nom
+            }
+            for m in obj.matieres.all()
+        ]
 
 class EleveSerializer(serializers.ModelSerializer):
-    user = UserSerializer(required=True)
+    user = UserSerializer(required=False)
     classe = serializers.PrimaryKeyRelatedField(queryset=Classe.objects.all(), required=True)
+    annee_scolaire = serializers.SerializerMethodField()
     
     class Meta:
         model = Eleve
@@ -175,6 +233,12 @@ class EleveSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'classe': {'required': True},
         }
+
+    def get_annee_scolaire(self, obj):
+        # Accéder à l'année scolaire via la classe
+        if obj.classe and obj.classe.annee_scolaire:
+            return obj.classe.annee_scolaire.id
+        return "Non assigné"
     
     def create(self, validated_data):
         user_data = validated_data.pop('user')
@@ -185,6 +249,19 @@ class EleveSerializer(serializers.ModelSerializer):
         user = user_serializer.save()
         
         return Eleve.objects.create(user=user, **validated_data)
+    
+    def update(self, instance, validated_data):
+        user_data = validated_data.pop('user', None)
+        if user_data:
+            for attr, value in user_data.items():
+                if value is not None:
+                    setattr(instance.user, attr, value)
+            instance.user.save()
+
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        return instance
 
 class ParentSerializer(serializers.ModelSerializer):
     user = UserSerializer(required=True)

@@ -18,7 +18,8 @@ from .serializers import (
     ParentSerializer,
     UserProfileSerializer,
     AnneeScolaireSerializer,
-    ClasseSerializer
+    ClasseSerializer,
+    MatiereSerializer
 )
 from .models import *
 
@@ -117,6 +118,26 @@ class ClasseViewSet(viewsets.ModelViewSet):
         
         serializer.save()
 
+class MatiereViewSet(viewsets.ModelViewSet):
+    serializer_class = MatiereSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Matiere.objects.select_related('etablissement')
+
+        etablissement_id = self.request.query_params.get('etablissement')
+        search = self.request.query_params.get('search')
+
+        if etablissement_id:
+            queryset = queryset.filter(etablissement_id=etablissement_id)
+
+        if search:
+            queryset = queryset.filter(
+                nom__icontains=search
+            )
+
+        return queryset.order_by('nom')
+
 class ProfesseurRegistrationView(generics.CreateAPIView):
     serializer_class = ProfesseurSerializer
     permission_classes = [AllowAny]
@@ -146,10 +167,15 @@ class ProfesseurViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         queryset = super().get_queryset()
+
+        if hasattr(self.request.user, 'etablissement'):
+            queryset = queryset.filter(
+                etablissement=self.request.user.etablissement
+            )
+
         search = self.request.query_params.get('search')
         matiere = self.request.query_params.get('matiere')
-        etablissement = self.request.query_params.get('etablissement')
-        
+
         if search:
             queryset = queryset.filter(
                 Q(user__first_name__icontains=search) |
@@ -157,11 +183,64 @@ class ProfesseurViewSet(viewsets.ModelViewSet):
                 Q(user__email__icontains=search)
             )
         if matiere:
-            queryset = queryset.filter(matiere__icontains=matiere)
-        if etablissement:
-            queryset = queryset.filter(etablissement_id=etablissement)
-            
+            queryset = queryset.filter(
+                matieres__id=matiere
+            )
+
         return queryset
+
+    @action(detail=False, methods=['get'])
+    def filter_options(self, request):
+
+        if not hasattr(request.user, 'etablissement'):
+            return Response(
+                {'error': 'Établissement requis'},
+                status=400
+            )
+
+        etablissement = request.user.etablissement
+
+        professeurs = Professeur.objects.filter(
+            etablissement=etablissement
+        )
+
+        matieres = Matiere.objects.filter(
+            etablissement=etablissement
+        )
+
+        classes = Classe.objects.filter(
+            etablissement=etablissement
+        ).select_related(
+            'annee_scolaire'
+        )
+
+        annees = AnneeScolaire.objects.filter(
+            etablissement=etablissement
+        )
+
+        return Response({
+            'matieres': [
+                {
+                    'value': m.id,
+                    'label': m.nom
+                }
+                for m in matieres if m
+            ],
+            'classes': [
+                {
+                    'value': c.id,
+                    'label': f"{c.nom} ({c.annee_scolaire.nom})"
+                }
+                for c in classes
+            ],
+            'annees': [
+                {
+                    'value': a.id,
+                    'label': a.nom
+                }
+                for a in annees
+            ]
+        })
 
 class EleveRegistrationView(generics.CreateAPIView):
     serializer_class = EleveSerializer
@@ -254,8 +333,15 @@ class EleveViewSet(viewsets.ModelViewSet):
             return Response({'error': 'Aucun étudiant sélectionné'}, status=status.HTTP_400_BAD_REQUEST)
 
         if action_type == 'delete':
-            Eleve.objects.filter(id__in=ids).delete()
-            return Response({'message': f'{len(ids)} étudiants supprimés'}, status=status.HTTP_200_OK)
+            # Récupérer les élèves sélectionnés avec leur user
+            eleves = Eleve.objects.filter(id__in=ids).select_related('user')
+            # Supprimer les utilisateurs associés
+            for eleve in eleves:
+                if eleve.user:
+                    eleve.user.delete()
+            # Supprimer les élèves (si user est supprimé avec cascade)
+            eleves.delete()
+            return Response({'message': f'{len(ids)} étudiants et leurs comptes utilisateurs ont été supprimés'}, status=status.HTTP_200_OK)
         elif action_type == 'export':
             response = HttpResponse(content_type='text/csv')
             response['Content-Disposition'] = 'attachment; filename="etudiants.csv"'

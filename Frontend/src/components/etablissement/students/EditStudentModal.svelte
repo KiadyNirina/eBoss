@@ -2,54 +2,42 @@
   import Icon from '@iconify/svelte';
   import { authApi } from '$lib/api';
   import { createEventDispatcher } from 'svelte';
-  import { user } from '$lib/stores';
   import { fade, fly } from 'svelte/transition';
   import { quintOut } from 'svelte/easing';
-  import { onMount } from 'svelte';
-  import { browser } from '$app/environment';
 
   export let isOpen = false;
+  export let student = null;
   export let classOptions = [];
   export let statusOptions = [];
   export let yearOptions = [];
 
   const dispatch = createEventDispatcher();
 
-  let etablissementId = $user?.profile?.id ?? null;
-
   let formData = {
-    user: {
-      first_name: '',
-      last_name: '',
-      email: '',
-      telephone: '',
-      password: '',
-      password_confirm: '',
-      user_type: 'eleve'
-    },
+    user: { first_name: '', last_name: '', email: '', telephone: '' },
     classe: null,
     statut: 'actif',
-    annee_scolaire: '',
-    etablissement: etablissementId
+    annee_scolaire: ''
   };
-  
-  let errors = {
-    user: {
-      first_name: '',
-      last_name: '',
-      email: '',
-      telephone: '',
-      password: '',
-      password_confirm: ''
-    },
-    classe: '',
-    annee_scolaire: '',
-    general: ''
-  };
-  
+
+  let errors = { user: {}, classe: '', annee_scolaire: '', general: '' };
   let selectedClassId = '';
   let isLoading = false;
   let isClosing = false;
+
+  // Pré-remplir le formulaire quand student change
+  $: if (student) {
+    formData.user.first_name = student.prenom || '';
+    formData.user.last_name = student.nom || '';
+    formData.user.email = student.email || '';
+    formData.user.telephone = student.telephone || '';
+    formData.classe = student.classeId || null;
+    selectedClassId = student.classeId || '';
+    formData.statut = student.statut || 'actif';
+    formData.annee_scolaire = student.annee_scolaire_id || '';
+  }
+
+  console.log('Editing student:', student);
 
   function validateField(field, value) {
     switch (field) {
@@ -75,19 +63,6 @@
         if (value && !/^(?:(?:\+|00)33|0)\s*[1-9](?:[\s.-]*\d{2}){4}$/.test(value.replace(/\s/g, ''))) {
           return 'Format de téléphone invalide (ex: 06 12 34 56 78)';
         }
-        return '';
-        
-      case 'password':
-        if (!value) return 'Le mot de passe est obligatoire';
-        if (value.length < 8) return 'Le mot de passe doit contenir au moins 8 caractères';
-        if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(value)) {
-          return 'Le mot de passe doit contenir au moins une majuscule, une minuscule et un chiffre';
-        }
-        return '';
-        
-      case 'password_confirm':
-        if (!value) return 'La confirmation du mot de passe est obligatoire';
-        if (value !== formData.user.password) return 'Les mots de passe ne correspondent pas';
         return '';
         
       case 'classe':
@@ -120,12 +95,6 @@
   function validateForm() {
     let isValid = true;
     
-    // Vérifier que l'ID établissement est disponible
-    if (!etablissementId && browser) {
-      errors.general = 'Impossible de déterminer l\'établissement. Veuillez rafraîchir la page.';
-      return false;
-    }
-    
     // Valider les champs user
     Object.keys(formData.user).forEach(field => {
       const error = validateField(field, formData.user[field]);
@@ -147,15 +116,6 @@
     
     errors.general = '';
 
-    // Vérifier l'établissement avant soumission
-    if (!etablissementId) {
-      errors.general = 'Établissement non trouvé. Veuillez vous reconnecter.';
-      return;
-    }
-
-    // Mettre à jour l'ID établissement dans formData
-    formData.etablissement = etablissementId;
-
     if (!validateForm()) {
       errors.general = 'Veuillez corriger les erreurs dans le formulaire';
       return;
@@ -172,18 +132,27 @@
       return;
     }
 
-    formData.classe = parseInt(selectedClassId);
-    const submitData = { ...formData, classe: parseInt(selectedClassId) };
-
+    isLoading = true;
     try {
-      isLoading = true;
-      await authApi.createEleve(submitData);
+      const submitData = {
+        id: student.id,
+        user: {
+          first_name: formData.user.first_name,
+          last_name: formData.user.last_name,
+          email: formData.user.email,
+          telephone: formData.user.telephone,
+          user_type: 'eleve'
+        },
+        classe: parseInt(selectedClassId),
+        statut: formData.statut,
+        annee_scolaire: formData.annee_scolaire
+      };
+      await authApi.updateEleve(submitData.id, submitData);
+      dispatch('success', { message: 'Étudiant mis à jour avec succès' });
       await closeModalWithAnimation();
-      dispatch('success', { message: 'Étudiant ajouté avec succès' });
-      
     } catch (err) {
-      errors.general = err.message || 'Une erreur est survenue lors de l\'ajout de l\'étudiant';
-      console.error('Submission error:', err);
+      errors.general = err.message || 'Erreur lors de la mise à jour';
+      console.error(err);
     } finally {
       isLoading = false;
     }
@@ -191,42 +160,9 @@
 
   async function closeModalWithAnimation() {
     isClosing = true;
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise(resolve => setTimeout(resolve, 200));
     dispatch('close');
-    resetForm();
     isClosing = false;
-  }
-
-  function resetForm() {
-    errors = {
-      user: {
-        first_name: '',
-        last_name: '',
-        email: '',
-        telephone: '',
-        password: '',
-        password_confirm: ''
-      },
-      classe: '',
-      annee_scolaire: '',
-      general: ''
-    };
-    selectedClassId = '';
-    formData = {
-      user: {
-        first_name: '',
-        last_name: '',
-        email: '',
-        telephone: '',
-        password: '',
-        password_confirm: '',
-        user_type: 'eleve'
-      },
-      classe: null,
-      statut: 'actif',
-      annee_scolaire: '',
-      etablissement: etablissementId
-    };
   }
 
   function closeModal() {
@@ -246,7 +182,7 @@
       out:fly="{{ y: -50, duration: 200, easing: quintOut }}"
     >
       <div class="flex justify-between items-center mb-4">
-        <h2 class="text-xl font-bold text-gray-900">Ajouter un étudiant</h2>
+        <h2 class="text-xl font-bold text-gray-900">Éditer un étudiant</h2>
         <button 
           on:click={closeModal} 
           class="text-gray-500 hover:text-gray-700 transition-colors duration-200"
@@ -403,7 +339,7 @@
               class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm transition-colors duration-200"
               class:border-red-500={errors.classe}
               class:border-gray-300={!errors.classe}
-              disabled={isLoading || classOptions.length === 0}
+              disabled={isLoading}
             >
               <option value="">Sélectionner une classe</option>
               {#each classOptions as option}
@@ -418,11 +354,6 @@
           </div>
           {#if errors.classe}
             <p class="mt-1 text-sm text-red-600">{errors.classe}</p>
-          {/if}
-          {#if classOptions.length === 0 && !isLoading}
-            <p class="mt-1 text-sm text-amber-600">
-              ⚠️ Aucune classe disponible. Veuillez d'abord créer des classes.
-            </p>
           {/if}
         </div>
 
@@ -476,70 +407,6 @@
           {/if}
         </div>
 
-        <!-- Mot de passe -->
-        <div class="mb-4">
-          <label for="password" class="block text-sm font-medium text-gray-700">
-            Mot de passe
-            {#if errors.user.password}
-              <span class="text-red-500 ml-1">*</span>
-            {/if}
-          </label>
-          <div class="relative">
-            <input
-              type="password"
-              id="password"
-              bind:value={formData.user.password}
-              on:input={() => handleFieldInput('password', formData.user.password)}
-              on:blur={() => handleFieldBlur('password', formData.user.password)}
-              class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm transition-colors duration-200"
-              class:border-red-500={errors.user.password}
-              class:border-gray-300={!errors.user.password}
-              placeholder="Mot de passe"
-              disabled={isLoading}
-            />
-            {#if errors.user.password}
-              <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <Icon icon="heroicons:exclamation-circle" class="h-5 w-5 text-red-500" />
-              </div>
-            {/if}
-          </div>
-          {#if errors.user.password}
-            <p class="mt-1 text-sm text-red-600">{errors.user.password}</p>
-          {/if}
-        </div>
-
-        <!-- Confirmation mot de passe -->
-        <div class="mb-4">
-          <label for="password_confirm" class="block text-sm font-medium text-gray-700">
-            Confirmer le mot de passe
-            {#if errors.user.password_confirm}
-              <span class="text-red-500 ml-1">*</span>
-            {/if}
-          </label>
-          <div class="relative">
-            <input
-              type="password"
-              id="password_confirm"
-              bind:value={formData.user.password_confirm}
-              on:input={() => handleFieldInput('password_confirm', formData.user.password_confirm)}
-              on:blur={() => handleFieldBlur('password_confirm', formData.user.password_confirm)}
-              class="mt-1 block w-full px-3 py-2 border rounded-lg focus:ring-green-500 focus:border-green-500 sm:text-sm transition-colors duration-200"
-              class:border-red-500={errors.user.password_confirm}
-              class:border-gray-300={!errors.user.password_confirm}
-              placeholder="Confirmer le mot de passe"
-              disabled={isLoading}
-            />
-            {#if errors.user.password_confirm}
-              <div class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                <Icon icon="heroicons:exclamation-circle" class="h-5 w-5 text-red-500" />
-              </div>
-            {/if}
-          </div>
-          {#if errors.user.password_confirm}
-            <p class="mt-1 text-sm text-red-600">{errors.user.password_confirm}</p>
-          {/if}
-        </div>
-
         {#if errors.general}
           <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg">
             <p class="text-red-600 text-sm flex items-center">
@@ -570,9 +437,9 @@
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Ajout...
+              Mise à jour...
             {:else}
-              Ajouter
+              Mettre à jour
             {/if}
           </button>
         </div>

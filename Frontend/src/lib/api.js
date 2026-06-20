@@ -61,6 +61,30 @@ async function refreshAuthToken(refreshToken) {
     return tokens;
 }
 
+async function registerPublic(endpoint, data) {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || errorData.message || "Erreur lors de l'inscription");
+    }
+
+    const result = await response.json();
+
+    if (result.tokens?.access && result.tokens?.refresh) {
+        authStore.setTokens({
+            access: result.tokens.access,
+            refresh: result.tokens.refresh,
+        });
+    }
+
+    return result;
+}
+
 export const authApi = {
     // Authentification
     login: (username, password) => fetchWithAuth('/token/', {
@@ -74,26 +98,11 @@ export const authApi = {
         return refreshAuthToken(refreshToken);
     },
 
-    // Inscriptions
-    registerEtablissement: (data) => fetchWithAuth('/register/etablissement/', {
-        method: 'POST',
-        body: JSON.stringify(data),
-    }).then(response => response.json()),
-
-    registerProfesseur: (data) => fetchWithAuth('/register/professeur/', {
-        method: 'POST',
-        body: JSON.stringify(data),
-    }).then(response => response.json()),
-
-    registerEleve: (data) => fetchWithAuth('/register/eleve/', {
-        method: 'POST',
-        body: JSON.stringify(data),
-    }).then(response => response.json()),
-
-    registerParent: (data) => fetchWithAuth('/register/parent/', {
-        method: 'POST',
-        body: JSON.stringify(data),
-    }).then(response => response.json()),
+    // Inscriptions (publiques)
+    registerEtablissement: (data) => registerPublic('/register/etablissement/', data),
+    registerProfesseur: (data) => registerPublic('/register/professeur/', data),
+    registerEleve: (data) => registerPublic('/register/eleve/', data),
+    registerParent: (data) => registerPublic('/register/parent/', data),
 
     getAnneesScolaires: () => fetchWithAuth('/api/annees-scolaires/').then(response => response.json()),
     
@@ -110,6 +119,10 @@ export const authApi = {
         method: 'POST',
         body: JSON.stringify(data),
     }).then(response => response.json()),
+
+    getMatieres: () => 
+        fetchWithAuth('/api/matieres/')
+        .then(response => response.json()),
 
     // Profil utilisateur
     getProfile: () => fetchWithAuth('/profile/').then(response => response.json()),
@@ -148,6 +161,21 @@ export const authApi = {
             body: JSON.stringify({ action, ids }),
         }).then(response => response.json());
     },
+
+    
+    getProfesseurFilterOptions: () => fetchWithAuth('/api/professeurs/filter_options/').then(response => response.json()),
+
+    getProfesseurs: (filters = {}) => {
+        const query = new URLSearchParams(filters).toString();
+
+        return fetchWithAuth(`/api/professeurs/?${query}`)
+            .then(response => response.json());
+    },
+
+    createProfesseur: (data) => fetchWithAuth('/api/professeurs/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }).then(response => response.json()),
 };
 
 export const authStore = {

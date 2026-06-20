@@ -102,7 +102,7 @@ DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
     #     'HOST': '/opt/lampp/var/mysql/mysql.sock',
-        'NAME': 'eboss',
+        'NAME': 'eboss_nez',
         'USER': 'root',
         'PASSWORD': 'root',
         'HOST': 'localhost',

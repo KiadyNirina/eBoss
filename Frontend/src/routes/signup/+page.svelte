@@ -81,16 +81,21 @@
 
   // Fonction pour ajouter une nouvelle classe
   function addClasse() {
-    etablissementData.classes.push({
-      nom: '',
-      niveau: '',
-      section: ''
-    });
+    etablissementData = {
+      ...etablissementData,
+      classes: [
+        ...(etablissementData.classes || []),
+        { nom: '', niveau: '', section: '' }
+      ]
+    };
   }
   
   // Fonction pour supprimer une classe
   function removeClasse(index) {
-    etablissementData.classes.splice(index, 1);
+    etablissementData = {
+      ...etablissementData,
+      classes: etablissementData.classes.filter((_, i) => i !== index)
+    };
   }
 
   function updateEnfants(input) {
@@ -139,7 +144,14 @@
     }
   }
 
-  $: if (activeTab === 'etablissement' && etablissementData.typeEtablissement) {
+  let lastTypeEtab = '';
+
+  $: if (
+    activeTab === 'etablissement' &&
+    etablissementData.typeEtablissement &&
+    etablissementData.typeEtablissement !== lastTypeEtab
+  ) {
+    lastTypeEtab = etablissementData.typeEtablissement;
     setDefaultClasses(etablissementData.typeEtablissement);
   }
   

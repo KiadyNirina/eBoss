@@ -3,41 +3,39 @@
   import TeacherTable from './TeacherTable.svelte';
   import TeacherFilters from './TeacherFilters.svelte';
   import BulkActions from './BulkActions.svelte';
+  import { authApi } from '$lib/api';
+  import { onMount } from 'svelte';
+  import AddTeacherModal from './AddTeacherModal.svelte';
   
-  // Données simulées
-  let teachers = [
-    {
-      id: 1,
-      nom: 'Martin',
-      prenom: 'Sophie',
-      matieres: ['Mathématiques', 'Physique'],
-      classes: ['4ème B', '3ème A'],
-      email: 'sophie.martin@ecole.fr',
-      telephone: '06 23 45 67 89',
-      statut: 'actif',
-      embauche: '15/08/2018'
-    },
-    {
-      id: 2,
-      nom: 'Bernard',
-      prenom: 'Pierre',
-      matieres: ['Histoire-Géographie'],
-      classes: ['5ème C', '4ème A'],
-      email: 'pierre.bernard@ecole.fr',
-      telephone: '06 34 56 78 90',
-      statut: 'actif',
-      embauche: '01/09/2020'
-    },
-  ];
+  let teachers = [];
+  let loading = false;
   
   let selectedTeachers = [];
   let searchTerm = '';
   let filters = {
+    search: '',
     matiere: '',
-    statut: '',
+    // statut: '',
     annee: ''
   };
-  
+  let matiereOptions = [];
+  let classOptions = [];
+  let yearOptions = [];
+  let showAddTeacherModal = false;
+
+  function openAddTeacherModal() {
+    showAddTeacherModal = true;
+  }
+
+  function closeAddTeacherModal() {
+    showAddTeacherModal = false;
+  }
+
+  function handleTeacherSuccess(event) {
+    console.log(event.detail.message);
+    loadProfesseurs();
+  }
+    
   // Fonctions de gestion
   function toggleSelectAll(event) {
     if (event.target.checked) {
@@ -55,9 +53,47 @@
     }
   }
   
-  function applyFilters(newFilters) {
-    filters = newFilters;
+  async function applyFilters(event) {
+    filters = event.detail;
+
+    await loadProfesseurs();
   }
+
+  async function loadProfesseurs() {
+    loading = true;
+
+    try {
+      const data = await authApi.getProfesseurs(filters);
+
+      teachers = data.results || data;
+    } catch (error) {
+      console.error(
+        'Erreur lors du chargement des professeurs',
+        error
+      );
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function loadFilterOptions() {
+    try {
+      const data = await authApi.getProfesseurFilterOptions();
+      matiereOptions = data.matieres || [];
+      classOptions = data.classes || [];
+      yearOptions = data.annees || [];
+    } catch(error) {
+      console.error(
+        "Erreur chargement options professeur",
+        error
+      );
+    }
+  }
+
+  onMount(async () => {
+    await loadProfesseurs();
+    await loadFilterOptions();
+  });
 </script>
 
 <div class="">
@@ -70,7 +106,10 @@
       </p>
     </div>
     <div class="flex space-x-3">
-      <button class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+      <button
+        on:click={openAddTeacherModal}
+        class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+      >
         <Icon icon="heroicons:plus-sm" class="-ml-1 mr-2 h-5 w-5" />
         Ajouter un professeur
       </button>
@@ -145,3 +184,14 @@
     </div>
   </div>
 </div>
+
+{#if showAddTeacherModal}
+<AddTeacherModal
+  isOpen={showAddTeacherModal}
+  subjectOptions={matiereOptions}
+  classOptions={classOptions}
+  yearOptions={yearOptions}
+  on:close={closeAddTeacherModal}
+  on:success={handleTeacherSuccess}
+/>
+{/if}
