@@ -7,6 +7,7 @@
   
   export let toggleSelectAll;
   export let toggleTeacher;
+  let deletingIds = [];
 
   const dispatch = createEventDispatcher();
 
@@ -54,9 +55,13 @@
     dispatch('edit', teacherId);
   }
 
-  function handleDelete(teacherId) {
-    dispatch('delete', teacherId);
-  }
+  async function handleDelete(teacher) {
+    deletingIds = [...deletingIds, teacher.id];
+    dispatch('delete', teacher.id);
+    setTimeout(() => {
+        deletingIds = deletingIds.filter(id => id !== teacher.id);
+    }, 300);
+ }
 </script>
 
 <div class="overflow-x-auto">
@@ -176,7 +181,7 @@
                         <Icon icon="heroicons:pencil-square" class="h-5 w-5" />
                     </button>
                     <button 
-                        on:click={() => handleDelete(teacher.id)}
+                        on:click={() => handleDelete(teacher)}
                         class="text-red-600 hover:text-red-900 transition-colors"
                         title="Supprimer"
                     >

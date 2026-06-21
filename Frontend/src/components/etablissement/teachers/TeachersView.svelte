@@ -7,7 +7,11 @@
   import { onMount } from 'svelte';
   import AddTeacherModal from './AddTeacherModal.svelte';
   import EditTeacherModal from './EditTeacherModal.svelte';
+  import { fade, scale } from 'svelte/transition';
+  import { tick } from 'svelte';
   
+  let pageTop;
+
   let teachers = [];
   let loading = false;
   
@@ -25,6 +29,13 @@
   let showAddTeacherModal = false;
   let showEditTeacherModal = false;
   let teacherToEdit = null;
+  let successMessage = '';
+  let errorMessage = '';
+
+  // Variables pour le modal de suppression
+  let deleteModalOpen = false;
+  let teacherToDelete = null;
+  let deleting = false;
 
   function openAddTeacherModal() {
     showAddTeacherModal = true;
@@ -73,22 +84,16 @@
   
   async function applyFilters(event) {
     filters = event.detail;
-
     await loadProfesseurs();
   }
 
   async function loadProfesseurs() {
     loading = true;
-
     try {
       const data = await authApi.getProfesseurs(filters);
-
       teachers = data.results || data;
     } catch (error) {
-      console.error(
-        'Erreur lors du chargement des professeurs',
-        error
-      );
+      console.error('Erreur lors du chargement des professeurs', error);
     } finally {
       loading = false;
     }
@@ -101,10 +106,7 @@
       classOptions = data.classes || [];
       yearOptions = data.annees || [];
     } catch(error) {
-      console.error(
-        "Erreur chargement options professeur",
-        error
-      );
+      console.error("Erreur chargement options professeur", error);
     }
   }
 
@@ -117,17 +119,58 @@
     }
   }
 
-  // Gestionnaire pour la suppression
-  async function handleDeleteTeacher(event) {
+  // Ouvre le modal de suppression
+  function openDeleteModal(event) {
     const teacherId = event.detail;
-    if (confirm('Êtes-vous sûr de vouloir supprimer ce professeur ?')) {
-      try {
-        await authApi.deleteProfesseur(teacherId);
-        await loadProfesseurs();
-        selectedTeachers = selectedTeachers.filter(id => id !== teacherId);
-      } catch (error) {
-        console.error('Erreur lors de la suppression', error);
-      }
+
+    const teacher = teachers.find(t => t.id === teacherId);
+
+    if (teacher) {
+      teacherToDelete = teacher;
+      deleteModalOpen = true;
+    }
+  }
+
+  // Confirme la suppression
+  async function confirmDelete() {
+    deleting = true;
+
+    try {
+      await authApi.deleteProfesseur(teacherToDelete.id);
+
+      teachers = teachers.filter(
+        t => t.id !== teacherToDelete.id
+      );
+
+      deleteModalOpen = false;
+
+      successMessage = '✅ Professeur supprimé avec succès';
+
+      await tick();
+
+      pageTop?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+
+      setTimeout(() => {
+        successMessage = '';
+      }, 4000);
+
+    } catch (error) {
+      errorMessage = '❌ Erreur lors de la suppression';
+
+      await tick();
+
+      pageTop?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'start'
+      });
+
+      console.error('Erreur lors de la suppression', error);
+
+    } finally {
+      deleting = false;
     }
   }
 
@@ -137,7 +180,24 @@
   });
 </script>
 
-<div class="">
+<div bind:this={pageTop}>
+  <!-- Message de succès -->
+  {#if successMessage}
+    <div
+      in:scale={{ duration: 250 }}
+      out:fade
+      class="bg-green-100 border-l-4 border-green-500 p-4 mb-4 shadow-md rounded-r-lg"
+    >
+      <p class="text-green-700">{successMessage}</p>
+    </div>
+  {/if}
+
+  {#if errorMessage}
+    <div in:fade out:fade class="bg-red-100 border-l-4 border-red-400 p-4 mb-4">
+      <p class="text-red-700">{errorMessage}</p>
+    </div>
+  {/if}
+
   <!-- En-tête -->
   <div class="sm:flex sm:items-center justify-between">
     <div class="mb-4 sm:mb-0">
@@ -182,7 +242,7 @@
       on:toggleSelectAll={toggleSelectAll}
       on:toggleTeacher={toggleTeacherSelection}
       on:edit={handleEditTeacher}
-      on:delete={handleDeleteTeacher}
+      on:delete={openDeleteModal}
     />
   </div>
   
@@ -251,4 +311,63 @@
   on:close={closeEditTeacherModal}
   on:success={handleTeacherUpdate}
 />
+{/if}
+
+<!-- Modal de suppression -->
+{#if deleteModalOpen}
+<div
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+  transition:fade
+>
+  <div
+    class="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md"
+    transition:scale={{ duration: 200 }}
+  >
+    <div class="flex justify-center mb-4">
+      <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
+        <Icon
+          icon="heroicons:trash"
+          class="h-8 w-8 text-red-600"
+        />
+      </div>
+    </div>
+
+    <h3 class="text-xl font-bold text-center text-gray-900">
+      Supprimer le professeur ?
+    </h3>
+
+    <p class="mt-3 text-center text-gray-600">
+      Cette action est irréversible.
+      <br>
+      <span class="font-semibold">
+        {teacherToDelete?.user?.first_name} {teacherToDelete?.user?.last_name}
+      </span>
+    </p>
+
+    <div class="mt-6 flex justify-end gap-3">
+      <button
+        disabled={deleting}
+        on:click={() => deleteModalOpen = false}
+        class="px-4 py-2 border rounded-lg hover:bg-gray-50 disabled:opacity-50"
+      >
+        Annuler
+      </button>
+
+      <button
+        disabled={deleting}
+        on:click={confirmDelete}
+        class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 flex items-center gap-2 disabled:opacity-50"
+      >
+        {#if deleting}
+          <span
+            class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+          ></span>
+          Suppression...
+        {:else}
+          Supprimer
+        {/if}
+      </button>
+    </div>
+  </div>
+</div>
 {/if}
