@@ -55,14 +55,17 @@
     teacherToEdit = null;
   }
 
-  function handleTeacherSuccess(event) {
-    console.log(event.detail.message);
+  function handleTeacherSuccess() {
     loadProfesseurs();
+    successMessage = 'Professeur ajouté avec succès';
+    setTimeout(() => (successMessage = ''), 3000);
   }
 
   function handleTeacherUpdate(event) {
     console.log(event.detail.message);
     loadProfesseurs();
+    successMessage = 'Professeur modifié avec succès';
+    setTimeout(() => (successMessage = ''), 3000);
   }
     
   // Fonctions de gestion
