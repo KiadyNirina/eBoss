@@ -1,6 +1,7 @@
 <script>
   import Icon from '@iconify/svelte';
   import { createEventDispatcher } from 'svelte';
+  import { fly } from 'svelte/transition';
   
   export let teachers;
   export let selectedTeachers;
@@ -72,7 +73,7 @@
                 <input
                 type="checkbox"
                 class="focus:ring-green-500 h-4 w-4 text-green-600 border-gray-300 rounded"
-                checked={selectedTeachers.length === teachers.length}
+                checked={teachers.length > 0 && selectedTeachers.length === teachers.length}
                 on:change={toggleSelectAll}
                 />
             </th>
@@ -107,8 +108,17 @@
                 </td>
                 </tr>
             {/if}
-            {#each teachers as teacher}
-            <tr class={selectedTeachers.includes(teacher.id) ? 'bg-green-50' : 'hover:bg-gray-50'}>
+            {#each teachers as teacher (teacher.id)}
+            {#if !deletingIds.includes(teacher.id)}
+            <tr
+                out:fly={{
+                x: 200,
+                duration: 300
+                }}
+                class={selectedTeachers.includes(teacher.id)
+                ? 'bg-green-50'
+                : 'hover:bg-gray-50'}
+            >
                 <td class="px-6 py-4 whitespace-nowrap">
                 <input
                     type="checkbox"
@@ -189,7 +199,8 @@
                     </button>
                 </div>
                 </td>
-            </tr>
+              </tr>
+            {/if}
             {/each}
         </tbody>
     </table>

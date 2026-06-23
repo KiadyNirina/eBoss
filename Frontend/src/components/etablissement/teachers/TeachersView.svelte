@@ -69,17 +69,17 @@
   }
     
   // Fonctions de gestion
-  function toggleSelectAll(event) {
-    if (event.target.checked) {
-      selectedTeachers = teachers.map(teacher => teacher.id);
-    } else {
+  function toggleSelectAll() {
+    if (selectedTeachers.length === teachers.length) {
       selectedTeachers = [];
+    } else {
+      selectedTeachers = teachers.map(teacher => teacher.id);
     }
   }
-  
+
   function toggleTeacherSelection(id) {
     if (selectedTeachers.includes(id)) {
-      selectedTeachers = selectedTeachers.filter(teacherId => teacherId !== id);
+      selectedTeachers = selectedTeachers.filter(t => t !== id);
     } else {
       selectedTeachers = [...selectedTeachers, id];
     }
@@ -242,8 +242,8 @@
     <TeacherTable 
       {teachers} 
       {selectedTeachers}
-      on:toggleSelectAll={toggleSelectAll}
-      on:toggleTeacher={toggleTeacherSelection}
+      toggleSelectAll={toggleSelectAll}
+      toggleTeacher={toggleTeacherSelection}
       on:edit={handleEditTeacher}
       on:delete={openDeleteModal}
     />
