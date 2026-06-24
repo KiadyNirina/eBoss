@@ -101,6 +101,85 @@ class Professeur(models.Model):
     def __str__(self):
         return self.user.get_full_name()
 
+class Salle(models.Model):
+    etablissement = models.ForeignKey(
+        Etablissement,
+        on_delete=models.CASCADE,
+        related_name='salles'
+    )
+    nom = models.CharField(max_length=50)  # Salle 1, Laboratoire, etc.
+    capacite = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return self.nom
+    
+class Cours(models.Model):
+    JOURS_CHOICES = (
+        ('lundi', 'Lundi'),
+        ('mardi', 'Mardi'),
+        ('mercredi', 'Mercredi'),
+        ('jeudi', 'Jeudi'),
+        ('vendredi', 'Vendredi'),
+        ('samedi', 'Samedi'),
+    )
+
+    etablissement = models.ForeignKey(
+        Etablissement,
+        on_delete=models.CASCADE,
+        related_name='cours'
+    )
+
+    classe = models.ForeignKey(
+        Classe,
+        on_delete=models.CASCADE,
+        related_name='cours'
+    )
+
+    professeur = models.ForeignKey(
+        Professeur,
+        on_delete=models.CASCADE,
+        related_name='cours'
+    )
+
+    matiere = models.ForeignKey(
+        Matiere,
+        on_delete=models.CASCADE,
+        related_name='cours'
+    )
+
+    salle = models.ForeignKey(
+        Salle,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='cours'
+    )
+
+    jour = models.CharField(
+        max_length=10,
+        choices=JOURS_CHOICES
+    )
+
+    heure_debut = models.TimeField()
+    heure_fin = models.TimeField()
+
+    annee_scolaire = models.ForeignKey(
+        AnneeScolaire,
+        on_delete=models.CASCADE,
+        related_name='cours'
+    )
+
+    def __str__(self):
+        return (
+            f"{self.matiere.nom} - "
+            f"{self.classe.nom} - "
+            f"{self.jour}"
+        )
+
+    class Meta:
+        verbose_name = "Cours"
+        verbose_name_plural = "Cours"
+
 class Eleve(models.Model):
     STATUS_CHOICES = (
         ('actif', 'Actif'),

@@ -19,7 +19,9 @@ from .serializers import (
     UserProfileSerializer,
     AnneeScolaireSerializer,
     ClasseSerializer,
-    MatiereSerializer
+    MatiereSerializer,
+    SalleSerializer,
+    CoursSerializer
 )
 from .models import *
 
@@ -137,6 +139,68 @@ class MatiereViewSet(viewsets.ModelViewSet):
             )
 
         return queryset.order_by('nom')
+    
+class SalleViewSet(viewsets.ModelViewSet):
+    serializer_class = SalleSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        if hasattr(self.request.user, 'etablissement'):
+            return Salle.objects.filter(
+                etablissement=self.request.user.etablissement
+            )
+
+        return Salle.objects.none()
+    
+class CoursViewSet(viewsets.ModelViewSet):
+    serializer_class = CoursSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Cours.objects.select_related(
+            'classe',
+            'professeur__user',
+            'matiere',
+            'salle',
+            'annee_scolaire'
+        )
+
+        if hasattr(self.request.user, 'etablissement'):
+            queryset = queryset.filter(
+                etablissement=self.request.user.etablissement
+            )
+        else:
+            return queryset.none()
+
+        classe = self.request.query_params.get('classe')
+        professeur = self.request.query_params.get('professeur')
+        matiere = self.request.query_params.get('matiere')
+        annee = self.request.query_params.get('annee')
+        jour = self.request.query_params.get('jour')
+
+        if classe:
+            queryset = queryset.filter(classe_id=classe)
+
+        if professeur:
+            queryset = queryset.filter(professeur_id=professeur)
+
+        if matiere:
+            queryset = queryset.filter(matiere_id=matiere)
+
+        if annee:
+            queryset = queryset.filter(
+                annee_scolaire_id=annee
+            )
+
+        if jour:
+            queryset = queryset.filter(
+                jour=jour
+            )
+
+        return queryset.order_by(
+            'jour',
+            'heure_debut'
+        )
 
 class ProfesseurRegistrationView(generics.CreateAPIView):
     serializer_class = ProfesseurSerializer

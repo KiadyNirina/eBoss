@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import User, Etablissement, Professeur, Eleve, Parent, AnneeScolaire, Classe, Matiere
+from .models import User, Etablissement, Professeur, Eleve, Parent, AnneeScolaire, Classe, Matiere, Salle, Cours
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
@@ -93,6 +93,42 @@ class MatiereSerializer(serializers.ModelSerializer):
             )
 
         return data
+    
+class SalleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Salle
+        fields = '__all__'
+
+class CoursSerializer(serializers.ModelSerializer):
+
+    classe_nom = serializers.CharField(
+        source='classe.nom',
+        read_only=True
+    )
+
+    professeur_nom = serializers.CharField(
+        source='professeur.user.get_full_name',
+        read_only=True
+    )
+
+    matiere_nom = serializers.CharField(
+        source='matiere.nom',
+        read_only=True
+    )
+
+    salle_nom = serializers.CharField(
+        source='salle.nom',
+        read_only=True
+    )
+
+    annee_nom = serializers.CharField(
+        source='annee_scolaire.nom',
+        read_only=True
+    )
+
+    class Meta:
+        model = Cours
+        fields = '__all__'
 
 class UserProfileSerializer(serializers.ModelSerializer):
     profile = serializers.SerializerMethodField()
