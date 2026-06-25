@@ -9,6 +9,7 @@
   const dispatch = createEventDispatcher();
 
   let subjectOptions = [];
+  let classOptions = [];
   let yearOptions = [];
 
   onMount(async () => {
@@ -16,6 +17,7 @@
       const data = await authApi.getProfesseurFilterOptions();
 
       subjectOptions = data.matieres || [];
+      classOptions = data.classes || [];
       yearOptions = data.annees || [];
     } catch (error) {
       console.error(
@@ -26,10 +28,17 @@
   });
 
   function resetFilters() {
-    filters.search = '';
-    filters.matiere = '';
-    filters.annee = '';
+    filters = {
+      search: '',
+      matiere: '',
+      classe: '',
+      annee: ''
+    };
 
+    dispatch('apply', filters);
+  }
+
+  function applyFilters() {
     dispatch('apply', filters);
   }
 </script>
@@ -51,6 +60,7 @@
           class="block w-full pl-10 pr-3 py-2 sm:text-sm border border-gray-300 rounded-lg focus:ring-green-500 focus:border-green-500 placeholder-gray-400"
           placeholder="Nom, email..."
           aria-label="Rechercher par nom ou email"
+          on:keyup={(e) => e.key === 'Enter' && applyFilters()}
         />
       </div>
     </div>
@@ -73,21 +83,22 @@
       </select>
     </div>
     
-    <!-- Filtre Statut -->
-    <!-- <div>
-      <label for="status" class="block text-sm font-medium text-gray-700">Statut</label>
+    <!-- Filtre Classe -->
+    <div>
+      <label for="class" class="block text-sm font-medium text-gray-700">Classe</label>
       <select
-        id="status"
-        name="status"
-        bind:value={filters.statut}
+        id="class"
+        bind:value={filters.classe}
         class="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 rounded-lg bg-gray-50 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-        aria-label="Filtrer par statut"
       >
-        {#each statusOptions as option}
-          <option value={option.value}>{option.label}</option>
+        <option value="">Toutes</option>
+        {#each classOptions as option}
+          <option value={option.value}>
+            {option.label}
+          </option>
         {/each}
       </select>
-    </div> -->
+    </div>
     
     <!-- Filtre Année -->
     <div>
@@ -121,7 +132,7 @@
     <!-- Bouton Appliquer -->
     <button
       type="button"
-      on:click={() => dispatch('apply', filters)}
+      on:click={applyFilters}
       class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
     >
       <Icon icon="heroicons:check" class="h-5 w-5 mr-2" />

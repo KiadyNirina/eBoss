@@ -124,6 +124,25 @@ export const authApi = {
         fetchWithAuth('/api/matieres/')
         .then(response => response.json()),
 
+    getSalles: (filters = {}) => {
+        const query = new URLSearchParams(filters).toString();
+        return fetchWithAuth(`/api/salles/?${query}`).then(response => response.json());
+    },
+
+    createSalle: (data) => fetchWithAuth('/api/salles/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }).then(response => response.json()),
+
+    updateSalle: (id, data) => fetchWithAuth(`/api/salles/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    }).then(response => response.json()),
+
+    deleteSalle: (id) => fetchWithAuth(`/api/salles/${id}/`, {
+        method: 'DELETE',
+    }).then(() => ({ message: 'Salle supprimée' })),
+
     // Profil utilisateur
     getProfile: () => fetchWithAuth('/profile/').then(response => response.json()),
 
@@ -176,6 +195,15 @@ export const authApi = {
         method: 'POST',
         body: JSON.stringify(data),
     }).then(response => response.json()),
+
+    updateProfesseur: (id, data) => fetchWithAuth(`/api/professeurs/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    }).then(response => response.json()),
+
+    deleteProfesseur: (id) => fetchWithAuth(`/api/professeurs/${id}/`, {
+        method: 'DELETE',
+    }).then(() => ({ message: 'Professeur supprimé' })),
 };
 
 export const authStore = {

@@ -9,6 +9,8 @@ router.register(r'classes', ClasseViewSet, basename='classe')
 router.register(r'eleves', EleveViewSet, basename='eleve')
 router.register(r'professeurs', ProfesseurViewSet, basename='professeur')
 router.register(r'matieres', MatiereViewSet, basename='matiere')
+router.register(r'salles', SalleViewSet, basename='salle')
+router.register(r'cours', CoursViewSet, basename='cours')
 
 urlpatterns = [
     path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
