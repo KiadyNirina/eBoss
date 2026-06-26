@@ -454,7 +454,7 @@
                           {course.professeur_nom}
                         </div>
                         <div class="text-xs text-gray-500 truncate">
-                          {getCourseDuration(course)}
+                          {course.classe_nom} • {getCourseDuration(course)}
                           {#if course.salle_nom}
                             • {course.salle_nom}
                           {/if}
@@ -479,6 +479,7 @@
                       <div 
                         class={`absolute left-1 right-1 rounded-md p-1.5 border-2 shadow-sm transition-all ${getColorForCourse(course, index).bg} ${getColorForCourse(course, index).border} ${getColorForCourse(course, index).hover}`}
                         style="top: {getCoursePosition(course)}px; height: {getCourseHeight(course)}px; min-height: 30px;"
+                        title="{course.matiere_nom} - {course.classe_nom} - {course.professeur_nom} - {getCourseDuration(course)}"
                       >
                         <div class="flex flex-col h-full">
                           <div class={`text-xs font-bold truncate ${getColorForCourse(course, index).text}`}>
@@ -488,7 +489,7 @@
                             {course.professeur_nom}
                           </div>
                           <div class="text-xs text-gray-500 truncate">
-                            {getCourseDuration(course)}
+                            {course.classe_nom} • {getCourseDuration(course)}
                             {#if course.salle_nom}
                               • {course.salle_nom}
                             {/if}
@@ -536,6 +537,7 @@
               <div class={`${getColorForCourse(course, index).bg} ${getColorForCourse(course, index).text} border rounded text-xs p-1 truncate`}>
                 <span class="font-medium">{course.matiere_nom}</span>
                 <span class="text-gray-500 ml-1">{course.heure_debut}</span>
+                <span class="text-gray-400 ml-1 text-[10px]">{course.classe_nom}</span>
               </div>
             {/each}
             {#if day.courses.length > 3}
@@ -567,8 +569,10 @@
           {/if}
         </div>
         
-        <div class="text-xs text-gray-500">
-          <span class="font-medium">{courses.length}</span> cours au total
+        <div class="flex items-center gap-3 text-xs text-gray-500">
+          <span><span class="font-medium">{courses.length}</span> cours</span>
+          <span>•</span>
+          <span><span class="font-medium">{new Set(courses.map(c => c.classe_nom)).size}</span> classes</span>
         </div>
       </div>
     </div>
