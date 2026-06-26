@@ -160,38 +160,6 @@
       <div class="bg-white shadow-sm rounded-lg border border-gray-200 p-4">
         <div class="flex justify-between items-center mb-4">
           <h2 class="text-lg font-medium text-gray-900">Emploi du temps</h2>
-          <div class="flex space-x-2">
-            <button
-              on:click={() => view = 'day'}
-              class={`px-3 py-1 text-sm font-medium rounded-md ${
-                view === 'day' 
-                  ? 'bg-green-100 text-green-700' 
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              Jour
-            </button>
-            <button
-              on:click={() => view = 'week'}
-              class={`px-3 py-1 text-sm font-medium rounded-md ${
-                view === 'week' 
-                  ? 'bg-green-100 text-green-700' 
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              Semaine
-            </button>
-            <button
-              on:click={() => view = 'month'}
-              class={`px-3 py-1 text-sm font-medium rounded-md ${
-                view === 'month' 
-                  ? 'bg-green-100 text-green-700' 
-                  : 'text-gray-700 hover:bg-gray-100'
-              }`}
-            >
-              Mois
-            </button>
-          </div>
         </div>
         
         {#if loading.courses}
