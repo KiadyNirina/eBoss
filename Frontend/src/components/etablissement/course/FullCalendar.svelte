@@ -22,10 +22,17 @@
   
   const JOURS_ABBR = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
   
-  // Générer les heures de 8h à 18h
-  for (let i = 8; i <= 18; i++) {
-    hours.push(`${i.toString().padStart(2, '0')}:00`);
+  // Générer les heures de 7h à 19h avec intervalles de 30min
+  function generateHours() {
+    const h = [];
+    for (let i = 7; i <= 19; i++) {
+      h.push(`${i.toString().padStart(2, '0')}:00`);
+      if (i < 19) h.push(`${i.toString().padStart(2, '0')}:30`);
+    }
+    return h;
   }
+  
+  hours = generateHours();
   
   onMount(() => {
     generateCalendar();
@@ -41,46 +48,43 @@
     }
   }
   
-  function generateDayView() {
-    const date = new Date(selectedDate);
-    const dayOfWeek = date.getDay(); // 0 = dimanche, 1 = lundi, ...
+  function getWeekStart(date) {
+    const dayOfWeek = date.getDay();
     const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
     const monday = new Date(date);
     monday.setDate(date.getDate() - mondayOffset);
+    monday.setHours(0, 0, 0, 0);
+    return monday;
+  }
+  
+  function generateDayView() {
+    const date = new Date(selectedDate);
+    date.setHours(0, 0, 0, 0);
     
-    weekDays = [];
-    for (let i = 0; i < 7; i++) {
-      const day = new Date(monday);
-      day.setDate(monday.getDate() + i);
-      weekDays.push(day);
-    }
+    const dayCourses = getCoursesForDate(date);
+    const dateStr = formatDate(date);
     
+    // Créer une structure pour chaque heure avec les cours
     calendarDays = [];
-    const dayCourses = getCoursesForDate(selectedDate);
-    const dateStr = formatDate(selectedDate);
-    
-    // Créer une structure pour chaque heure
-    hours.forEach(hour => {
+    hours.forEach((hour, index) => {
       const hourCourses = dayCourses.filter(c => {
-        const courseHour = parseInt(c.heure_debut.split(':')[0]);
-        return courseHour === parseInt(hour.split(':')[0]);
+        const courseStart = c.heure_debut;
+        const courseEnd = c.heure_fin;
+        return hour >= courseStart && hour < courseEnd;
       });
       
       calendarDays.push({
-        date: selectedDate,
+        date: date,
         dateStr: dateStr,
         hour: hour,
+        hourIndex: index,
         courses: hourCourses
       });
     });
   }
   
   function generateWeekView() {
-    const date = new Date(selectedDate);
-    const dayOfWeek = date.getDay();
-    const mondayOffset = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-    const monday = new Date(date);
-    monday.setDate(date.getDate() - mondayOffset);
+    const monday = getWeekStart(selectedDate);
     
     weekDays = [];
     for (let i = 0; i < 7; i++) {
@@ -90,22 +94,23 @@
     }
     
     calendarDays = [];
-    weekDays.forEach((day, index) => {
+    weekDays.forEach((day, dayIndex) => {
       const dayCourses = getCoursesForDate(day);
       const dateStr = formatDate(day);
       
-      // Créer une structure pour chaque heure
-      hours.forEach(hour => {
+      hours.forEach((hour, hourIndex) => {
         const hourCourses = dayCourses.filter(c => {
-          const courseHour = parseInt(c.heure_debut.split(':')[0]);
-          return courseHour === parseInt(hour.split(':')[0]);
+          const courseStart = c.heure_debut;
+          const courseEnd = c.heure_fin;
+          return hour >= courseStart && hour < courseEnd;
         });
         
         calendarDays.push({
           date: day,
           dateStr: dateStr,
           hour: hour,
-          dayIndex: index,
+          hourIndex: hourIndex,
+          dayIndex: dayIndex,
           courses: hourCourses
         });
       });
@@ -118,10 +123,9 @@
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
-    const startDayOfWeek = firstDay.getDay(); // 0 = dimanche
+    const startDayOfWeek = firstDay.getDay();
     
     const days = [];
-    // Ajuster pour commencer par lundi
     const startOffset = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1;
     
     // Jours du mois précédent
@@ -166,16 +170,11 @@
       const jourIndex = JOURS.findIndex(j => j.value === c.jour);
       if (jourIndex === -1) return false;
       
-      // Calculer la date du cours dans la semaine
-      const courseDate = new Date(date);
-      const currentDayOfWeek = date.getDay(); // 0 = dimanche
-      const mondayOffset = currentDayOfWeek === 0 ? 6 : currentDayOfWeek - 1;
-      const monday = new Date(date);
-      monday.setDate(date.getDate() - mondayOffset);
-      const courseDateObj = new Date(monday);
-      courseDateObj.setDate(monday.getDate() + jourIndex);
+      const monday = getWeekStart(date);
+      const courseDate = new Date(monday);
+      courseDate.setDate(monday.getDate() + jourIndex);
       
-      return isSameDay(courseDateObj, date);
+      return isSameDay(courseDate, date);
     });
   }
   
@@ -216,16 +215,42 @@
   
   function getColorForCourse(course, index) {
     const colors = [
-      'bg-blue-100 text-blue-800 border-blue-200',
-      'bg-green-100 text-green-800 border-green-200',
-      'bg-purple-100 text-purple-800 border-purple-200',
-      'bg-yellow-100 text-yellow-800 border-yellow-200',
-      'bg-pink-100 text-pink-800 border-pink-200',
-      'bg-indigo-100 text-indigo-800 border-indigo-200',
-      'bg-red-100 text-red-800 border-red-200',
-      'bg-teal-100 text-teal-800 border-teal-200'
+      { bg: 'bg-blue-100', border: 'border-blue-300', text: 'text-blue-800', hover: 'hover:bg-blue-200' },
+      { bg: 'bg-green-100', border: 'border-green-300', text: 'text-green-800', hover: 'hover:bg-green-200' },
+      { bg: 'bg-purple-100', border: 'border-purple-300', text: 'text-purple-800', hover: 'hover:bg-purple-200' },
+      { bg: 'bg-yellow-100', border: 'border-yellow-300', text: 'text-yellow-800', hover: 'hover:bg-yellow-200' },
+      { bg: 'bg-pink-100', border: 'border-pink-300', text: 'text-pink-800', hover: 'hover:bg-pink-200' },
+      { bg: 'bg-indigo-100', border: 'border-indigo-300', text: 'text-indigo-800', hover: 'hover:bg-indigo-200' },
+      { bg: 'bg-red-100', border: 'border-red-300', text: 'text-red-800', hover: 'hover:bg-red-200' },
+      { bg: 'bg-teal-100', border: 'border-teal-300', text: 'text-teal-800', hover: 'hover:bg-teal-200' }
     ];
     return colors[index % colors.length];
+  }
+  
+  function getCourseDuration(course) {
+    const start = course.heure_debut;
+    const end = course.heure_fin;
+    return `${start} - ${end}`;
+  }
+  
+  function getCourseDurationInMinutes(course) {
+    const [startHour, startMin] = course.heure_debut.split(':').map(Number);
+    const [endHour, endMin] = course.heure_fin.split(':').map(Number);
+    return (endHour * 60 + endMin) - (startHour * 60 + startMin);
+  }
+  
+  function getCourseHeight(course) {
+    const minutes = getCourseDurationInMinutes(course);
+    // 1 minute = 1.2px (60 minutes = 72px)
+    return Math.max(minutes * 1.2, 30);
+  }
+  
+  function getCoursePosition(course) {
+    const [hour, min] = course.heure_debut.split(':').map(Number);
+    const totalMinutes = hour * 60 + min;
+    const startMinutes = 7 * 60; // 7h
+    const offsetMinutes = totalMinutes - startMinutes;
+    return offsetMinutes * 1.2; // 1 minute = 1.2px
   }
   
   function navigateDays(direction) {
@@ -261,21 +286,32 @@
     return `${start.getDate()} ${start.toLocaleString('fr-FR', { month: 'short' })} - ${end.getDate()} ${end.toLocaleString('fr-FR', { month: 'short', year: 'numeric' })}`;
   }
   
-  function getCourseDuration(course) {
-    const start = course.heure_debut;
-    const end = course.heure_fin;
-    return `${start} - ${end}`;
+  function isCurrentHour(hour) {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMin = now.getMinutes();
+    const [h, m] = hour.split(':').map(Number);
+    return h === currentHour && Math.abs(currentMin - m) < 30;
   }
   
-  // Réagir aux changements de view
+  function getCurrentTimePosition() {
+    const now = new Date();
+    const currentHour = now.getHours();
+    const currentMin = now.getMinutes();
+    const totalMinutes = currentHour * 60 + currentMin;
+    const startMinutes = 7 * 60;
+    const offsetMinutes = totalMinutes - startMinutes;
+    return offsetMinutes * 1.2;
+  }
+  
   $: view, generateCalendar();
   $: courses, generateCalendar();
 </script>
 
 <div class="bg-white rounded-lg">
   <!-- En-tête du calendrier -->
-  <div class="flex items-center justify-between mb-4">
-    <div class="flex items-center space-x-4">
+  <div class="flex flex-wrap items-center justify-between mb-4 gap-2">
+    <div class="flex items-center space-x-2">
       <button
         on:click={() => navigateDays(-1)}
         class="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -308,7 +344,7 @@
       {/if}
     </h3>
     
-    <div class="flex space-x-2">
+    <div class="flex space-x-1">
       <button
         on:click={() => { view = 'day'; generateCalendar(); }}
         class={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
@@ -341,18 +377,21 @@
     <div class="overflow-x-auto">
       <div class="min-w-[800px]">
         <!-- En-tête des jours -->
-        <div class="grid grid-cols-8 gap-1 mb-2">
-          <div class="text-xs font-medium text-gray-500 uppercase py-2 text-center">Heure</div>
+        <div class="grid" style="grid-template-columns: 60px repeat({view === 'day' ? 1 : 7}, 1fr); gap: 2px;">
+          <div class="text-xs font-medium text-gray-500 py-2 text-center"></div>
           {#if view === 'day'}
             <div class="text-xs font-medium text-gray-700 py-2 text-center">
-              {getFullDateLabel(selectedDate)}
+              <div class="text-gray-500 text-xs">{selectedDate.toLocaleString('fr-FR', { weekday: 'short' })}</div>
+              <div class={`text-lg font-bold ${isSameDay(selectedDate, new Date()) ? 'text-green-600' : 'text-gray-900'}`}>
+                {getDayNumber(selectedDate)}
+              </div>
             </div>
           {:else}
             {#each weekDays as day}
               <div class={`text-xs font-medium py-2 text-center ${
                 isSameDay(day, new Date()) ? 'bg-green-50 rounded-lg' : ''
               }`}>
-                <div class="text-gray-500">{getDayName(day)}</div>
+                <div class="text-gray-500 text-xs">{day.toLocaleString('fr-FR', { weekday: 'short' })}</div>
                 <div class={`text-lg font-bold ${
                   isSameDay(day, new Date()) ? 'text-green-600' : 'text-gray-900'
                 }`}>
@@ -363,22 +402,64 @@
           {/if}
         </div>
         
-        <!-- Grille des cours -->
-        <div class="grid grid-cols-8 gap-1">
-          {#each hours as hour}
-            <div class="text-xs text-gray-500 py-2 text-right pr-2 border-t border-gray-100">
-              {hour}
+        <!-- Grille des cours avec hauteur fixe -->
+        <div class="relative mt-2" style="height: 870px; overflow-y: auto;">
+          <!-- Ligne de l'heure actuelle -->
+          {#if view === 'day' || view === 'week'}
+            <div 
+              class="absolute left-0 right-0 z-10 pointer-events-none"
+              style="top: {getCurrentTimePosition()}px;"
+            >
+              <div class="flex items-center">
+                <div class="w-12 h-0.5 bg-red-500"></div>
+                <div class="w-2 h-2 bg-red-500 rounded-full -ml-1"></div>
+                <span class="ml-1 text-xs text-red-500 font-medium">
+                  {new Date().toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            </div>
+          {/if}
+          
+          <!-- Grille des heures -->
+          <div class="grid" style="grid-template-columns: 60px repeat({view === 'day' ? 1 : 7}, 1fr); gap: 2px;">
+            <!-- Colonne des heures -->
+            <div class="relative">
+              {#each hours as hour}
+                <div class="text-xs text-gray-400 pr-2 text-right" style="height: 36px; line-height: 36px;">
+                  {hour}
+                </div>
+              {/each}
             </div>
             
+            <!-- Colonnes des jours -->
             {#if view === 'day'}
-              <!-- Vue jour -->
-              <div class="border-t border-gray-100 min-h-[60px] p-1">
-                {#each calendarDays.filter(d => d.hour === hour) as dayData}
-                  {#each dayData.courses as course, index}
-                    <div class={`${getColorForCourse(course, index)} border rounded-md p-1 mb-1 text-xs`}>
-                      <div class="font-medium truncate">{course.matiere_nom}</div>
-                      <div class="truncate text-gray-600">{course.professeur_nom}</div>
-                      <div class="truncate text-gray-500">{course.salle_nom || 'N/A'}</div>
+              <div class="relative">
+                <!-- Lignes de la grille -->
+                {#each hours as hour}
+                  <div class="border-t border-gray-100" style="height: 36px;"></div>
+                {/each}
+                
+                <!-- Cours -->
+                {#each calendarDays.filter(d => d.courses.length > 0) as dayData}
+                  {#each dayData.courses as course}
+                    <div 
+                      class={`absolute left-1 right-1 rounded-md p-1.5 border-2 shadow-sm transition-all ${getColorForCourse(course, 0).bg} ${getColorForCourse(course, 0).border} ${getColorForCourse(course, 0).hover}`}
+                      style="top: {getCoursePosition(course)}px; height: {getCourseHeight(course)}px; min-height: 30px;"
+                    >
+                      <div class="flex flex-col h-full">
+                        <div class={`text-xs font-bold truncate ${getColorForCourse(course, 0).text}`}>
+                          {course.matiere_nom}
+                        </div>
+                        <div class="text-xs text-gray-600 truncate">
+                          {course.professeur_nom}
+                        </div>
+                        <div class="text-xs text-gray-500 truncate">
+                          {getCourseDuration(course)}
+                          {#if course.salle_nom}
+                            • {course.salle_nom}
+                          {/if}
+                        </div>
+                      </div>
                     </div>
                   {/each}
                 {/each}
@@ -386,20 +467,40 @@
             {:else}
               <!-- Vue semaine -->
               {#each weekDays as day, dayIndex}
-                <div class="border-t border-gray-100 min-h-[60px] p-1">
-                  {#each calendarDays.filter(d => d.dayIndex === dayIndex && d.hour === hour) as dayData}
+                <div class="relative">
+                  <!-- Lignes de la grille -->
+                  {#each hours as hour}
+                    <div class="border-t border-gray-100" style="height: 36px;"></div>
+                  {/each}
+                  
+                  <!-- Cours -->
+                  {#each calendarDays.filter(d => d.dayIndex === dayIndex && d.courses.length > 0) as dayData}
                     {#each dayData.courses as course, index}
-                      <div class={`${getColorForCourse(course, index)} border rounded-md p-1 mb-1 text-xs`}>
-                        <div class="font-medium truncate">{course.matiere_nom}</div>
-                        <div class="truncate text-gray-600">{course.professeur_nom}</div>
-                        <div class="truncate text-gray-500">{course.salle_nom || 'N/A'}</div>
+                      <div 
+                        class={`absolute left-1 right-1 rounded-md p-1.5 border-2 shadow-sm transition-all ${getColorForCourse(course, index).bg} ${getColorForCourse(course, index).border} ${getColorForCourse(course, index).hover}`}
+                        style="top: {getCoursePosition(course)}px; height: {getCourseHeight(course)}px; min-height: 30px;"
+                      >
+                        <div class="flex flex-col h-full">
+                          <div class={`text-xs font-bold truncate ${getColorForCourse(course, index).text}`}>
+                            {course.matiere_nom}
+                          </div>
+                          <div class="text-xs text-gray-600 truncate">
+                            {course.professeur_nom}
+                          </div>
+                          <div class="text-xs text-gray-500 truncate">
+                            {getCourseDuration(course)}
+                            {#if course.salle_nom}
+                              • {course.salle_nom}
+                            {/if}
+                          </div>
+                        </div>
                       </div>
                     {/each}
                   {/each}
                 </div>
               {/each}
             {/if}
-          {/each}
+          </div>
         </div>
       </div>
     </div>
@@ -417,11 +518,11 @@
       <!-- Jours du mois -->
       {#each calendarDays as day}
         <div
-          class={`min-h-[100px] p-1 border rounded-lg transition-colors ${
+          class={`min-h-[100px] p-1 border rounded-lg transition-colors cursor-pointer ${
             day.isCurrentMonth ? 'bg-white' : 'bg-gray-50'
           } ${
             day.isToday ? 'border-green-500 border-2' : 'border-gray-200'
-          } hover:border-green-300 cursor-pointer`}
+          } hover:border-green-300 hover:shadow-md`}
           on:click={() => selectDate(day.date)}
         >
           <div class={`text-sm font-medium ${
@@ -432,12 +533,13 @@
           
           <div class="mt-1 space-y-1">
             {#each day.courses.slice(0, 3) as course, index}
-              <div class={`${getColorForCourse(course, index)} border rounded text-xs p-1 truncate`}>
-                {course.matiere_nom}
+              <div class={`${getColorForCourse(course, index).bg} ${getColorForCourse(course, index).text} border rounded text-xs p-1 truncate`}>
+                <span class="font-medium">{course.matiere_nom}</span>
+                <span class="text-gray-500 ml-1">{course.heure_debut}</span>
               </div>
             {/each}
             {#if day.courses.length > 3}
-              <div class="text-xs text-gray-500">
+              <div class="text-xs text-gray-500 font-medium">
                 +{day.courses.length - 3} autres
               </div>
             {/if}
@@ -447,26 +549,59 @@
     </div>
   {/if}
   
-  <!-- Légende -->
+  <!-- Légende et statistiques -->
   {#if courses.length > 0}
     <div class="mt-4 pt-4 border-t border-gray-200">
-      <div class="flex flex-wrap gap-3">
-        {#each courses.slice(0, 5) as course, index}
-          <div class="flex items-center space-x-1">
-            <span class={`inline-block w-3 h-3 rounded ${getColorForCourse(course, index).split(' ')[0]}`}></span>
-            <span class="text-xs text-gray-600">{course.matiere_nom}</span>
-          </div>
-        {/each}
-        {#if courses.length > 5}
-          <span class="text-xs text-gray-500">+{courses.length - 5} autres</span>
-        {/if}
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap gap-3">
+          {#each [...new Set(courses.map(c => c.matiere_nom))].slice(0, 6) as matiere, index}
+            <div class="flex items-center space-x-1">
+              <span class={`inline-block w-3 h-3 rounded ${getColorForCourse({ matiere_nom: matiere }, index).bg}`}></span>
+              <span class="text-xs text-gray-600">{matiere}</span>
+            </div>
+          {/each}
+          {#if [...new Set(courses.map(c => c.matiere_nom))].length > 6}
+            <span class="text-xs text-gray-500">
+              +{[...new Set(courses.map(c => c.matiere_nom))].length - 6} autres
+            </span>
+          {/if}
+        </div>
+        
+        <div class="text-xs text-gray-500">
+          <span class="font-medium">{courses.length}</span> cours au total
+        </div>
       </div>
     </div>
   {/if}
 </div>
 
 <style>
-  .min-h-100 {
-    min-height: 100px;
+  /* Scroll personnalisé */
+  .overflow-x-auto::-webkit-scrollbar {
+    height: 8px;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+  }
+  
+  .overflow-x-auto::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+  }
+  
+  /* Animation hover */
+  .transition-all {
+    transition: all 0.15s ease-in-out;
+  }
+  
+  /* Effet de profondeur */
+  .shadow-sm:hover {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   }
 </style>
