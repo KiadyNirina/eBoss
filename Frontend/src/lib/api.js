@@ -143,6 +143,29 @@ export const authApi = {
         method: 'DELETE',
     }).then(() => ({ message: 'Salle supprimée' })),
 
+    // Gestion des cours
+    getCours: (filters = {}) => {
+        const query = new URLSearchParams(filters).toString();
+        return fetchWithAuth(`/api/cours/?${query}`).then(response => response.json());
+    },
+
+    createCours: (data) => fetchWithAuth('/api/cours/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }).then(response => response.json()),
+
+    updateCours: (id, data) => fetchWithAuth(`/api/cours/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    }).then(response => response.json()),
+
+    deleteCours: (id) => fetchWithAuth(`/api/cours/${id}/`, {
+        method: 'DELETE',
+    }).then(() => ({ message: 'Cours supprimé' })),
+
+    // Récupérer les options pour les filtres (classes, professeurs, matieres, salles)
+    getCoursFilterOptions: () => fetchWithAuth('/api/cours/filter_options/').then(response => response.json()),
+
     // Profil utilisateur
     getProfile: () => fetchWithAuth('/profile/').then(response => response.json()),
 
