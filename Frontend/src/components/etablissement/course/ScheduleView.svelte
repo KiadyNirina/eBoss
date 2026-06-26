@@ -13,19 +13,57 @@
   // Données réelles
   let courses = [];
   let rooms = [];
+  let classesOptions = [];
+  let matieresOptions = [];
+  let professeursOptions = [];
+  
   let loading = {
     courses: false,
-    rooms: false
+    rooms: false,
+    options: false
   };
   let error = {
     courses: null,
-    rooms: null
+    rooms: null,
+    options: null
   };
   
   onMount(async () => {
+    await loadOptions();
     await loadCourses();
     await loadRooms();
   });
+  
+  async function loadOptions() {
+    loading.options = true;
+    try {
+      const [classes, professeurs, matieres] = await Promise.all([
+        authApi.getClasses(),
+        authApi.getProfesseurs(),
+        authApi.getMatieres()
+      ]);
+      
+      classesOptions = (classes.results || classes).map(c => ({
+        value: c.id,
+        label: c.nom
+      }));
+      
+      professeursOptions = (professeurs.results || professeurs).map(p => ({
+        value: p.id,
+        label: p.user?.first_name + ' ' + p.user?.last_name || 'Professeur'
+      }));
+      
+      matieresOptions = (matieres.results || matieres).map(m => ({
+        value: m.id,
+        label: m.nom
+      }));
+    } catch (err) {
+      error.options = err.message;
+      console.error('Erreur chargement options:', err);
+    } finally {
+      loading.options = false;
+    }
+  }
   
   async function loadCourses() {
     loading.courses = true;
@@ -162,7 +200,7 @@
           <h2 class="text-lg font-medium text-gray-900">Emploi du temps</h2>
         </div>
         
-        {#if loading.courses}
+        {#if loading.courses || loading.options}
           <div class="flex justify-center items-center py-12">
             <Icon icon="heroicons:arrow-path" class="h-8 w-8 animate-spin text-green-600" />
             <span class="ml-2 text-gray-600">Chargement du calendrier...</span>
@@ -175,7 +213,13 @@
             </div>
           </div>
         {:else}
-          <FullCalendar {view} {courses} />
+          <FullCalendar 
+            {view} 
+            {courses}
+            {classesOptions}
+            {matieresOptions}
+            {professeursOptions}
+          />
         {/if}
       </div>
     

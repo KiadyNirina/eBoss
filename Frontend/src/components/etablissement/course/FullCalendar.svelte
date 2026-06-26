@@ -4,12 +4,26 @@
   
   export let view = 'week';
   export let courses = [];
+  export let classesOptions = [];
+  export let matieresOptions = [];
+  export let professeursOptions = [];
   
   let currentDate = new Date();
   let selectedDate = new Date();
   let calendarDays = [];
   let weekDays = [];
   let hours = [];
+  let showFilters = false;
+  
+  // Filtres
+  let filters = {
+    classe: '',
+    matiere: '',
+    professeur: ''
+  };
+  
+  // Cours filtrés
+  let filteredCourses = [];
   
   const JOURS = [
     { value: 'lundi', label: 'Lundi' },
@@ -35,8 +49,53 @@
   hours = generateHours();
   
   onMount(() => {
+    applyFilters();
     generateCalendar();
   });
+  
+  // Fonction pour appliquer les filtres
+  function applyFilters() {
+    filteredCourses = courses.filter(c => {
+      let match = true;
+      
+      if (filters.classe) {
+        match = match && c.classe === parseInt(filters.classe);
+      }
+      if (filters.matiere) {
+        match = match && c.matiere === parseInt(filters.matiere);
+      }
+      if (filters.professeur) {
+        match = match && c.professeur === parseInt(filters.professeur);
+      }
+      
+      return match;
+    });
+    
+    generateCalendar();
+  }
+  
+  // Réinitialiser les filtres
+  function resetFilters() {
+    filters = {
+      classe: '',
+      matiere: '',
+      professeur: ''
+    };
+    applyFilters();
+  }
+  
+  // Vérifier si des filtres sont actifs
+  function hasActiveFilters() {
+    return filters.classe || filters.matiere || filters.professeur;
+  }
+  
+  function getFilterCount() {
+    let count = 0;
+    if (filters.classe) count++;
+    if (filters.matiere) count++;
+    if (filters.professeur) count++;
+    return count;
+  }
   
   function generateCalendar() {
     if (view === 'day') {
@@ -64,7 +123,6 @@
     const dayCourses = getCoursesForDate(date);
     const dateStr = formatDate(date);
     
-    // Créer une structure pour chaque heure avec les cours
     calendarDays = [];
     hours.forEach((hour, index) => {
       const hourCourses = dayCourses.filter(c => {
@@ -128,7 +186,6 @@
     const days = [];
     const startOffset = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1;
     
-    // Jours du mois précédent
     const prevMonthLastDay = new Date(year, month, 0).getDate();
     for (let i = startOffset - 1; i >= 0; i--) {
       const date = new Date(year, month - 1, prevMonthLastDay - i);
@@ -139,7 +196,6 @@
       });
     }
     
-    // Jours du mois courant
     for (let i = 1; i <= daysInMonth; i++) {
       const date = new Date(year, month, i);
       days.push({
@@ -150,7 +206,6 @@
       });
     }
     
-    // Jours du mois suivant
     const remainingDays = (7 - (days.length % 7)) % 7;
     for (let i = 1; i <= remainingDays; i++) {
       const date = new Date(year, month + 1, i);
@@ -166,7 +221,7 @@
   
   function getCoursesForDate(date) {
     const dateStr = formatDate(date);
-    return courses.filter(c => {
+    return filteredCourses.filter(c => {
       const jourIndex = JOURS.findIndex(j => j.value === c.jour);
       if (jourIndex === -1) return false;
       
@@ -241,16 +296,15 @@
   
   function getCourseHeight(course) {
     const minutes = getCourseDurationInMinutes(course);
-    // 1 minute = 1.2px (60 minutes = 72px)
     return Math.max(minutes * 1.2, 30);
   }
   
   function getCoursePosition(course) {
     const [hour, min] = course.heure_debut.split(':').map(Number);
     const totalMinutes = hour * 60 + min;
-    const startMinutes = 7 * 60; // 7h
+    const startMinutes = 7 * 60;
     const offsetMinutes = totalMinutes - startMinutes;
-    return offsetMinutes * 1.2; // 1 minute = 1.2px
+    return offsetMinutes * 1.2;
   }
   
   function navigateDays(direction) {
@@ -304,12 +358,18 @@
     return offsetMinutes * 1.2;
   }
   
+  function toggleFilters() {
+    showFilters = !showFilters;
+  }
+  
+  // Réagir aux changements
   $: view, generateCalendar();
-  $: courses, generateCalendar();
+  $: filteredCourses, generateCalendar();
+  $: filters, applyFilters();
 </script>
 
 <div class="bg-white rounded-lg">
-  <!-- En-tête du calendrier -->
+  <!-- En-tête du calendrier avec filtres -->
   <div class="flex flex-wrap items-center justify-between mb-4 gap-2">
     <div class="flex items-center space-x-2">
       <button
@@ -344,33 +404,160 @@
       {/if}
     </h3>
     
-    <div class="flex space-x-1">
+    <div class="flex items-center space-x-2">
+      <!-- Bouton Filtres -->
       <button
-        on:click={() => { view = 'day'; generateCalendar(); }}
-        class={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-          view === 'day' ? 'bg-green-100 text-green-700' : 'text-gray-700 hover:bg-gray-100'
+        on:click={toggleFilters}
+        class={`relative inline-flex items-center px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+          hasActiveFilters() 
+            ? 'bg-green-100 text-green-700' 
+            : 'text-gray-700 hover:bg-gray-100'
         }`}
       >
-        Jour
+        <Icon icon="heroicons:funnel" class="h-4 w-4 mr-1" />
+        Filtres
+        {#if hasActiveFilters()}
+          <span class="ml-1 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-600 text-white">
+            {getFilterCount()}
+          </span>
+        {/if}
       </button>
-      <button
-        on:click={() => { view = 'week'; generateCalendar(); }}
-        class={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-          view === 'week' ? 'bg-green-100 text-green-700' : 'text-gray-700 hover:bg-gray-100'
-        }`}
-      >
-        Semaine
-      </button>
-      <button
-        on:click={() => { view = 'month'; generateCalendar(); }}
-        class={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-          view === 'month' ? 'bg-green-100 text-green-700' : 'text-gray-700 hover:bg-gray-100'
-        }`}
-      >
-        Mois
-      </button>
+      
+      <div class="flex space-x-1">
+        <button
+          on:click={() => { view = 'day'; generateCalendar(); }}
+          class={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+            view === 'day' ? 'bg-green-100 text-green-700' : 'text-gray-700 hover:bg-gray-100'
+          }`}
+        >
+          Jour
+        </button>
+        <button
+          on:click={() => { view = 'week'; generateCalendar(); }}
+          class={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+            view === 'week' ? 'bg-green-100 text-green-700' : 'text-gray-700 hover:bg-gray-100'
+          }`}
+        >
+          Semaine
+        </button>
+        <button
+          on:click={() => { view = 'month'; generateCalendar(); }}
+          class={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
+            view === 'month' ? 'bg-green-100 text-green-700' : 'text-gray-700 hover:bg-gray-100'
+          }`}
+        >
+          Mois
+        </button>
+      </div>
     </div>
   </div>
+  
+  <!-- Panneau des filtres -->
+  {#if showFilters}
+    <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
+      <div class="flex items-center justify-between mb-3">
+        <h4 class="text-sm font-medium text-gray-700">Filtrer les cours</h4>
+        <button
+          on:click={resetFilters}
+          class="text-xs text-green-600 hover:text-green-800 font-medium"
+        >
+          Réinitialiser les filtres
+        </button>
+      </div>
+      
+      <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div>
+          <label for="filter-classe-calendar" class="block text-xs font-medium text-gray-700">
+            Classe
+          </label>
+          <select
+            id="filter-classe-calendar"
+            bind:value={filters.classe}
+            on:change={applyFilters}
+            class="mt-1 block w-full pl-3 pr-10 py-1.5 text-sm border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 rounded-md"
+          >
+            <option value="">Toutes les classes</option>
+            {#each classesOptions as option}
+              <option value={option.value}>{option.label}</option>
+            {/each}
+          </select>
+        </div>
+        
+        <div>
+          <label for="filter-matiere-calendar" class="block text-xs font-medium text-gray-700">
+            Matière
+          </label>
+          <select
+            id="filter-matiere-calendar"
+            bind:value={filters.matiere}
+            on:change={applyFilters}
+            class="mt-1 block w-full pl-3 pr-10 py-1.5 text-sm border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 rounded-md"
+          >
+            <option value="">Toutes les matières</option>
+            {#each matieresOptions as option}
+              <option value={option.value}>{option.label}</option>
+            {/each}
+          </select>
+        </div>
+        
+        <div>
+          <label for="filter-professeur-calendar" class="block text-xs font-medium text-gray-700">
+            Professeur
+          </label>
+          <select
+            id="filter-professeur-calendar"
+            bind:value={filters.professeur}
+            on:change={applyFilters}
+            class="mt-1 block w-full pl-3 pr-10 py-1.5 text-sm border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 rounded-md"
+          >
+            <option value="">Tous les professeurs</option>
+            {#each professeursOptions as option}
+              <option value={option.value}>{option.label}</option>
+            {/each}
+          </select>
+        </div>
+      </div>
+      
+      <!-- Indicateur de filtres actifs -->
+      {#if hasActiveFilters()}
+        <div class="mt-3 flex flex-wrap gap-2">
+          {#if filters.classe}
+            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs bg-green-100 text-green-800">
+              Classe: {classesOptions.find(o => o.value === parseInt(filters.classe))?.label}
+              <button
+                on:click={() => { filters.classe = ''; applyFilters(); }}
+                class="ml-1 hover:text-green-600"
+              >
+                <Icon icon="heroicons:x-mark" class="h-3 w-3" />
+              </button>
+            </span>
+          {/if}
+          {#if filters.matiere}
+            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs bg-blue-100 text-blue-800">
+              Matière: {matieresOptions.find(o => o.value === parseInt(filters.matiere))?.label}
+              <button
+                on:click={() => { filters.matiere = ''; applyFilters(); }}
+                class="ml-1 hover:text-blue-600"
+              >
+                <Icon icon="heroicons:x-mark" class="h-3 w-3" />
+              </button>
+            </span>
+          {/if}
+          {#if filters.professeur}
+            <span class="inline-flex items-center px-2 py-1 rounded-md text-xs bg-purple-100 text-purple-800">
+              Professeur: {professeursOptions.find(o => o.value === parseInt(filters.professeur))?.label}
+              <button
+                on:click={() => { filters.professeur = ''; applyFilters(); }}
+                class="ml-1 hover:text-purple-600"
+              >
+                <Icon icon="heroicons:x-mark" class="h-3 w-3" />
+              </button>
+            </span>
+          {/if}
+        </div>
+      {/if}
+    </div>
+  {/if}
   
   <!-- Vue Jour ou Semaine -->
   {#if view === 'day' || view === 'week'}
@@ -439,15 +626,23 @@
                   <div class="border-t border-gray-100" style="height: 36px;"></div>
                 {/each}
                 
+                <!-- Message si aucun cours -->
+                {#if !calendarDays.some(d => d.courses.length > 0)}
+                  <div class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
+                    Aucun cours pour cette journée
+                  </div>
+                {/if}
+                
                 <!-- Cours -->
                 {#each calendarDays.filter(d => d.courses.length > 0) as dayData}
-                  {#each dayData.courses as course}
+                  {#each dayData.courses as course, index}
                     <div 
-                      class={`absolute left-1 right-1 rounded-md p-1.5 border-2 shadow-sm transition-all ${getColorForCourse(course, 0).bg} ${getColorForCourse(course, 0).border} ${getColorForCourse(course, 0).hover}`}
+                      class={`absolute left-1 right-1 rounded-md p-1.5 border-2 shadow-sm transition-all ${getColorForCourse(course, index).bg} ${getColorForCourse(course, index).border} ${getColorForCourse(course, index).hover}`}
                       style="top: {getCoursePosition(course)}px; height: {getCourseHeight(course)}px; min-height: 30px;"
+                      title="{course.matiere_nom} - {course.classe_nom} - {course.professeur_nom} - {getCourseDuration(course)}"
                     >
                       <div class="flex flex-col h-full">
-                        <div class={`text-xs font-bold truncate ${getColorForCourse(course, 0).text}`}>
+                        <div class={`text-xs font-bold truncate ${getColorForCourse(course, index).text}`}>
                           {course.matiere_nom}
                         </div>
                         <div class="text-xs text-gray-600 truncate">
@@ -472,6 +667,13 @@
                   {#each hours as hour}
                     <div class="border-t border-gray-100" style="height: 36px;"></div>
                   {/each}
+                  
+                  <!-- Message si aucun cours -->
+                  {#if !calendarDays.some(d => d.dayIndex === dayIndex && d.courses.length > 0)}
+                    <div class="absolute inset-0 flex items-center justify-center text-gray-400 text-xs">
+                      Aucun cours
+                    </div>
+                  {/if}
                   
                   <!-- Cours -->
                   {#each calendarDays.filter(d => d.dayIndex === dayIndex && d.courses.length > 0) as dayData}
@@ -552,35 +754,58 @@
   {/if}
   
   <!-- Légende et statistiques -->
-  {#if courses.length > 0}
+  {#if filteredCourses.length > 0}
     <div class="mt-4 pt-4 border-t border-gray-200">
       <div class="flex flex-wrap items-center justify-between gap-2">
         <div class="flex flex-wrap gap-3">
-          {#each [...new Set(courses.map(c => c.matiere_nom))].slice(0, 6) as matiere, index}
+          {#each [...new Set(filteredCourses.map(c => c.matiere_nom))].slice(0, 6) as matiere, index}
             <div class="flex items-center space-x-1">
               <span class={`inline-block w-3 h-3 rounded ${getColorForCourse({ matiere_nom: matiere }, index).bg}`}></span>
               <span class="text-xs text-gray-600">{matiere}</span>
             </div>
           {/each}
-          {#if [...new Set(courses.map(c => c.matiere_nom))].length > 6}
+          {#if [...new Set(filteredCourses.map(c => c.matiere_nom))].length > 6}
             <span class="text-xs text-gray-500">
-              +{[...new Set(courses.map(c => c.matiere_nom))].length - 6} autres
+              +{[...new Set(filteredCourses.map(c => c.matiere_nom))].length - 6} autres
             </span>
           {/if}
         </div>
         
         <div class="flex items-center gap-3 text-xs text-gray-500">
-          <span><span class="font-medium">{courses.length}</span> cours</span>
+          <span><span class="font-medium">{filteredCourses.length}</span> cours</span>
+          {#if hasActiveFilters()}
+            <span class="text-green-600">
+              ({courses.length - filteredCourses.length} filtrés)
+            </span>
+          {/if}
           <span>•</span>
-          <span><span class="font-medium">{new Set(courses.map(c => c.classe_nom)).size}</span> classes</span>
+          <span><span class="font-medium">{new Set(filteredCourses.map(c => c.classe_nom)).size}</span> classes</span>
         </div>
       </div>
+    </div>
+  {:else}
+    <div class="mt-4 pt-4 border-t border-gray-200 text-center py-8">
+      <Icon icon="heroicons:funnel" class="h-8 w-8 text-gray-300 mx-auto mb-2" />
+      <p class="text-sm text-gray-500">
+        {#if hasActiveFilters()}
+          Aucun cours ne correspond aux filtres sélectionnés
+        {:else}
+          Aucun cours planifié
+        {/if}
+      </p>
+      {#if hasActiveFilters()}
+        <button
+          on:click={resetFilters}
+          class="mt-2 text-sm text-green-600 hover:text-green-800 font-medium"
+        >
+          Réinitialiser les filtres
+        </button>
+      {/if}
     </div>
   {/if}
 </div>
 
 <style>
-  /* Scroll personnalisé */
   .overflow-x-auto::-webkit-scrollbar {
     height: 8px;
   }
@@ -599,12 +824,10 @@
     background: #a8a8a8;
   }
   
-  /* Animation hover */
   .transition-all {
     transition: all 0.15s ease-in-out;
   }
   
-  /* Effet de profondeur */
   .shadow-sm:hover {
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
   }
