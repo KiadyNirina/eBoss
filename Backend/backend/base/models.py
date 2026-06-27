@@ -169,11 +169,18 @@ class Cours(models.Model):
         related_name='cours'
     )
 
+    date_specifique = models.DateField(
+        null=True, 
+        blank=True,
+        help_text="Date spécifique pour ce cours (ex: cours exceptionnel)"
+    )
+
     def __str__(self):
+        date_info = f" - {self.date_specifique}" if self.date_specifique else ""
         return (
             f"{self.matiere.nom} - "
             f"{self.classe.nom} - "
-            f"{self.jour}"
+            f"{self.jour}{date_info}"
         )
 
     class Meta:

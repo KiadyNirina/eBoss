@@ -32,7 +32,8 @@
     jour: 'lundi',
     heure_debut: '08:00',
     heure_fin: '09:30',
-    annee_scolaire: ''
+    annee_scolaire: '',
+    date_specifique: '' 
   };
   
   // Filtres
@@ -125,6 +126,17 @@
     openForm = true;
     dispatch('open');
   }
+
+  // Fonction pour gérer le changement de date
+  function handleDateChange() {
+    if (newCours.date_specifique) {
+      // Si une date est sélectionnée, on peut désactiver le champ jour ou le pré-remplir
+      const dateObj = new Date(newCours.date_specifique + 'T00:00:00');
+      const dayIndex = dateObj.getDay();
+      const jourMap = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+      newCours.jour = jourMap[dayIndex === 0 ? 6 : dayIndex - 1];
+    }
+  }
   
   function resetForm() {
     isEditing = false;
@@ -137,7 +149,8 @@
       jour: 'lundi',
       heure_debut: '08:00',
       heure_fin: '09:30',
-      annee_scolaire: newCours.annee_scolaire || ''
+      annee_scolaire: newCours.annee_scolaire || '',
+      date_specifique: ''
     };
     openForm = false;
     dispatch('close');
@@ -154,7 +167,8 @@
       jour: cours.jour,
       heure_debut: cours.heure_debut,
       heure_fin: cours.heure_fin,
-      annee_scolaire: cours.annee_scolaire
+      annee_scolaire: cours.annee_scolaire,
+      date_specifique: cours.date_specifique || ''
     };
     openForm = true;
     dispatch('open'); 
@@ -193,7 +207,8 @@
         heure_debut: newCours.heure_debut,
         heure_fin: newCours.heure_fin,
         annee_scolaire: parseInt(newCours.annee_scolaire),
-        etablissement: etablissementId
+        etablissement: etablissementId,
+        date_specifique: newCours.date_specifique || null
       };
       
       if (isEditing && currentCoursId) {
@@ -431,6 +446,43 @@
           <option value="">Sélectionner</option>
           {#each anneesOptions as option}
             <option value={option.value}>{option.label}</option>
+          {/each}
+        </select>
+      </div>
+
+      <div>
+        <label for="cours-date-specifique" class="block text-xs font-medium text-gray-700">
+          Date spécifique
+          <span class="text-gray-400 text-[10px]">(optionnel)</span>
+        </label>
+        <input
+          type="date"
+          id="cours-date-specifique"
+          bind:value={newCours.date_specifique}
+          on:change={handleDateChange}
+          class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1.5 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+        />
+        <p class="mt-0.5 text-[10px] text-gray-400">
+          Laisser vide pour un cours régulier
+        </p>
+      </div>
+      
+      <!-- Champ Jour avec indication si date spécifique -->
+      <div>
+        <label for="cours-jour" class="block text-xs font-medium text-gray-700">
+          Jour <span class="text-red-500">*</span>
+          {#if newCours.date_specifique}
+            <span class="text-green-600 text-[10px]">(déterminé par la date)</span>
+          {/if}
+        </label>
+        <select
+          id="cours-jour"
+          bind:value={newCours.jour}
+          disabled={!!newCours.date_specifique}
+          class="mt-1 block w-full pl-3 pr-10 py-1.5 text-sm border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
+        >
+          {#each JOURS as jour}
+            <option value={jour.value}>{jour.label}</option>
           {/each}
         </select>
       </div>

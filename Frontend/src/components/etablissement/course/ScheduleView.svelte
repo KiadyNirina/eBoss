@@ -114,6 +114,10 @@
   function getRoomCount() {
     return rooms.length;
   }
+
+  async function reloadCourses() {
+    await loadCourses();
+  }
 </script>
 
 <div>
@@ -219,6 +223,7 @@
             {classesOptions}
             {matieresOptions}
             {professeursOptions}
+            loadCourses={reloadCourses}
           />
         {/if}
       </div>

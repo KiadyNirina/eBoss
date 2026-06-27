@@ -1,12 +1,14 @@
 <script>
   import { onMount } from 'svelte';
   import Icon from '@iconify/svelte';
+  import { authApi } from '$lib/api';
   
   export let view = 'week';
   export let courses = [];
   export let classesOptions = [];
   export let matieresOptions = [];
   export let professeursOptions = [];
+  export let loadCourses = () => {};
   
   let currentDate = new Date();
   let selectedDate = new Date();
@@ -21,6 +23,13 @@
     matiere: '',
     professeur: ''
   };
+
+  // Modal de déplacement
+  let showMoveModal = false;
+  let selectedCourse = null;
+  let moveDate = '';
+  let moveHour = '';
+  let moveAction = 'move'; 
   
   // Cours filtrés
   let filteredCourses = [];
@@ -222,6 +231,12 @@
   function getCoursesForDate(date) {
     const dateStr = formatDate(date);
     return filteredCourses.filter(c => {
+      // Si le cours a une date spécifique, on l'affiche uniquement ce jour-là
+      if (c.date_specifique) {
+        return c.date_specifique === dateStr;
+      }
+      
+      // Sinon, on utilise le jour de la semaine
       const jourIndex = JOURS.findIndex(j => j.value === c.jour);
       if (jourIndex === -1) return false;
       
@@ -231,6 +246,14 @@
       
       return isSameDay(courseDate, date);
     });
+  }
+
+  function getCourseDisplayDate(course) {
+    if (course.date_specifique) {
+      const date = new Date(course.date_specifique + 'T00:00:00');
+      return date.toLocaleString('fr-FR', { day: 'numeric', month: 'short' });
+    }
+    return course.jour;
   }
   
   function formatDate(date) {
@@ -360,6 +383,118 @@
   
   function toggleFilters() {
     showFilters = !showFilters;
+  }
+
+  function openMoveModal(course, event) {
+    event.stopPropagation();
+    selectedCourse = course;
+    
+    // Pré-remplir avec la date actuelle du cours
+    const currentDate = getDateForCourse(course);
+    if (currentDate) {
+      const year = currentDate.getFullYear();
+      const month = String(currentDate.getMonth() + 1).padStart(2, '0');
+      const day = String(currentDate.getDate()).padStart(2, '0');
+      moveDate = `${year}-${month}-${day}`;
+    } else {
+      moveDate = formatDate(new Date());
+    }
+    moveHour = course.heure_debut;
+    showMoveModal = true;
+  }
+
+  // Fonction pour obtenir la date d'un cours
+  function getDateForCourse(course) {
+    const jourIndex = JOURS.findIndex(j => j.value === course.jour);
+    if (jourIndex === -1) return null;
+    
+    const monday = getWeekStart(selectedDate);
+    const courseDate = new Date(monday);
+    courseDate.setDate(monday.getDate() + jourIndex);
+    return courseDate;
+  }
+
+  // Fonction pour déplacer/copier le cours
+  async function moveCourse() {
+    if (!selectedCourse || !moveDate || !moveHour) {
+      alert('Veuillez sélectionner une date et une heure');
+      return;
+    }
+    
+    try {
+      // Extraire le jour de la semaine depuis la date sélectionnée
+      const dateObj = new Date(moveDate + 'T00:00:00');
+      const dayIndex = dateObj.getDay(); // 0 = dimanche
+      const jourMap = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+      const newJour = jourMap[dayIndex === 0 ? 6 : dayIndex - 1];
+      
+      // Récupérer la durée du cours
+      const startHour = selectedCourse.heure_debut;
+      const endHour = selectedCourse.heure_fin;
+      const duration = getCourseDurationInMinutes(selectedCourse);
+      
+      // Calculer la nouvelle heure de fin
+      const [h, m] = moveHour.split(':').map(Number);
+      const endMinutes = h * 60 + m + duration;
+      const endH = Math.floor(endMinutes / 60);
+      const endM = endMinutes % 60;
+      const newEndHour = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+      
+      const courseData = {
+        classe: selectedCourse.classe,
+        professeur: selectedCourse.professeur,
+        matiere: selectedCourse.matiere,
+        salle: selectedCourse.salle || null,
+        jour: newJour,
+        heure_debut: moveHour,
+        heure_fin: newEndHour,
+        annee_scolaire: selectedCourse.annee_scolaire,
+        etablissement: selectedCourse.etablissement
+      };
+      
+      if (moveAction === 'copy') {
+        // Créer un nouveau cours
+        await authApi.createCours(courseData);
+        alert('Cours copié avec succès !');
+      } else {
+        // Modifier le cours existant
+        await authApi.updateCours(selectedCourse.id, courseData);
+        alert('Cours déplacé avec succès !');
+      }
+      
+      showMoveModal = false;
+      selectedCourse = null;
+      
+      // Recharger les cours
+      await loadCourses();
+      generateCalendar();
+      
+    } catch (err) {
+      alert('Erreur: ' + (err.message || 'Impossible de déplacer le cours'));
+      console.error('Erreur:', err);
+    }
+  }
+  
+  // Fonction pour supprimer un cours
+  async function deleteCourseFromCalendar(course, event) {
+    event.stopPropagation();
+    if (!confirm(`Supprimer le cours "${course.matiere_nom}" du ${course.jour} ?`)) return;
+    
+    try {
+      await authApi.deleteCours(course.id);
+      alert('Cours supprimé avec succès !');
+      await loadCourses();
+      generateCalendar();
+    } catch (err) {
+      alert('Erreur: ' + (err.message || 'Impossible de supprimer le cours'));
+      console.error('Erreur:', err);
+    }
+  }
+  
+  // Fermer le modal
+  function closeMoveModal() {
+    showMoveModal = false;
+    selectedCourse = null;
   }
   
   // Réagir aux changements
@@ -641,7 +776,7 @@
                 {#each calendarDays.filter(d => d.courses.length > 0) as dayData}
                   {#each dayData.courses as course, index}
                     <div 
-                      class={`absolute left-1 right-1 rounded-md p-1.5 border-2 shadow-sm transition-all ${getColorForCourse(course, index).bg} ${getColorForCourse(course, index).border} ${getColorForCourse(course, index).hover}`}
+                      class={`absolute left-1 right-1 rounded-md p-1.5 border-2 shadow-sm transition-all cursor-pointer group ${getColorForCourse(course, index).bg} ${getColorForCourse(course, index).border} ${getColorForCourse(course, index).hover}`}
                       style="top: {getCoursePosition(course)}px; height: {getCourseHeight(course)}px; min-height: 30px;"
                       title="{course.matiere_nom} - {course.classe_nom} - {course.professeur_nom} - {getCourseDuration(course)}"
                     >
@@ -653,11 +788,36 @@
                           {course.professeur_nom}
                         </div>
                         <div class="text-xs text-gray-500 truncate">
-                          {course.classe_nom} • {getCourseDuration(course)}
+                          {#if course.date_specifique}
+                            <span class="text-orange-500 font-medium">
+                              📅 {getCourseDisplayDate(course)}
+                            </span>
+                          {:else}
+                            {course.classe_nom}
+                          {/if}
+                          • {getCourseDuration(course)}
                           {#if course.salle_nom}
                             • {course.salle_nom}
                           {/if}
                         </div>
+                      </div>
+                      
+                      <!-- Boutons d'action (hover) -->
+                      <div class="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-0.5">
+                        <button
+                          on:click|stopPropagation={(e) => openMoveModal(course, e)}
+                          class="p-0.5 bg-white rounded shadow-md hover:bg-gray-100 text-blue-600"
+                          title="Déplacer/Copier"
+                        >
+                          <Icon icon="heroicons:arrows-pointing-out" class="h-3 w-3" />
+                        </button>
+                        <button
+                          on:click|stopPropagation={(e) => deleteCourseFromCalendar(course, e)}
+                          class="p-0.5 bg-white rounded shadow-md hover:bg-gray-100 text-red-600"
+                          title="Supprimer"
+                        >
+                          <Icon icon="heroicons:trash" class="h-3 w-3" />
+                        </button>
                       </div>
                     </div>
                   {/each}
@@ -742,10 +902,23 @@
           
           <div class="mt-1 space-y-1">
             {#each day.courses.slice(0, 3) as course, index}
-              <div class={`${getColorForCourse(course, index).bg} ${getColorForCourse(course, index).text} border rounded text-xs p-1 truncate`}>
+              <div 
+                class={`${getColorForCourse(course, index).bg} ${getColorForCourse(course, index).text} border rounded text-xs p-1 truncate cursor-pointer group relative`}
+                on:click={() => selectDate(day.date)}
+              >
                 <span class="font-medium">{course.matiere_nom}</span>
                 <span class="text-gray-500 ml-1">{course.heure_debut}</span>
                 <span class="text-gray-400 ml-1 text-[10px]">{course.classe_nom}</span>
+                
+                <!-- Boutons d'action en hover -->
+                <div class="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-0.5">
+                  <button
+                    on:click|stopPropagation={(e) => openMoveModal(course, e)}
+                    class="p-0.5 bg-white rounded shadow-md hover:bg-gray-100 text-blue-600 text-[10px]"
+                  >
+                    <Icon icon="heroicons:arrows-pointing-out" class="h-3 w-3" />
+                  </button>
+                </div>
               </div>
             {/each}
             {#if day.courses.length > 3}
@@ -810,6 +983,105 @@
     </div>
   {/if}
 </div>
+
+<!-- Modal de déplacement/copie -->
+{#if showMoveModal && selectedCourse}
+  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-lg font-medium text-gray-900">
+          {moveAction === 'copy' ? 'Copier' : 'Déplacer'} le cours
+        </h3>
+        <button
+          on:click={closeMoveModal}
+          class="text-gray-400 hover:text-gray-600"
+        >
+          <Icon icon="heroicons:x-mark" class="h-6 w-6" />
+        </button>
+      </div>
+      
+      <div class="space-y-4">
+        <!-- Informations du cours -->
+        <div class="bg-gray-50 p-3 rounded-md">
+          <p class="text-sm font-medium text-gray-700">{selectedCourse.matiere_nom}</p>
+          <p class="text-sm text-gray-600">{selectedCourse.professeur_nom} • {selectedCourse.classe_nom}</p>
+          <p class="text-sm text-gray-500">Actuellement: {selectedCourse.jour} {selectedCourse.heure_debut} - {selectedCourse.heure_fin}</p>
+        </div>
+        
+        <!-- Nouvelle date -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Nouvelle date
+          </label>
+          <input
+            type="date"
+            bind:value={moveDate}
+            class="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+          />
+        </div>
+        
+        <!-- Nouvelle heure -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Nouvelle heure de début
+          </label>
+          <input
+            type="time"
+            bind:value={moveHour}
+            class="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+          />
+          <p class="mt-1 text-xs text-gray-500">
+            Durée du cours: {getCourseDurationInMinutes(selectedCourse)} minutes
+          </p>
+        </div>
+        
+        <!-- Action -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Action
+          </label>
+          <div class="flex space-x-4">
+            <label class="flex items-center">
+              <input
+                type="radio"
+                bind:group={moveAction}
+                value="move"
+                checked
+                class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
+              />
+              <span class="ml-2 text-sm text-gray-700">Déplacer</span>
+            </label>
+            <label class="flex items-center">
+              <input
+                type="radio"
+                bind:group={moveAction}
+                value="copy"
+                class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+              />
+              <span class="ml-2 text-sm text-gray-700">Copier</span>
+            </label>
+          </div>
+        </div>
+        
+        <!-- Boutons -->
+        <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+          <button
+            on:click={closeMoveModal}
+            class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+          >
+            Annuler
+          </button>
+          <button
+            on:click={moveCourse}
+            class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+          >
+            {moveAction === 'copy' ? 'Copier' : 'Déplacer'}
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+{/if}
 
 <style>
   .overflow-x-auto::-webkit-scrollbar {
