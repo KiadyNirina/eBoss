@@ -8,7 +8,6 @@
   export let classesOptions = [];
   export let matieresOptions = [];
   export let professeursOptions = [];
-  export let loadCourses = () => {};
   
   let currentDate = new Date();
   let selectedDate = new Date();
@@ -489,6 +488,7 @@
   async function updateCourse(id, data) {
     try {
       await authApi.updateCours(id, data);
+      await refreshCourses();
       return true;
     } catch (err) {
       console.error('Erreur mise à jour:', err);
@@ -499,6 +499,7 @@
   async function createCourse(data) {
     try {
       await authApi.createCours(data);
+      await refreshCourses();
       return true;
     } catch (err) {
       console.error('Erreur création:', err);
@@ -509,10 +510,22 @@
   async function deleteCourse(id) {
     try {
       await authApi.deleteCours(id);
+      await refreshCourses();
       return true;
     } catch (err) {
       console.error('Erreur suppression:', err);
       throw err;
+    }
+  }
+
+  async function refreshCourses() {
+    try {
+      const data = await authApi.getCours();
+      courses = data.results || data;
+      applyFilters(); 
+      generateCalendar();
+    } catch (err) {
+      console.error('Erreur rafraîchissement:', err);
     }
   }
   
@@ -524,11 +537,6 @@
     try {
       await deleteCourse(course.id);
       alert('Cours supprimé avec succès !');
-      
-      // Recharger les cours
-      const newCourses = await authApi.getCours();
-      courses = newCourses.results || newCourses;
-      
     } catch (err) {
       alert('Erreur: ' + (err.message || 'Impossible de supprimer le cours'));
       console.error('Erreur:', err);

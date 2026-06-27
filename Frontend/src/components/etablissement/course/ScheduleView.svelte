@@ -93,7 +93,11 @@
     }
   }
   
-  // Fonction pour ouvrir le modal d'ajout de cours
+  async function refreshCoursesFromCalendar() {
+    await loadCourses();
+    courses = [...courses];
+  }
+  
   function openAddCourse() {
     activeTab = 'courses';
     showCourseForm = true;
@@ -105,6 +109,7 @@
   
   function handleCourseFormClose() {
     showCourseForm = false;
+    loadCourses();
   }
   
   function getCourseCount() {
@@ -113,10 +118,6 @@
   
   function getRoomCount() {
     return rooms.length;
-  }
-
-  async function reloadCourses() {
-    await loadCourses();
   }
 </script>
 
@@ -223,7 +224,7 @@
             {classesOptions}
             {matieresOptions}
             {professeursOptions}
-            loadCourses={reloadCourses}
+            onRefresh={refreshCoursesFromCalendar}
           />
         {/if}
       </div>
