@@ -79,7 +79,7 @@
           {#each userTypes as type}
             <button
               on:click={() => activeTab = type.id}
-              class={`px-4 py-2 rounded-md flex items-center space-x-2 whitespace-nowrap ${activeTab === type.id ? 'bg-green-100 text-green-700' : 'text-gray-600 hover:bg-gray-100'}`}
+              class={`px-4 py-2 rounded-md flex items-center space-x-2 whitespace-nowrap ${activeTab === type.id ? 'bg-green-100 text-[#20784d]' : 'text-gray-600 hover:bg-gray-100'}`}
             >
               <Icon icon={type.icon} class="h-5 w-5" />
               <span>{type.label}</span>
@@ -115,7 +115,7 @@
               autocomplete="email"
               bind:value={email}
               required
-              class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#20784d] focus:border-[#20784d] sm:text-sm"
             />
           </div>
         </div>
@@ -132,7 +132,7 @@
               autocomplete="current-password"
               bind:value={password}
               required
-              class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#20784d] focus:border-[#20784d] sm:text-sm"
             />
           </div>
         </div>
@@ -144,7 +144,7 @@
               name="remember-me"
               type="checkbox"
               bind:checked={rememberMe}
-              class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded"
+              class="h-4 w-4 text-[#20784d] focus:ring-[#20784d] border-gray-300 rounded"
             />
             <label for="remember-me" class="ml-2 block text-sm text-gray-900">
               Se souvenir de moi
@@ -152,7 +152,7 @@
           </div>
 
           <div class="text-sm">
-            <a href="/forgot-password" class="font-medium text-green-600 hover:text-green-500">
+            <a href="/forgot-password" class="font-medium text-[#20784d] hover:text-[#20784d]">
               Mot de passe oublié ?
             </a>
           </div>
@@ -162,7 +162,7 @@
           <button
             type="submit"
             disabled={isLoading}
-            class={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+            class={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#20784d] hover:bg-[#20784d] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#20784d] ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
             {#if isLoading}
               <Icon icon="heroicons:arrow-path" class="animate-spin h-5 w-5 mr-2" />
@@ -189,7 +189,7 @@
         <div class="mt-6">
           <a
             href="/signup"
-            class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#20784d]"
           >
             S'inscrire
           </a>
