@@ -628,8 +628,12 @@
                 
                 <!-- Message si aucun cours -->
                 {#if !calendarDays.some(d => d.courses.length > 0)}
-                  <div class="absolute inset-0 flex items-center justify-center text-gray-400 text-sm">
-                    Aucun cours pour cette journée
+                  <div class="absolute inset-0 no-course-pattern flex items-center justify-center">
+                    <div class="backdrop-blur-sm px-4 py-2 rounded-lg">
+                      <p class="text-sm font-medium text-gray-500">
+                        Aucun cours pour cette journée
+                      </p>
+                    </div>
                   </div>
                 {/if}
                 
@@ -670,8 +674,10 @@
                   
                   <!-- Message si aucun cours -->
                   {#if !calendarDays.some(d => d.dayIndex === dayIndex && d.courses.length > 0)}
-                    <div class="absolute inset-0 flex items-center justify-center text-gray-400 text-xs">
-                      Aucun cours
+                    <div class="absolute inset-0 no-course-pattern flex items-center justify-center">
+                      <span class="backdrop-blur-sm px-4 py-2 rounded-lg text-xs font-medium text-gray-500">
+                        Aucun cours
+                      </span>
                     </div>
                   {/if}
                   
@@ -830,5 +836,16 @@
   
   .shadow-sm:hover {
     box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+
+  .no-course-pattern {
+    background-image:
+      repeating-linear-gradient(
+        -45deg,
+        transparent 0,
+        transparent 12px,
+        rgba(115, 118, 122, 0.612) 12px,
+        rgba(209, 213, 219, 0.726) 13px
+      );
   }
 </style>
