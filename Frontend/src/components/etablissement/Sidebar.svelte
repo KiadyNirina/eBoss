@@ -8,6 +8,7 @@
   const navigation = [
     { name: 'Tableau de bord', icon: 'heroicons:home', href: '/etablissement/dashboard' },
     { name: 'Étudiants', icon: 'heroicons:user-group', href: '/etablissement/etudiants' },
+    { name: 'Classes', icon: 'heroicons:academic-cap', href: '/etablissement/classes', badge: 'new' },
     { name: 'Professeurs', icon: 'heroicons:academic-cap', href: '/etablissement/professeurs' },
     { name: 'Cours & Emploi du temps', icon: 'heroicons:calendar', href: '/etablissement/cours' },
     { name: 'Notes & Évaluations', icon: 'mdi:clipboard-list-outline', href: '/etablissement/notes' },
@@ -52,7 +53,12 @@
               ? 'text-green-500'
               : 'text-gray-400 group-hover:text-gray-500'}"
           />
-          {item.name}
+          <span class="flex-1">{item.name}</span>
+          {#if item.badge}
+            <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+              {item.badge}
+            </span>
+          {/if}
         </a>
       {/each}
     </nav>

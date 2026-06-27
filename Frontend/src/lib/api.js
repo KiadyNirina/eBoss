@@ -199,14 +199,25 @@ export const authApi = {
         body: JSON.stringify(data),
     }).then(response => response.json()),
 
+    // Gestion des classes
     getClasses: (filters = {}) => {
         const query = new URLSearchParams(filters).toString();
         return fetchWithAuth(`/api/classes/?${query}`).then(response => response.json());
     },
+
     createClasse: (data) => fetchWithAuth('/api/classes/', {
         method: 'POST',
         body: JSON.stringify(data),
     }).then(response => response.json()),
+
+    updateClasse: (id, data) => fetchWithAuth(`/api/classes/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    }).then(response => response.json()),
+
+    deleteClasse: (id) => fetchWithAuth(`/api/classes/${id}/`, {
+        method: 'DELETE',
+    }).then(() => ({ message: 'Classe supprimée' })),
 
     getMatieres: () => 
         fetchWithAuth('/api/matieres/')
