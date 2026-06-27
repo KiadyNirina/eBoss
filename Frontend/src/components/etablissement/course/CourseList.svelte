@@ -135,10 +135,7 @@
       const month = String(today.getMonth() + 1).padStart(2, '0');
       const day = String(today.getDate()).padStart(2, '0');
       newCours.date_specifique = `${year}-${month}-${day}`;
-      const dateObj = new Date(newCours.date_specifique + 'T00:00:00');
-      const dayIndex = dateObj.getDay();
-      const jourMap = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
-      newCours.jour = jourMap[dayIndex === 0 ? 6 : dayIndex - 1];
+      handleDateChange();
     } else if (newCours.type_cours === 'regulier') {
       newCours.date_specifique = '';
       if (!newCours.jour) {
@@ -154,7 +151,7 @@
       const dateObj = new Date(newCours.date_specifique + 'T00:00:00');
       const dayIndex = dateObj.getDay();
       const jourMap = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
-      newCours.jour = jourMap[dayIndex === 0 ? 6 : dayIndex - 1];
+      newCours.jour = jourMap[dayIndex];
     }
   }
   
@@ -194,10 +191,7 @@
     };
     // Si c'est un cours spécifique avec une date, mettre à jour le jour
     if (newCours.type_cours === 'specifique' && newCours.date_specifique) {
-      const dateObj = new Date(newCours.date_specifique + 'T00:00:00');
-      const dayIndex = dateObj.getDay();
-      const jourMap = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
-      newCours.jour = jourMap[dayIndex === 0 ? 6 : dayIndex - 1];
+      handleDateChange();
     }
     openForm = true;
     dispatch('open'); 
