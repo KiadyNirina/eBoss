@@ -60,8 +60,8 @@
 
 <div class="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
   <div class="sm:mx-auto sm:w-full sm:max-w-md">
-    <a href="/" class="flex h-12 w-12 mx-auto">
-      <img src="/icons/logo.png" class="h-12 w-12" alt="Logo">
+    <a href="/" class="flex justify-center h-12 mx-auto">
+      <img src="/icons/favicon.png" class="h-12" alt="Logo">
     </a>
     <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
       Connectez-vous à votre compte

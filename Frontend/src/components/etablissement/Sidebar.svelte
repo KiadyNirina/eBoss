@@ -21,9 +21,8 @@
 
 <div class="flex flex-col h-full">
   <!-- Logo -->
-  <div class="flex items-center h-16 flex-shrink-0 px-4 bg-green-600">
-    <img src="/icons/logo.png" class="h-8 w-8" alt="" />
-    <span class="ml-2 text-xl font-bold text-white">eBoss</span>
+  <div class="flex items-center h-16 flex-shrink-0 px-4">
+    <img src="/icons/logo.png" class="h-10" alt="" />
 
     {#if onClose}
       <button

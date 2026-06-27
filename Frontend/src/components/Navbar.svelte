@@ -10,8 +10,7 @@
     <div class="flex justify-between h-16">
       <div class="flex items-center">
         <Icon icon="fluent:school-24-filled" class="h-8 w-8 text-green-600" />
-        <img src="/icons/logo.png" class="h-8 w-8" alt="">
-        <span class="ml-2 text-xl font-bold text-gray-900">eBoss</span>
+        <img src="/icons/logo.png" class="h-10" alt="">
       </div>
       
       <div class="hidden md:flex items-center space-x-8">
