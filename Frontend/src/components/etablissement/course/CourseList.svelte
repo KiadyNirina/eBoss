@@ -636,7 +636,10 @@
                 Classe
               </th>
               <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Jour/Horaire
+                Date / Jour
+              </th>
+              <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                Horaire
               </th>
               <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Salle
@@ -668,9 +671,32 @@
                   </span>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">
+                  {#if cours.date_specifique}
+                    <div class="flex items-center">
+                      <span class="text-orange-500 mr-1">📅</span>
+                      <span class="text-sm font-medium text-gray-900">
+                        {new Date(cours.date_specifique + 'T00:00:00').toLocaleString('fr-FR', { 
+                          day: 'numeric', 
+                          month: 'short', 
+                          year: 'numeric' 
+                        })}
+                      </span>
+                    </div>
+                    <div class="text-xs text-gray-400">
+                      ({cours.jour})
+                    </div>
+                  {:else}
+                    <div class="text-sm text-gray-900 capitalize">
+                      {cours.jour}
+                    </div>
+                    <div class="text-xs text-gray-400">
+                      Régulier
+                    </div>
+                  {/if}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
                   <div class="text-sm text-gray-900">
-                    <span class="font-medium">{getJourLabel(cours.jour)}</span>
-                    <span class="text-gray-500 ml-1">{cours.heure_debut} - {cours.heure_fin}</span>
+                    {cours.heure_debut} - {cours.heure_fin}
                   </div>
                 </td>
                 <td class="px-6 py-4 whitespace-nowrap">

@@ -248,12 +248,17 @@
     });
   }
 
+  function getJourLabel(jour) {
+    const found = JOURS.find(j => j.value === jour);
+    return found ? found.label : jour;
+  }
+
   function getCourseDisplayDate(course) {
     if (course.date_specifique) {
       const date = new Date(course.date_specifique + 'T00:00:00');
       return date.toLocaleString('fr-FR', { day: 'numeric', month: 'short' });
     }
-    return course.jour;
+    return getJourLabel(course.jour);
   }
   
   function formatDate(date) {
@@ -399,6 +404,12 @@
     } else {
       moveDate = formatDate(new Date());
     }
+    
+    // Si le cours a une date spécifique, l'utiliser
+    if (course.date_specifique) {
+      moveDate = course.date_specifique;
+    }
+    
     moveHour = course.heure_debut;
     showMoveModal = true;
   }
@@ -422,23 +433,20 @@
     }
     
     try {
-      // Extraire le jour de la semaine depuis la date sélectionnée
       const dateObj = new Date(moveDate + 'T00:00:00');
-      const dayIndex = dateObj.getDay(); // 0 = dimanche
+      const dayIndex = dateObj.getDay();
       const jourMap = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
       const newJour = jourMap[dayIndex === 0 ? 6 : dayIndex - 1];
       
-      // Récupérer la durée du cours
-      const startHour = selectedCourse.heure_debut;
-      const endHour = selectedCourse.heure_fin;
       const duration = getCourseDurationInMinutes(selectedCourse);
-      
-      // Calculer la nouvelle heure de fin
       const [h, m] = moveHour.split(':').map(Number);
       const endMinutes = h * 60 + m + duration;
       const endH = Math.floor(endMinutes / 60);
       const endM = endMinutes % 60;
       const newEndHour = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
+      
+      // Vérifier si la date est un jour spécifique ou régulier
+      const isSpecificDate = moveDate !== formatDate(getDateForCourse(selectedCourse));
       
       const courseData = {
         classe: selectedCourse.classe,
@@ -449,29 +457,62 @@
         heure_debut: moveHour,
         heure_fin: newEndHour,
         annee_scolaire: selectedCourse.annee_scolaire,
-        etablissement: selectedCourse.etablissement
+        etablissement: selectedCourse.etablissement,
+        date_specifique: isSpecificDate ? moveDate : null // Si la date change, on la rend spécifique
       };
       
+      // Si c'est une copie, on garde la date spécifique
       if (moveAction === 'copy') {
-        // Créer un nouveau cours
-        await authApi.createCours(courseData);
+        // Pour une copie, on garde la date spécifique si elle existe
+        if (selectedCourse.date_specifique) {
+          courseData.date_specifique = moveDate;
+        }
+        await createCourse(courseData);
         alert('Cours copié avec succès !');
       } else {
-        // Modifier le cours existant
-        await authApi.updateCours(selectedCourse.id, courseData);
+        // Pour un déplacement, on utilise la nouvelle date
+        await updateCourse(selectedCourse.id, courseData);
         alert('Cours déplacé avec succès !');
       }
       
       showMoveModal = false;
       selectedCourse = null;
       
-      // Recharger les cours
-      await loadCourses();
-      generateCalendar();
-      
+      const newCourses = await authApi.getCours();
+      courses = newCourses.results || newCourses;
     } catch (err) {
       alert('Erreur: ' + (err.message || 'Impossible de déplacer le cours'));
       console.error('Erreur:', err);
+    }
+  }
+
+  async function updateCourse(id, data) {
+    try {
+      await authApi.updateCours(id, data);
+      return true;
+    } catch (err) {
+      console.error('Erreur mise à jour:', err);
+      throw err;
+    }
+  }
+  
+  async function createCourse(data) {
+    try {
+      await authApi.createCours(data);
+      return true;
+    } catch (err) {
+      console.error('Erreur création:', err);
+      throw err;
+    }
+  }
+
+  async function deleteCourse(id) {
+    try {
+      await authApi.deleteCours(id);
+      return true;
+    } catch (err) {
+      console.error('Erreur suppression:', err);
+      throw err;
     }
   }
   
@@ -481,10 +522,13 @@
     if (!confirm(`Supprimer le cours "${course.matiere_nom}" du ${course.jour} ?`)) return;
     
     try {
-      await authApi.deleteCours(course.id);
+      await deleteCourse(course.id);
       alert('Cours supprimé avec succès !');
-      await loadCourses();
-      generateCalendar();
+      
+      // Recharger les cours
+      const newCourses = await authApi.getCours();
+      courses = newCourses.results || newCourses;
+      
     } catch (err) {
       alert('Erreur: ' + (err.message || 'Impossible de supprimer le cours'));
       console.error('Erreur:', err);
@@ -787,15 +831,13 @@
                         <div class="text-xs text-gray-600 truncate">
                           {course.professeur_nom}
                         </div>
-                        <div class="text-xs text-gray-500 truncate">
+                        <div class="text-xs text-gray-500 truncate flex items-center gap-1">
                           {#if course.date_specifique}
-                            <span class="text-orange-500 font-medium">
-                              📅 {getCourseDisplayDate(course)}
-                            </span>
-                          {:else}
-                            {course.classe_nom}
+                            <span class="text-orange-500">📅</span>
+                            <span class="text-orange-600 text-[10px]">{getCourseDisplayDate(course)}</span>
+                            <span class="text-gray-400">•</span>
                           {/if}
-                          • {getCourseDuration(course)}
+                          {course.classe_nom} • {getCourseDuration(course)}
                           {#if course.salle_nom}
                             • {course.salle_nom}
                           {/if}
@@ -903,14 +945,17 @@
           <div class="mt-1 space-y-1">
             {#each day.courses.slice(0, 3) as course, index}
               <div 
-                class={`${getColorForCourse(course, index).bg} ${getColorForCourse(course, index).text} border rounded text-xs p-1 truncate cursor-pointer group relative`}
+                class={`${getColorForCourse(course, index).bg} ${getColorForCourse(course, index).text} border rounded text-xs p-1 truncate cursor-pointer group relative ${course.date_specifique ? 'border-orange-200 border-2' : ''}`}
                 on:click={() => selectDate(day.date)}
               >
                 <span class="font-medium">{course.matiere_nom}</span>
                 <span class="text-gray-500 ml-1">{course.heure_debut}</span>
                 <span class="text-gray-400 ml-1 text-[10px]">{course.classe_nom}</span>
+                {#if course.date_specifique}
+                  <span class="text-orange-500 ml-1 text-[10px]">📅</span>
+                {/if}
                 
-                <!-- Boutons d'action en hover -->
+                <!-- Boutons d'action -->
                 <div class="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-0.5">
                   <button
                     on:click|stopPropagation={(e) => openMoveModal(course, e)}
@@ -1005,13 +1050,33 @@
         <div class="bg-gray-50 p-3 rounded-md">
           <p class="text-sm font-medium text-gray-700">{selectedCourse.matiere_nom}</p>
           <p class="text-sm text-gray-600">{selectedCourse.professeur_nom} • {selectedCourse.classe_nom}</p>
-          <p class="text-sm text-gray-500">Actuellement: {selectedCourse.jour} {selectedCourse.heure_debut} - {selectedCourse.heure_fin}</p>
+          <p class="text-sm text-gray-500">
+            Actuellement: 
+            {#if selectedCourse.date_specifique}
+              <span class="text-orange-500 font-medium">
+                📅 {new Date(selectedCourse.date_specifique + 'T00:00:00').toLocaleString('fr-FR', { 
+                  day: 'numeric', 
+                  month: 'short', 
+                  year: 'numeric' 
+                })}
+              </span>
+            {:else}
+              {selectedCourse.jour}
+            {/if}
+            {selectedCourse.heure_debut} - {selectedCourse.heure_fin}
+          </p>
+          {#if selectedCourse.date_specifique}
+            <p class="text-xs text-orange-600 mt-1">
+              ⚠️ Cours exceptionnel (date spécifique)
+            </p>
+          {/if}
         </div>
         
         <!-- Nouvelle date -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">
             Nouvelle date
+            <span class="text-gray-400 text-xs font-normal">(sera marquée comme spécifique)</span>
           </label>
           <input
             type="date"
