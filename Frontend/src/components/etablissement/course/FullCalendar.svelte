@@ -29,6 +29,7 @@
   let moveDate = '';
   let moveHour = '';
   let moveAction = 'move'; 
+  let moveType = 'regulier'; 
   
   // Cours filtrés
   let filteredCourses = [];
@@ -230,20 +231,24 @@
   function getCoursesForDate(date) {
     const dateStr = formatDate(date);
     return filteredCourses.filter(c => {
-      // Si le cours a une date spécifique, on l'affiche uniquement ce jour-là
-      if (c.date_specifique) {
+      // Si le cours est spécifique, on vérifie la date exacte
+      if (c.type_cours === 'specifique' && c.date_specifique) {
         return c.date_specifique === dateStr;
       }
       
-      // Sinon, on utilise le jour de la semaine
-      const jourIndex = JOURS.findIndex(j => j.value === c.jour);
-      if (jourIndex === -1) return false;
+      // Si le cours est régulier, on vérifie le jour de la semaine
+      if (c.type_cours === 'regulier' || !c.date_specifique) {
+        const jourIndex = JOURS.findIndex(j => j.value === c.jour);
+        if (jourIndex === -1) return false;
+        
+        const monday = getWeekStart(date);
+        const courseDate = new Date(monday);
+        courseDate.setDate(monday.getDate() + jourIndex);
+        
+        return isSameDay(courseDate, date);
+      }
       
-      const monday = getWeekStart(date);
-      const courseDate = new Date(monday);
-      courseDate.setDate(monday.getDate() + jourIndex);
-      
-      return isSameDay(courseDate, date);
+      return false;
     });
   }
 
@@ -407,6 +412,9 @@
     // Si le cours a une date spécifique, l'utiliser
     if (course.date_specifique) {
       moveDate = course.date_specifique;
+      moveType = 'specifique';
+    } else {
+      moveType = 'regulier';
     }
     
     moveHour = course.heure_debut;
@@ -444,8 +452,36 @@
       const endM = endMinutes % 60;
       const newEndHour = `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`;
       
-      // Vérifier si la date est un jour spécifique ou régulier
-      const isSpecificDate = moveDate !== formatDate(getDateForCourse(selectedCourse));
+      // Déterminer le type et la date
+      let typeCours = 'regulier';
+      let dateSpecifique = null;
+      
+      if (moveType === 'specifique') {
+        typeCours = 'specifique';
+        dateSpecifique = moveDate;
+      } else {
+        // Si régulier, on vérifie si la date correspond au jour de la semaine
+        const currentDate = new Date();
+        const selectedDate = new Date(moveDate + 'T00:00:00');
+        const daysDiff = Math.floor((selectedDate - currentDate) / (1000 * 60 * 60 * 24));
+        
+        // Si la date est dans le futur et différente, on propose de la rendre spécifique
+        if (daysDiff !== 0 && daysDiff % 7 !== 0) {
+          if (!confirm('Cette date ne correspond pas au jour habituel. Voulez-vous en faire un cours spécifique ?')) {
+            // L'utilisateur annule, on garde le jour normal
+            const today = new Date();
+            const todayDayIndex = today.getDay();
+            const todayJour = jourMap[todayDayIndex === 0 ? 6 : todayDayIndex - 1];
+            if (todayJour !== newJour) {
+              typeCours = 'specifique';
+              dateSpecifique = moveDate;
+            }
+          } else {
+            typeCours = 'specifique';
+            dateSpecifique = moveDate;
+          }
+        }
+      }
       
       const courseData = {
         classe: selectedCourse.classe,
@@ -457,15 +493,12 @@
         heure_fin: newEndHour,
         annee_scolaire: selectedCourse.annee_scolaire,
         etablissement: selectedCourse.etablissement,
-        date_specifique: isSpecificDate ? moveDate : null // Si la date change, on la rend spécifique
+        date_specifique: dateSpecifique,
+        type_cours: typeCours
       };
       
       // Si c'est une copie, on garde la date spécifique
       if (moveAction === 'copy') {
-        // Pour une copie, on garde la date spécifique si elle existe
-        if (selectedCourse.date_specifique) {
-          courseData.date_specifique = moveDate;
-        }
         await createCourse(courseData);
         alert('Cours copié avec succès !');
       } else {
@@ -477,8 +510,6 @@
       showMoveModal = false;
       selectedCourse = null;
       
-      const newCourses = await authApi.getCours();
-      courses = newCourses.results || newCourses;
     } catch (err) {
       alert('Erreur: ' + (err.message || 'Impossible de déplacer le cours'));
       console.error('Erreur:', err);
@@ -1060,7 +1091,7 @@
           <p class="text-sm text-gray-600">{selectedCourse.professeur_nom} • {selectedCourse.classe_nom}</p>
           <p class="text-sm text-gray-500">
             Actuellement: 
-            {#if selectedCourse.date_specifique}
+            {#if selectedCourse.type_cours === 'specifique'}
               <span class="text-orange-500 font-medium">
                 📅 {new Date(selectedCourse.date_specifique + 'T00:00:00').toLocaleString('fr-FR', { 
                   day: 'numeric', 
@@ -1073,24 +1104,55 @@
             {/if}
             {selectedCourse.heure_debut} - {selectedCourse.heure_fin}
           </p>
-          {#if selectedCourse.date_specifique}
-            <p class="text-xs text-orange-600 mt-1">
-              ⚠️ Cours exceptionnel (date spécifique)
-            </p>
-          {/if}
+          <p class="text-xs text-gray-500 mt-1">
+            Type: <span class="font-medium">{selectedCourse.type_cours}</span>
+          </p>
         </div>
         
         <!-- Nouvelle date -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">
             Nouvelle date
-            <span class="text-gray-400 text-xs font-normal">(sera marquée comme spécifique)</span>
           </label>
           <input
             type="date"
             bind:value={moveDate}
             class="w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
           />
+        </div>
+        
+        <!-- Type de cours -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">
+            Type de cours
+          </label>
+          <div class="flex space-x-4">
+            <label class="flex items-center">
+              <input
+                type="radio"
+                bind:group={moveType}
+                value="regulier"
+                class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
+              />
+              <span class="ml-2 text-sm text-gray-700">Régulier (chaque semaine)</span>
+            </label>
+            <label class="flex items-center">
+              <input
+                type="radio"
+                bind:group={moveType}
+                value="specifique"
+                class="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300"
+              />
+              <span class="ml-2 text-sm text-gray-700">Spécifique (date unique)</span>
+            </label>
+          </div>
+          <p class="mt-1 text-xs text-gray-400">
+            {#if moveType === 'regulier'}
+              Le cours sera affiché chaque semaine à cette heure
+            {:else}
+              Le cours sera affiché uniquement à cette date
+            {/if}
+          </p>
         </div>
         
         <!-- Nouvelle heure -->

@@ -33,7 +33,8 @@
     heure_debut: '08:00',
     heure_fin: '09:30',
     annee_scolaire: '',
-    date_specifique: '' 
+    date_specifique: '',
+    type_cours: 'regulier'
   };
   
   // Filtres
@@ -127,6 +128,25 @@
     dispatch('open');
   }
 
+  function handleTypeChange() {
+    if (newCours.type_cours === 'specifique' && !newCours.date_specifique) {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      newCours.date_specifique = `${year}-${month}-${day}`;
+      const dateObj = new Date(newCours.date_specifique + 'T00:00:00');
+      const dayIndex = dateObj.getDay();
+      const jourMap = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+      newCours.jour = jourMap[dayIndex === 0 ? 6 : dayIndex - 1];
+    } else if (newCours.type_cours === 'regulier') {
+      newCours.date_specifique = '';
+      if (!newCours.jour) {
+        newCours.jour = 'lundi';
+      }
+    }
+  }
+
   // Fonction pour gérer le changement de date
   function handleDateChange() {
     if (newCours.date_specifique) {
@@ -149,8 +169,9 @@
       jour: 'lundi',
       heure_debut: '08:00',
       heure_fin: '09:30',
-      annee_scolaire: newCours.annee_scolaire || '',
-      date_specifique: ''
+      annee_scolaire: '',
+      date_specifique: '',
+      type_cours: 'regulier'
     };
     openForm = false;
     dispatch('close');
@@ -168,8 +189,16 @@
       heure_debut: cours.heure_debut,
       heure_fin: cours.heure_fin,
       annee_scolaire: cours.annee_scolaire,
-      date_specifique: cours.date_specifique || ''
+      date_specifique: cours.date_specifique || '',
+      type_cours: cours.type_cours || 'regulier'
     };
+    // Si c'est un cours spécifique avec une date, mettre à jour le jour
+    if (newCours.type_cours === 'specifique' && newCours.date_specifique) {
+      const dateObj = new Date(newCours.date_specifique + 'T00:00:00');
+      const dayIndex = dateObj.getDay();
+      const jourMap = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+      newCours.jour = jourMap[dayIndex === 0 ? 6 : dayIndex - 1];
+    }
     openForm = true;
     dispatch('open'); 
   }
@@ -186,7 +215,21 @@
       setTimeout(() => error = null, 3000);
       return;
     }
+
+    if (newCours.type_cours === 'specifique' && !newCours.date_specifique) {
+      error = 'Les cours spécifiques doivent avoir une date';
+      setTimeout(() => error = null, 3000);
+      return;
+    }
     
+    if (newCours.type_cours === 'regulier' && newCours.date_specifique) {
+      if (!confirm('Ce cours est défini comme régulier mais une date spécifique est présente. Voulez-vous le passer en spécifique ?')) {
+        newCours.date_specifique = '';
+      } else {
+        newCours.type_cours = 'specifique';
+      }
+    }
+
     loading = true;
     error = null;
     
@@ -195,6 +238,7 @@
       const etablissementId = profile.profile?.id || profile.etablissement?.id;
       
       if (!etablissementId) {
+        error = '❌ Établissement non trouvé. Veuillez vous reconnecter.';
         throw new Error('Établissement non trouvé');
       }
       
@@ -208,7 +252,8 @@
         heure_fin: newCours.heure_fin,
         annee_scolaire: parseInt(newCours.annee_scolaire),
         etablissement: etablissementId,
-        date_specifique: newCours.date_specifique || null
+        date_specifique: newCours.type_cours === 'specifique' ? newCours.date_specifique : null,
+        type_cours: newCours.type_cours
       };
       
       if (isEditing && currentCoursId) {
@@ -223,9 +268,20 @@
       resetForm();
       await loadCourses();
     } catch (err) {
-      error = err.message || 'Erreur lors de la sauvegarde';
+      let errorMessage = '❌ Erreur lors de la sauvegarde: ';
+      if (err.response && err.response.data) {
+        if (typeof err.response.data === 'object') {
+          const errors = Object.values(err.response.data).flat();
+          errorMessage += errors.join(', ');
+        } else {
+          errorMessage += err.response.data || err.message;
+        }
+      } else {
+        errorMessage += err.message || 'Erreur inconnue';
+      }
+      error = errorMessage;
       console.error('Erreur:', err);
-      setTimeout(() => error = null, 3000);
+      setTimeout(() => error = null, 7000);
     } finally {
       loading = false;
     }
@@ -394,15 +450,78 @@
           {/each}
         </select>
       </div>
+
+      <!-- Type de cours -->
+      <div>
+        <label class="block text-xs font-medium text-gray-700 mb-1">
+          Type de cours <span class="text-red-500">*</span>
+        </label>
+        <div class="flex space-x-4 mt-1">
+          <label class="flex items-center">
+            <input
+              type="radio"
+              bind:group={newCours.type_cours}
+              value="regulier"
+              on:change={handleTypeChange}
+              class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300"
+            />
+            <div class="leading-tight">
+              <span class="block ml-1.5 text-sm text-gray-700">Régulier</span>
+              <span class="block ml-1 text-xs text-gray-400">(chaque semaine)</span>
+            </div>
+          </label>
+          <label class="flex items-center">
+            <input
+              type="radio"
+              bind:group={newCours.type_cours}
+              value="specifique"
+              on:change={handleTypeChange}
+              class="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300"
+            />
+            <div class="leading-tight">
+              <span class="block ml-1.5 text-sm text-gray-700">Spécifique</span>
+              <span class="block ml-1 text-xs text-gray-400">(date unique)</span>
+            </div>
+          </label>
+        </div>
+        <p class="mt-0.5 text-[10px] text-gray-400">
+          {#if newCours.type_cours === 'regulier'}
+            Le cours sera répété chaque semaine
+          {:else}
+            Le cours aura lieu à une date unique
+          {/if}
+        </p>
+      </div>
       
+      <!-- Date spécifique (visible seulement si type = specifique) -->
+      {#if newCours.type_cours === 'specifique'}
+        <div>
+          <label for="cours-date-specifique" class="block text-xs font-medium text-gray-700">
+            Date spécifique <span class="text-red-500">*</span>
+          </label>
+          <input
+            type="date"
+            id="cours-date-specifique"
+            bind:value={newCours.date_specifique}
+            on:change={handleDateChange}
+            class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1.5 px-3 focus:outline-none focus:ring-orange-500 focus:border-orange-500 sm:text-sm"
+          />
+        </div>
+      {/if}
+      
+      <!-- Jour (désactivé si spécifique) -->
       <div>
         <label for="cours-jour" class="block text-xs font-medium text-gray-700">
           Jour <span class="text-red-500">*</span>
+          {#if newCours.type_cours === 'specifique'}
+            <span class="text-orange-500 text-[10px]">(auto)</span>
+          {/if}
         </label>
         <select
           id="cours-jour"
           bind:value={newCours.jour}
-          class="mt-1 block w-full pl-3 pr-10 py-1.5 text-sm border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 rounded-md"
+          disabled={newCours.type_cours === 'specifique'}
+          class="mt-1 block w-full pl-3 pr-10 py-1.5 text-sm border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
         >
           {#each JOURS as jour}
             <option value={jour.value}>{jour.label}</option>
@@ -410,6 +529,7 @@
         </select>
       </div>
       
+      <!-- Heures -->
       <div>
         <label for="cours-heure-debut" class="block text-xs font-medium text-gray-700">
           Heure début <span class="text-red-500">*</span>
@@ -434,6 +554,7 @@
         />
       </div>
       
+      <!-- Année scolaire -->
       <div>
         <label for="cours-annee" class="block text-xs font-medium text-gray-700">
           Année <span class="text-red-500">*</span>
@@ -446,43 +567,6 @@
           <option value="">Sélectionner</option>
           {#each anneesOptions as option}
             <option value={option.value}>{option.label}</option>
-          {/each}
-        </select>
-      </div>
-
-      <div>
-        <label for="cours-date-specifique" class="block text-xs font-medium text-gray-700">
-          Date spécifique
-          <span class="text-gray-400 text-[10px]">(optionnel)</span>
-        </label>
-        <input
-          type="date"
-          id="cours-date-specifique"
-          bind:value={newCours.date_specifique}
-          on:change={handleDateChange}
-          class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-1.5 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-        />
-        <p class="mt-0.5 text-[10px] text-gray-400">
-          Laisser vide pour un cours régulier
-        </p>
-      </div>
-      
-      <!-- Champ Jour avec indication si date spécifique -->
-      <div>
-        <label for="cours-jour" class="block text-xs font-medium text-gray-700">
-          Jour <span class="text-red-500">*</span>
-          {#if newCours.date_specifique}
-            <span class="text-green-600 text-[10px]">(déterminé par la date)</span>
-          {/if}
-        </label>
-        <select
-          id="cours-jour"
-          bind:value={newCours.jour}
-          disabled={!!newCours.date_specifique}
-          class="mt-1 block w-full pl-3 pr-10 py-1.5 text-sm border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 rounded-md disabled:bg-gray-100 disabled:cursor-not-allowed"
-        >
-          {#each JOURS as jour}
-            <option value={jour.value}>{jour.label}</option>
           {/each}
         </select>
       </div>

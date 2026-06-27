@@ -127,6 +127,7 @@ class CoursSerializer(serializers.ModelSerializer):
     )
 
     date_specifique_formatted = serializers.SerializerMethodField()
+    type_cours_display = serializers.SerializerMethodField()
 
     class Meta:
         model = Cours
@@ -137,8 +138,17 @@ class CoursSerializer(serializers.ModelSerializer):
             return obj.date_specifique.strftime('%d/%m/%Y')
         return None
     
+    def get_type_cours_display(self, obj):
+        return dict(Cours.TYPE_CHOICES).get(obj.type_cours, obj.type_cours)
+    
     def validate(self, data):
-        # Validation : si date_specifique est fournie, elle doit être dans l'année scolaire
+        # Si type_cours est 'specifique', date_specifique est obligatoire
+        if data.get('type_cours') == 'specifique' and not data.get('date_specifique'):
+            raise serializers.ValidationError(
+                "Les cours spécifiques doivent avoir une date spécifique"
+            )
+        
+        # Si date_specifique est fournie, elle doit être dans l'année scolaire
         if data.get('date_specifique'):
             annee_scolaire = data.get('annee_scolaire')
             if annee_scolaire:
