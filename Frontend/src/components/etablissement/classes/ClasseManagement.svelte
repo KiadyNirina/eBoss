@@ -156,7 +156,7 @@
         niveau: newClasse.niveau,
         section: newClasse.section || null,
         etablissement: etablissementId,
-        annee_scolaire: parseInt(newClasse.annee_scolaire),
+        annee_scolaire_id: parseInt(newClasse.annee_scolaire), 
         professeur_principal: newClasse.professeur_principal ? parseInt(newClasse.professeur_principal) : null
       };
       
