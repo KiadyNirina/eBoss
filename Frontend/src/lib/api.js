@@ -223,6 +223,20 @@ export const authApi = {
         fetchWithAuth('/api/matieres/')
         .then(response => response.json()),
 
+    createMatiere: (data) => fetchWithAuth('/api/matieres/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }).then(response => response.json()),
+
+    updateMatiere: (id, data) => fetchWithAuth(`/api/matieres/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    }).then(response => response.json()),
+
+    deleteMatiere: (id) => fetchWithAuth(`/api/matieres/${id}/`, {
+        method: 'DELETE',
+    }).then(() => ({ message: 'Matière supprimée' })),
+
     getSalles: (filters = {}) => {
         const query = new URLSearchParams(filters).toString();
         return fetchWithAuth(`/api/salles/?${query}`).then(response => response.json());

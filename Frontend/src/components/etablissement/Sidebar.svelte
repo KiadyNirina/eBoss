@@ -9,6 +9,7 @@
     { name: 'Tableau de bord', icon: 'heroicons:home', href: '/etablissement/dashboard' },
     { name: 'Étudiants', icon: 'heroicons:user-group', href: '/etablissement/etudiants' },
     { name: 'Classes', icon: 'heroicons:academic-cap', href: '/etablissement/classes', badge: 'new' },
+    { name: 'Matières', icon: 'heroicons:book-open', href: '/etablissement/matieres' },
     { name: 'Professeurs', icon: 'heroicons:academic-cap', href: '/etablissement/professeurs' },
     { name: 'Cours & Emploi du temps', icon: 'heroicons:calendar', href: '/etablissement/cours' },
     { name: 'Notes & Évaluations', icon: 'mdi:clipboard-list-outline', href: '/etablissement/notes' },
