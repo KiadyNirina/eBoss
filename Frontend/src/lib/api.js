@@ -3,6 +3,39 @@ import { browser } from '$app/environment';
 
 const API_BASE_URL = 'http://127.0.0.1:8000/school';
 
+function formatDjangoError(errorData) {
+    if (!errorData) return 'Erreur inconnue';
+    
+    if (typeof errorData === 'string') {
+        return errorData;
+    }
+    
+    if (typeof errorData === 'object') {
+        const messages = [];
+        
+        for (const [key, value] of Object.entries(errorData)) {
+            if (typeof value === 'string') {
+                messages.push(`${key}: ${value}`);
+            }
+            else if (Array.isArray(value)) {
+                if (value.length > 0 && typeof value[0] === 'object') {
+                    const nestedErrors = value.map(item => formatDjangoError(item)).join('; ');
+                    messages.push(`${key}: ${nestedErrors}`);
+                } else {
+                    messages.push(`${key}: ${value.join(', ')}`);
+                }
+            }
+            else if (typeof value === 'object' && value !== null) {
+                messages.push(formatDjangoError(value));
+            }
+        }
+        
+        return messages.length > 0 ? messages.join('; ') : 'Erreur de validation';
+    }
+    
+    return String(errorData);
+}
+
 async function fetchWithAuth(endpoint, options = {}) {
     const accessToken = browser ? localStorage.getItem('access_token') : null;
     const refreshToken = browser ? localStorage.getItem('refresh_token') : null;
@@ -36,8 +69,43 @@ async function fetchWithAuth(endpoint, options = {}) {
     }
     
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || errorData.message || "Une erreur s'est produite");
+        let errorData = {};
+        let errorMessage = '';
+        
+        try {
+            errorData = await response.json();
+        } catch (e) {
+            const text = await response.text().catch(() => '');
+            errorMessage = text || `Erreur ${response.status}: ${response.statusText}`;
+        }
+        
+        if (errorData) {
+            if (errorData.detail) {
+                errorMessage = errorData.detail;
+            } 
+            else if (typeof errorData === 'object') {
+                errorMessage = formatDjangoError(errorData);
+            }
+            else {
+                errorMessage = String(errorData);
+            }
+        }
+        
+        const error = new Error(errorMessage);
+        error.response = {
+            status: response.status,
+            data: errorData,
+            statusText: response.statusText
+        };
+        
+        console.error('API Error:', {
+            endpoint,
+            status: response.status,
+            data: errorData,
+            message: errorMessage
+        });
+        
+        throw error;
     }
     
     return response;
@@ -69,8 +137,28 @@ async function registerPublic(endpoint, data) {
     });
 
     if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.detail || errorData.message || "Erreur lors de l'inscription");
+        let errorData = {};
+        let errorMessage = '';
+        
+        try {
+            errorData = await response.json();
+        } catch (e) {
+            errorMessage = await response.text().catch(() => '');
+        }
+        
+        if (errorData) {
+            if (errorData.detail) {
+                errorMessage = errorData.detail;
+            } else if (typeof errorData === 'object') {
+                errorMessage = formatDjangoError(errorData);
+            } else {
+                errorMessage = String(errorData);
+            }
+        }
+        
+        const error = new Error(errorMessage || "Erreur lors de l'inscription");
+        error.response = { status: response.status, data: errorData };
+        throw error;
     }
 
     const result = await response.json();
@@ -111,18 +199,43 @@ export const authApi = {
         body: JSON.stringify(data),
     }).then(response => response.json()),
 
+    // Gestion des classes
     getClasses: (filters = {}) => {
         const query = new URLSearchParams(filters).toString();
         return fetchWithAuth(`/api/classes/?${query}`).then(response => response.json());
     },
+
     createClasse: (data) => fetchWithAuth('/api/classes/', {
         method: 'POST',
         body: JSON.stringify(data),
     }).then(response => response.json()),
 
+    updateClasse: (id, data) => fetchWithAuth(`/api/classes/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    }).then(response => response.json()),
+
+    deleteClasse: (id) => fetchWithAuth(`/api/classes/${id}/`, {
+        method: 'DELETE',
+    }).then(() => ({ message: 'Classe supprimée' })),
+
     getMatieres: () => 
         fetchWithAuth('/api/matieres/')
         .then(response => response.json()),
+
+    createMatiere: (data) => fetchWithAuth('/api/matieres/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }).then(response => response.json()),
+
+    updateMatiere: (id, data) => fetchWithAuth(`/api/matieres/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    }).then(response => response.json()),
+
+    deleteMatiere: (id) => fetchWithAuth(`/api/matieres/${id}/`, {
+        method: 'DELETE',
+    }).then(() => ({ message: 'Matière supprimée' })),
 
     getSalles: (filters = {}) => {
         const query = new URLSearchParams(filters).toString();
@@ -142,6 +255,29 @@ export const authApi = {
     deleteSalle: (id) => fetchWithAuth(`/api/salles/${id}/`, {
         method: 'DELETE',
     }).then(() => ({ message: 'Salle supprimée' })),
+
+    // Gestion des cours
+    getCours: (filters = {}) => {
+        const query = new URLSearchParams(filters).toString();
+        return fetchWithAuth(`/api/cours/?${query}`).then(response => response.json());
+    },
+
+    createCours: (data) => fetchWithAuth('/api/cours/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }).then(response => response.json()),
+
+    updateCours: (id, data) => fetchWithAuth(`/api/cours/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    }).then(response => response.json()),
+
+    deleteCours: (id) => fetchWithAuth(`/api/cours/${id}/`, {
+        method: 'DELETE',
+    }).then(() => ({ message: 'Cours supprimé' })),
+
+    // Récupérer les options pour les filtres (classes, professeurs, matieres, salles)
+    getCoursFilterOptions: () => fetchWithAuth('/api/cours/filter_options/').then(response => response.json()),
 
     // Profil utilisateur
     getProfile: () => fetchWithAuth('/profile/').then(response => response.json()),

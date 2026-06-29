@@ -8,6 +8,8 @@
   const navigation = [
     { name: 'Tableau de bord', icon: 'heroicons:home', href: '/etablissement/dashboard' },
     { name: 'Étudiants', icon: 'heroicons:user-group', href: '/etablissement/etudiants' },
+    { name: 'Classes', icon: 'heroicons:academic-cap', href: '/etablissement/classes', badge: 'new' },
+    { name: 'Matières', icon: 'heroicons:book-open', href: '/etablissement/matieres' },
     { name: 'Professeurs', icon: 'heroicons:academic-cap', href: '/etablissement/professeurs' },
     { name: 'Cours & Emploi du temps', icon: 'heroicons:calendar', href: '/etablissement/cours' },
     { name: 'Notes & Évaluations', icon: 'mdi:clipboard-list-outline', href: '/etablissement/notes' },
@@ -21,9 +23,8 @@
 
 <div class="flex flex-col h-full">
   <!-- Logo -->
-  <div class="flex items-center h-16 flex-shrink-0 px-4 bg-green-600">
-    <img src="/icons/logo.png" class="h-8 w-8" alt="" />
-    <span class="ml-2 text-xl font-bold text-white">eBoss</span>
+  <div class="flex items-center h-16 flex-shrink-0 px-4">
+    <img src="/icons/logo.png" class="h-10" alt="" />
 
     {#if onClose}
       <button
@@ -53,7 +54,12 @@
               ? 'text-green-500'
               : 'text-gray-400 group-hover:text-gray-500'}"
           />
-          {item.name}
+          <span class="flex-1">{item.name}</span>
+          {#if item.badge}
+            <span class="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">
+              {item.badge}
+            </span>
+          {/if}
         </a>
       {/each}
     </nav>

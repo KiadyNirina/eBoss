@@ -114,6 +114,12 @@ class Salle(models.Model):
         return self.nom
     
 class Cours(models.Model):
+    TYPE_CHOICES = (
+        ('regulier', 'Régulier'),
+        ('specifique', 'Spécifique'),
+        ('exceptionnel', 'Exceptionnel'),
+    )
+
     JOURS_CHOICES = (
         ('lundi', 'Lundi'),
         ('mardi', 'Mardi'),
@@ -169,16 +175,37 @@ class Cours(models.Model):
         related_name='cours'
     )
 
+    date_specifique = models.DateField(
+        null=True, 
+        blank=True,
+        help_text="Date spécifique pour ce cours (ex: cours exceptionnel)"
+    )
+
+    type_cours = models.CharField(
+        max_length=20,
+        choices=TYPE_CHOICES,
+        default='regulier',
+        help_text="Régulier (chaque semaine) ou Spécifique (date unique)"
+    )
+
     def __str__(self):
+        date_info = f" - {self.date_specifique}" if self.date_specifique else ""
+        type_info = f" [{self.type_cours}]"
         return (
             f"{self.matiere.nom} - "
             f"{self.classe.nom} - "
-            f"{self.jour}"
+            f"{self.jour}{date_info}{type_info}"
         )
 
     class Meta:
         verbose_name = "Cours"
         verbose_name_plural = "Cours"
+
+    def save(self, *args, **kwargs):
+        # Auto-déterminer le type si non spécifié
+        if self.date_specifique and self.type_cours == 'regulier':
+            self.type_cours = 'specifique'
+        super().save(*args, **kwargs)
 
 class Eleve(models.Model):
     STATUS_CHOICES = (

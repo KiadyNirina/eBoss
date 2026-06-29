@@ -45,8 +45,7 @@
     <div class="xl:grid xl:grid-cols-3 xl:gap-8">
       <div class="space-y-8 xl:col-span-1">
         <div class="flex items-center">
-          <img src="/icons/logo.png" class="h-8 w-8" alt="">
-          <span class="ml-2 text-xl font-bold text-white">eBoss</span>
+          <img src="/icons/logo.png" class="h-10" alt="">
         </div>
         <p class="text-gray-300 text-sm">
           La plateforme de gestion scolaire moderne pour les établissements d'enseignement.
