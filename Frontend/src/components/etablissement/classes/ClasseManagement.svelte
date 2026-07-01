@@ -223,16 +223,16 @@
   $: applyFilters();
 </script>
 
-<div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+<div>
   <!-- En-tête -->
-  <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
-    <div class="flex items-center justify-between">
-      <div>
-        <h3 class="text-lg leading-6 font-medium text-gray-900">Gestion des Classes</h3>
-        <p class="mt-1 text-sm text-gray-500">
-          Créer, modifier et supprimer les classes
-        </p>
-      </div>
+  <div class="sm:flex sm:items-center justify-between">
+    <div class="mb-4 sm:mb-0">
+      <h1 class="text-2xl font-bold text-gray-900">Gestion des Classes</h1>
+      <p class="mt-2 text-sm text-gray-700">
+        {classes.length} classe au total
+      </p>
+    </div>
+    <div class="flex space-x-3">
       <button
         on:click={openAddForm}
         class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
@@ -264,7 +264,7 @@
   
   <!-- Formulaire -->
   {#if showForm}
-    <div class="px-4 py-5 sm:p-6 border-b border-gray-200 bg-gray-50">
+    <div class="mt-6 mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
       <h4 class="text-sm font-medium text-gray-700 mb-4">
         {isEditing ? 'Modifier la classe' : 'Ajouter une nouvelle classe'}
       </h4>
@@ -364,7 +364,7 @@
   {/if}
   
   <!-- Filtres et recherche -->
-  <div class="px-4 py-3 border-b border-gray-200 bg-white">
+  <div class="mt-6 bg-white shadow-sm rounded-lg p-6 border border-gray-200">
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-3">
       <div>
         <label for="filter-annee" class="block text-xs font-medium text-gray-700">Année scolaire</label>
@@ -401,6 +401,7 @@
   </div>
   
   <!-- Liste des classes -->
+  <div class="mt-6 shadow-sm border border-gray-200 rounded-lg overflow-hidden">
   {#if loading && classes.length === 0}
     <div class="flex justify-center items-center py-12">
       <Icon icon="heroicons:arrow-path" class="h-8 w-8 animate-spin text-green-600" />
@@ -508,6 +509,7 @@
       </button>
     </div>
   {/if}
+  </div>
 </div>
 
 <style>
