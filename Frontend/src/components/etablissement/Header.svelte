@@ -103,7 +103,7 @@
                 </p>
                 <p class="text-xs text-gray-500 truncate">{$user?.email || 'email@exemple.com'}</p>
               </div>
-              <a href="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
+              <a href="/etablissement/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">
                 <Icon icon="heroicons:user" class="inline h-4 w-4 mr-2" />
                 Mon profil
               </a>
