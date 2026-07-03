@@ -1,6 +1,7 @@
 <script>
     import Icon from '@iconify/svelte';
     import { fade } from 'svelte/transition';
+    import { goto } from '$app/navigation';
   
     let menuOpen = false;
 </script>
@@ -9,8 +10,10 @@
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="flex justify-between h-16">
       <div class="flex items-center">
-        <Icon icon="fluent:school-24-filled" class="h-8 w-8 text-[#20784d]" />
-        <img src="/icons/logo.png" class="h-10" alt="">
+        <a href="/" class="flex items-center">
+          <Icon icon="fluent:school-24-filled" class="h-8 w-8 text-[#20784d]" />
+          <img src="/icons/logo.png" class="h-10" alt="">
+        </a>
       </div>
       
       <div class="hidden md:flex items-center space-x-8">
@@ -20,6 +23,15 @@
       </div>
       
       <div class="hidden md:flex items-center space-x-4">
+        <!-- Icône Recherche -->
+        <button 
+          on:click={() => goto('/map')}
+          class="text-gray-600 hover:text-[#20784d] transition-colors p-2 rounded-full hover:bg-green-50"
+          title="Rechercher des établissements"
+        >
+          <Icon icon="heroicons:magnifying-glass" class="h-5 w-5" />
+        </button>
+        
         <a href="/login" class="bg-[#20784d] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700 transition-colors">Connexion</a>
       </div>
       
@@ -37,9 +49,14 @@
         <a href="#features" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-[#20784d] hover:bg-gray-50">Fonctionnalités</a>
         <!-- <a href="#pricing" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-[#20784d] hover:bg-gray-50">Tarifs</a>
         <a href="#testimonials" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-[#20784d] hover:bg-gray-50">Témoignages</a> -->
+        <a href="/map" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-[#20784d] hover:bg-gray-50">
+          <Icon icon="heroicons:magnifying-glass" class="inline h-5 w-5 mr-2" />
+          Rechercher des établissements
+        </a>
+        
         <div class="border-t border-gray-200 pt-4 pb-3">
           <a href="/login" class="block px-3 py-2 text-base font-medium text-gray-700 hover:text-[#20784d]">Connexion</a>
-          <a href="/register" class="mt-2 block w-full px-3 py-2 text-center text-base font-medium text-white bg-[#20784d] rounded-md hover:bg-green-700">Essai gratuit</a>
+          <a href="/signup" class="mt-2 block w-full px-3 py-2 text-center text-base font-medium text-white bg-[#20784d] rounded-md hover:bg-green-700">Essai gratuit</a>
         </div>
       </div>
     </div>
