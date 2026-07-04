@@ -1,0 +1,399 @@
+<!-- src/lib/components/AddressAutocomplete.svelte -->
+<script>
+  import { onMount, createEventDispatcher } from 'svelte';
+  // IMPORT CORRECT - Utilisez l'import nommé ou l'import par défaut
+  import GeocodingService from '$lib/geocoding.js';
+  // OU import { search } from '$lib/geocoding.js';
+  import Icon from '@iconify/svelte';
+
+  const dispatch = createEventDispatcher();
+
+  export let value = '';
+  export let placeholder = 'Saisissez une adresse...';
+  export let label = 'Adresse';
+  export let required = false;
+  export let disabled = false;
+  export let countryFilter = 'mg';
+  export let language = 'fr';
+  export let showMap = false;
+  export let minChars = 3;
+
+  let suggestions = [];
+  let isSearching = false;
+  let selectedSuggestion = null;
+  let isFocused = false;
+  let inputElement = null;
+  let coordinates = null;
+  let geocodeStatus = '';
+  let searchTimeout = null;
+
+  export let geocodedData = null;
+  export let isValid = false;
+
+  async function handleInput(event) {
+    const query = event.target.value;
+    value = query;
+    selectedSuggestion = null;
+    isValid = false;
+
+    if (query.length < minChars) {
+      suggestions = [];
+      return;
+    }
+
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(async () => {
+      await searchAddress(query);
+    }, 300);
+  }
+
+  async function searchAddress(query) {
+    if (query.length < minChars) return;
+
+    isSearching = true;
+    try {
+      const options = {
+        limit: 5,
+        language: language,
+        countrycodes: countryFilter || undefined
+      };
+
+      // Utiliser la méthode search de GeocodingService
+      const results = await GeocodingService.search(query, options);
+      suggestions = results;
+
+      dispatch('search', { query, results });
+    } catch (error) {
+      console.error('Erreur de recherche:', error);
+      suggestions = [];
+    } finally {
+      isSearching = false;
+    }
+  }
+
+  async function selectSuggestion(suggestion) {
+    selectedSuggestion = suggestion;
+    value = suggestion.display_name;
+    suggestions = [];
+    isValid = true;
+
+    coordinates = {
+      lat: suggestion.latitude,
+      lng: suggestion.longitude
+    };
+
+    geocodedData = suggestion;
+    geocodeStatus = '✅ Adresse géocodée';
+
+    dispatch('select', {
+      address: suggestion.display_name,
+      latitude: suggestion.latitude,
+      longitude: suggestion.longitude,
+      fullData: suggestion
+    });
+
+    if (countryFilter && suggestion.address?.country_code !== countryFilter) {
+      geocodeStatus = '⚠️ Adresse en dehors du pays sélectionné';
+      isValid = false;
+    }
+  }
+
+  async function geocodeCurrentAddress() {
+    if (!value || value.length < minChars) {
+      geocodeStatus = '⚠️ Veuillez saisir une adresse';
+      return;
+    }
+
+    isSearching = true;
+    geocodeStatus = '🔍 Recherche en cours...';
+
+    try {
+      const result = await GeocodingService.geocode(value, {
+        language: language,
+        limit: 1
+      });
+
+      if (result) {
+        coordinates = {
+          lat: result.latitude,
+          lng: result.longitude
+        };
+        geocodedData = result;
+        isValid = true;
+        geocodeStatus = '✅ Adresse géocodée avec succès';
+
+        if (result.display_name) {
+          value = result.display_name;
+        }
+
+        dispatch('geocode', {
+          address: result.display_name,
+          latitude: result.latitude,
+          longitude: result.longitude,
+          fullData: result
+        });
+
+        return result;
+      } else {
+        geocodeStatus = '❌ Adresse non trouvée';
+        isValid = false;
+        return null;
+      }
+    } catch (error) {
+      geocodeStatus = `❌ Erreur: ${error.message}`;
+      isValid = false;
+      return null;
+    } finally {
+      isSearching = false;
+    }
+  }
+
+  async function useCurrentLocation() {
+    if (!navigator.geolocation) {
+      geocodeStatus = '⚠️ Géolocalisation non supportée';
+      return;
+    }
+
+    geocodeStatus = '📍 Obtention de votre position...';
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          
+          const result = await GeocodingService.reverseGeocode(latitude, longitude, {
+            language: language,
+            zoom: 18
+          });
+
+          if (result) {
+            value = result.display_name;
+            coordinates = { lat: latitude, lng: longitude };
+            geocodedData = {
+              latitude: latitude,
+              longitude: longitude,
+              display_name: result.display_name,
+              address: result.address
+            };
+            isValid = true;
+            geocodeStatus = '✅ Position trouvée';
+
+            dispatch('geocode', {
+              address: result.display_name,
+              latitude: latitude,
+              longitude: longitude,
+              fullData: geocodedData
+            });
+
+            dispatch('select', {
+              address: result.display_name,
+              latitude: latitude,
+              longitude: longitude,
+              fullData: geocodedData
+            });
+          }
+        } catch (error) {
+          geocodeStatus = '❌ Erreur de géocodage inverse';
+          console.error(error);
+        }
+      },
+      (error) => {
+        geocodeStatus = '❌ Impossible d\'obtenir votre position';
+        console.error('Erreur de géolocalisation:', error);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
+  function clearAddress() {
+    value = '';
+    suggestions = [];
+    selectedSuggestion = null;
+    coordinates = null;
+    isValid = false;
+    geocodedData = null;
+    geocodeStatus = '';
+
+    dispatch('clear');
+  }
+
+  export function getCoordinates() {
+    return coordinates;
+  }
+
+  export function getGeocodedData() {
+    return geocodedData;
+  }
+
+  export function isValidAddress() {
+    return isValid;
+  }
+
+  onMount(() => {
+    return () => {
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+    };
+  });
+</script>
+
+<!-- Le reste du template reste identique -->
+<div class="address-autocomplete">
+  {#if label}
+    <label for="address-input" class="block text-sm font-medium text-gray-700 mb-1">
+      {label}
+      {#if required}
+        <span class="text-red-500">*</span>
+      {/if}
+    </label>
+  {/if}
+
+  <div class="relative">
+    <div class="flex gap-2">
+      <div class="relative flex-1">
+        <input
+          id="address-input"
+          type="text"
+          bind:this={inputElement}
+          bind:value={value}
+          on:input={handleInput}
+          on:focus={() => isFocused = true}
+          on:blur={() => setTimeout(() => isFocused = false, 200)}
+          placeholder={placeholder}
+          disabled={disabled}
+          required={required}
+          class={`
+            w-full px-4 py-2.5 border rounded-lg
+            ${isValid ? 'border-green-400 bg-green-50' : 'border-gray-300'}
+            ${!isValid && value.length > 0 ? 'border-yellow-300 bg-yellow-50' : ''}
+            focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
+            transition-all
+            pr-10
+          `}
+        />
+
+        <div class="absolute right-3 top-1/2 -translate-y-1/2">
+          {#if isSearching}
+            <div class="animate-spin h-5 w-5 border-2 border-green-500 border-t-transparent rounded-full"></div>
+          {:else if isValid}
+            <Icon icon="heroicons:check-circle" class="h-5 w-5 text-green-500" />
+          {:else if value && !isValid}
+            <Icon icon="heroicons:exclamation-circle" class="h-5 w-5 text-yellow-500" />
+          {/if}
+        </div>
+
+        {#if suggestions.length > 0 && isFocused}
+          <div class="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+            {#each suggestions as suggestion}
+              <button
+                on:click={() => selectSuggestion(suggestion)}
+                class="w-full text-left px-4 py-2 hover:bg-gray-100 transition-colors border-b border-gray-100 last:border-0"
+              >
+                <div class="text-sm font-medium text-gray-900">
+                  {suggestion.display_name}
+                </div>
+                {#if suggestion.address}
+                  <div class="text-xs text-gray-500 mt-0.5">
+                    {suggestion.address.city || suggestion.address.town || ''}
+                    {#if suggestion.address.country}
+                      - {suggestion.address.country}
+                    {/if}
+                  </div>
+                {/if}
+                {#if suggestion.importance}
+                  <div class="text-xs text-gray-400 mt-0.5">
+                    Pertinence: {Math.round(suggestion.importance * 100)}%
+                  </div>
+                {/if}
+              </button>
+            {/each}
+          </div>
+        {/if}
+      </div>
+
+      <div class="flex gap-2 shrink-0">
+        <button
+          type="button"
+          on:click={geocodeCurrentAddress}
+          disabled={isSearching || disabled}
+          class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center gap-1"
+          title="Géocoder l'adresse"
+        >
+          <Icon icon="heroicons:magnifying-glass" class="h-4 w-4" />
+          <span class="hidden sm:inline">Géocoder</span>
+        </button>
+
+        <button
+          type="button"
+          on:click={useCurrentLocation}
+          disabled={disabled}
+          class="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 flex items-center gap-1"
+          title="Utiliser ma position"
+        >
+          <Icon icon="heroicons:map-pin" class="h-4 w-4" />
+          <span class="hidden sm:inline">Position</span>
+        </button>
+
+        {#if value}
+          <button
+            type="button"
+            on:click={clearAddress}
+            class="px-3 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors flex items-center gap-1"
+            title="Effacer"
+          >
+            <Icon icon="heroicons:x-mark" class="h-4 w-4" />
+          </button>
+        {/if}
+      </div>
+    </div>
+
+    {#if geocodeStatus}
+      <div class="mt-1 text-sm">
+        <span class={`
+          ${geocodeStatus.includes('✅') ? 'text-green-600' : ''}
+          ${geocodeStatus.includes('⚠️') ? 'text-yellow-600' : ''}
+          ${geocodeStatus.includes('❌') ? 'text-red-600' : ''}
+        `}>
+          {geocodeStatus}
+        </span>
+      </div>
+    {/if}
+
+    {#if coordinates}
+      <div class="mt-1 text-xs text-gray-500">
+        📍 {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+        {#if showMap}
+          <a
+            href={`https://www.openstreetmap.org/?mlat=${coordinates.lat}&mlon=${coordinates.lng}&zoom=15`}
+            target="_blank"
+            class="ml-2 text-blue-500 hover:text-blue-700 underline"
+          >
+            Voir sur la carte
+          </a>
+        {/if}
+      </div>
+    {/if}
+  </div>
+</div>
+
+<style>
+  .address-autocomplete {
+    width: 100%;
+  }
+
+  .address-autocomplete .absolute {
+    animation: slideDown 0.2s ease-out;
+  }
+
+  @keyframes slideDown {
+    from {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+</style>

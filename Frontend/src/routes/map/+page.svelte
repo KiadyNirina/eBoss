@@ -4,6 +4,7 @@
   import Icon from '@iconify/svelte';
   import { goto } from '$app/navigation';
   import { browser } from '$app/environment';
+  import { authApi } from '$lib/api';
   
   let map = null;
   let markers = [];
@@ -17,16 +18,17 @@
   let userMarker = null;
   let locationFound = false;
   let userEdgeMarker = null;
+  let error = null;
   
   // Données des établissements
-  const establishmentData = [
+  const fallbackEstablishmentData = [
     {
       id: 1,
       name: "École Primaire Les Petits Génies",
       address: "123 Rue de l'Éducation, 75001 Paris",
       lat: 48.8566,
       lng: 2.3522,
-      type: "Primaire",
+      type: "ecole",
       phone: "01 23 45 67 89",
       email: "contact@petitsgenies.fr"
     },
@@ -36,7 +38,7 @@
       address: "45 Avenue de la République, 69002 Lyon",
       lat: 45.7640,
       lng: 4.8357,
-      type: "Collège",
+      type: "college",
       phone: "04 56 78 90 12",
       email: "contact@jeanjaures.fr"
     },
@@ -46,7 +48,7 @@
       address: "78 Boulevard Saint-Michel, 75005 Paris",
       lat: 48.8466,
       lng: 2.3389,
-      type: "Lycée",
+      type: "lycee",
       phone: "01 98 76 54 32",
       email: "contact@victorhugo.fr"
     },
@@ -56,7 +58,7 @@
       address: "351 Cours de la Libération, 33405 Talence",
       lat: 44.8052,
       lng: -0.6039,
-      type: "Université",
+      type: "universite",
       phone: "05 56 84 56 84",
       email: "contact@univ-bordeaux.fr"
     },
@@ -66,7 +68,7 @@
       address: "12 Rue des Fleurs, 31000 Toulouse",
       lat: 43.6047,
       lng: 1.4442,
-      type: "Maternelle",
+      type: "ecole",
       phone: "05 61 23 45 67",
       email: "contact@jardinenfants.fr"
     }
@@ -76,9 +78,25 @@
   let filterType = 'all';
   let filteredEstablishments = [];
   
+  // Mapping des types
+  const typeColors = {
+    'ecole': '#3b82f6',
+    'college': '#f59e0b',
+    'lycee': '#ef4444',
+    'universite': '#8b5cf6'
+  };
+  
+  const typeLabels = {
+    'ecole': 'École primaire',
+    'college': 'Collège',
+    'lycee': 'Lycée',
+    'universite': 'Université'
+  };
+  
   // Fonction pour calculer la distance entre deux points en kilomètres
   function calculateDistance(lat1, lng1, lat2, lng2) {
-    const R = 6371; // Rayon de la Terre en km
+    if (!lat1 || !lng1 || !lat2 || !lng2) return null;
+    const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLng = (lng2 - lng1) * Math.PI / 180;
     const a = 
@@ -104,10 +122,106 @@
   // Fonction pour obtenir la distance d'un établissement
   function getEstablishmentDistance(establishment) {
     if (!userLocation) return null;
+    if (!establishment.lat && !establishment.latitude) return null;
+    
+    const lat = establishment.lat || parseFloat(establishment.latitude);
+    const lng = establishment.lng || parseFloat(establishment.longitude);
+    
+    if (!lat || !lng) return null;
+    
     return calculateDistance(
       userLocation.lat, userLocation.lng,
-      establishment.lat, establishment.lng
+      lat, lng
     );
+  }
+
+  // Fonction pour charger les établissements depuis l'API
+  async function loadEstablishments(filters = {}) {
+    try {
+      loading = true;
+      error = null;
+      
+      // Préparer les filtres
+      const apiFilters = {
+        type: filters.type || filterType,
+        search: filters.search || searchQuery,
+      };
+      
+      // Ajouter la position pour la recherche par proximité
+      if (userLocation) {
+        apiFilters.lat = userLocation.lat;
+        apiFilters.lng = userLocation.lng;
+        apiFilters.radius = 50;
+        apiFilters.with_coords = true;
+      }
+      
+      // Appel API
+      const data = await authApi.getEtablissements(apiFilters);
+      
+      // Traiter les données
+      let establishmentsData = data.results || data || [];
+      
+      // Si c'est un objet avec des résultats paginés
+      if (data.results) {
+        establishmentsData = data.results;
+      }
+      
+      // Transformer les données pour le frontend
+      if (establishmentsData.length > 0) {
+        establishments = establishmentsData.map(est => ({
+          id: est.id,
+          name: est.nom,
+          address: est.adresse,
+          lat: parseFloat(est.latitude),
+          lng: parseFloat(est.longitude),
+          type: est.type_etablissement,
+          phone: est.user?.telephone || 'Non disponible',
+          email: est.user?.email || 'Non disponible',
+          _raw: est
+        }));
+      } else {
+        // Utiliser les données de fallback si l'API ne retourne rien
+        console.warn('Aucune donnée de l\'API, utilisation des données de fallback');
+        establishments = fallbackEstablishmentData;
+      }
+      
+      // Calculer les distances si position utilisateur disponible
+      if (userLocation) {
+        establishments = establishments.map(est => ({
+          ...est,
+          distance: getEstablishmentDistance(est)
+        }));
+        
+        // Trier par distance
+        establishments.sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
+      }
+      
+      filteredEstablishments = establishments;
+      
+      // Mettre à jour les marqueurs si la carte est initialisée
+      if (mapInitialized) {
+        addEstablishmentMarkers();
+        updateEdgeMarkers();
+      }
+      
+    } catch (err) {
+      console.error('Erreur de chargement des établissements:', err);
+      error = err.message || 'Erreur lors du chargement';
+      
+      // Fallback sur données locales en cas d'erreur
+      console.warn('Utilisation des données de fallback');
+      establishments = fallbackEstablishmentData;
+      filteredEstablishments = establishments;
+      
+      // Mettre à jour les marqueurs quand même
+      if (mapInitialized) {
+        addEstablishmentMarkers();
+        updateEdgeMarkers();
+      }
+      
+    } finally {
+      loading = false;
+    }
   }
   
   // Fonction pour sélectionner un établissement
@@ -115,7 +229,7 @@
     if (!browser) return;
     
     const establishment = establishments.find(e => e.id === id);
-    if (establishment && mapInitialized && L) {
+    if (establishment && mapInitialized && L && establishment.lat && establishment.lng) {
       selectedEstablishment = establishment;
       map.setView([establishment.lat, establishment.lng], 16);
       markers.forEach(marker => {
@@ -133,7 +247,7 @@
     if (!browser) return;
     
     const establishment = establishments.find(e => e.id === id);
-    if (establishment && mapInitialized && L) {
+    if (establishment && mapInitialized && L && establishment.lat && establishment.lng) {
       map.setView([establishment.lat, establishment.lng], 15, {
         animate: true,
         duration: 1
@@ -167,10 +281,8 @@
   }
   
   onMount(async () => {
-    establishments = establishmentData;
-    filteredEstablishments = establishments;
-    loading = false;
-    
+    // Charger les établissements
+    await loadEstablishments();
     await tick();
     
     if (browser) {
@@ -189,16 +301,19 @@
               map.setView([userLocation.lat, userLocation.lng], 14);
             }
             setTimeout(() => {
-              // Re-créer les marqueurs avec les distances
-              addEstablishmentMarkers();
-              updateEdgeMarkers();
+              loadEstablishments({
+                lat: userLocation.lat,
+                lng: userLocation.lng,
+                radius: 50
+              });
             }, 200);
           },
           (error) => {
             console.log('Géolocalisation non disponible ou refusée');
             if (map) {
-              map.setView([48.8566, 2.3522], 12);
+              map.setView([-18.8792, 47.5079], 12); // Centre sur Madagascar
             }
+            loadEstablishments();
           },
           {
             enableHighAccuracy: true,
@@ -208,8 +323,9 @@
         );
       } else {
         if (map) {
-          map.setView([48.8566, 2.3522], 12);
+          map.setView([-18.8792, 47.5079], 12); // Centre sur Madagascar
         }
+        loadEstablishments();
       }
     }
     
@@ -240,10 +356,10 @@
     });
     
     map = L.map('map', {
-      center: [48.8566, 2.3522],
+      center: [-18.8792, 47.5079], // Centre sur Madagascar
       zoom: 12,
       attributionControl: false,
-      zoomControl: false // On va le repositionner
+      zoomControl: false
     });
     
     // Repositionner les contrôles de zoom
@@ -278,18 +394,17 @@
     });
     markers = [];
     
-    const typeColors = {
-      'Maternelle': '#3b82f6',
-      'Primaire': '#22c55e',
-      'Collège': '#f59e0b',
-      'Lycée': '#ef4444',
-      'Université': '#8b5cf6'
-    };
-    
     filteredEstablishments.forEach((establishment, index) => {
+      // Vérifier que l'établissement a des coordonnées
+      if (!establishment.lat || !establishment.lng) {
+        console.warn(`Établissement ${establishment.name} sans coordonnées`);
+        return;
+      }
+
       const color = typeColors[establishment.type] || '#6b7280';
+      const typeLabel = typeLabels[establishment.type] || establishment.type;
       const delay = index * 0.2;
-      const distance = getEstablishmentDistance(establishment);
+      const distance = establishment.distance || getEstablishmentDistance(establishment);
       const distanceText = distance !== null ? formatDistance(distance) : 'Distance non disponible';
       
       let markerHtml = `
@@ -365,7 +480,7 @@
           ` : `
             <div class="text-xs text-gray-400 mt-1">📍 Localisez-vous pour voir la distance</div>
           `}
-          <div class="text-xs text-gray-400 mt-1">🏫 ${establishment.type}</div>
+          <div class="text-xs text-gray-400 mt-1">🏫 ${typeLabel}</div>
         </div>
       `;
       
@@ -388,7 +503,7 @@
         <div class="p-2 max-w-xs">
           <h3 class="font-bold text-[#20784d] text-lg">${establishment.name}</h3>
           <p class="text-sm text-gray-600 mt-1">📍 ${establishment.address}</p>
-          <p class="text-sm text-gray-600">🏫 ${establishment.type}</p>
+          <p class="text-sm text-gray-600">🏫 ${typeLabel}</p>
           <p class="text-sm text-gray-600">📞 ${establishment.phone}</p>
           <p class="text-sm text-gray-600">✉️ ${establishment.email}</p>
           ${distance !== null ? `
@@ -470,7 +585,7 @@
         const popupContent = marker.getPopup().getContent();
         const idMatch = popupContent.match(/selectEstablishment\((\d+)\)/);
         const establishmentId = idMatch ? parseInt(idMatch[1]) : null;
-        const establishment = establishmentData.find(e => e.id === establishmentId);
+        const establishment = establishments.find(e => e.id === establishmentId);
         const establishmentName = establishment?.name || 'Établissement';
         const distance = establishment ? getEstablishmentDistance(establishment) : null;
         const distanceText = distance !== null ? formatDistance(distance) : 'N/A';
@@ -788,8 +903,7 @@
           Légende
         </div>
         <div class="space-y-2">
-          <div class="flex items-center"><span class="inline-block w-3 h-3 rounded-full bg-blue-500 mr-3 shadow-sm"></span><span class="text-gray-600">Maternelle</span></div>
-          <div class="flex items-center"><span class="inline-block w-3 h-3 rounded-full bg-green-500 mr-3 shadow-sm"></span><span class="text-gray-600">Primaire</span></div>
+          <div class="flex items-center"><span class="inline-block w-3 h-3 rounded-full bg-blue-500 mr-3 shadow-sm"></span><span class="text-gray-600">École primaire</span></div>
           <div class="flex items-center"><span class="inline-block w-3 h-3 rounded-full bg-orange-500 mr-3 shadow-sm"></span><span class="text-gray-600">Collège</span></div>
           <div class="flex items-center"><span class="inline-block w-3 h-3 rounded-full bg-red-500 mr-3 shadow-sm"></span><span class="text-gray-600">Lycée</span></div>
           <div class="flex items-center"><span class="inline-block w-3 h-3 rounded-full bg-purple-500 mr-3 shadow-sm"></span><span class="text-gray-600">Université</span></div>
@@ -813,39 +927,17 @@
     legend.addTo(map);
   }
   
-  function filterEstablishments() {
-    let filtered = establishments;
-    
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase().trim();
-      filtered = filtered.filter(e => 
-        e.name.toLowerCase().includes(query) ||
-        e.address.toLowerCase().includes(query) ||
-        e.type.toLowerCase().includes(query)
-      );
-    }
-    
-    if (filterType !== 'all') {
-      filtered = filtered.filter(e => e.type === filterType);
-    }
-    
-    filteredEstablishments = filtered;
-    addEstablishmentMarkers();
-    
-    setTimeout(() => {
-      updateEdgeMarkers();
-    }, 200);
+  async function filterEstablishments() {
+    await loadEstablishments({
+      type: filterType,
+      search: searchQuery
+    });
   }
   
   function clearFilters() {
     searchQuery = '';
     filterType = 'all';
-    filteredEstablishments = establishments;
-    addEstablishmentMarkers();
-    
-    setTimeout(() => {
-      updateEdgeMarkers();
-    }, 200);
+    loadEstablishments();
   }
   
   if (browser) {
@@ -915,11 +1007,10 @@
             class="block w-full pl-3 pr-8 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 appearance-none focus:outline-none focus:ring-2 focus:ring-[#20784d]/50 focus:border-[#20784d] transition-all shadow-sm"
           >
             <option value="all">Tous les types</option>
-            <option value="Maternelle">Maternelle</option>
-            <option value="Primaire">Primaire</option>
-            <option value="Collège">Collège</option>
-            <option value="Lycée">Lycée</option>
-            <option value="Université">Université</option>
+            <option value="ecole">École primaire</option>
+            <option value="college">Collège</option>
+            <option value="lycee">Lycée</option>
+            <option value="universite">Université</option>
           </select>
           <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
              <Icon icon="heroicons:chevron-down" class="h-4 w-4 text-gray-400" />
@@ -970,7 +1061,7 @@
                 
                 <div class="flex flex-wrap items-center mt-3 gap-2">
                   <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 bg-gray-100 text-gray-600 rounded-md">
-                    {establishment.type}
+                    {typeLabels[establishment.type] || establishment.type}
                   </span>
                   
                   {#if userLocation}
@@ -1002,19 +1093,18 @@
   </div>
   
   <!-- Zone de la Carte (Prend tout le reste de l'espace) -->
-  <div class="flex-1 h-[50vh] md:h-full relative z-10 bg-gray-200">
-    {#if loading}
-      <div class="absolute inset-0 flex flex-col items-center justify-center bg-white">
-        <div class="relative">
-          <div class="animate-spin rounded-full h-14 w-14 border-4 border-gray-100 border-t-[#20784d]"></div>
-          <Icon icon="heroicons:map" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-5 w-5 text-[#20784d]" />
-        </div>
-        <p class="mt-4 font-medium text-gray-500 animate-pulse">Initialisation de la carte...</p>
-      </div>
-    {:else}
-      <!-- Le conteneur map prend toute la place de son parent -->
+  <div class="flex-1 h-[50vh] md:h-full relative z-10 bg-gray-200 overflow-hidden">
       <div id="map" class="w-full h-full absolute inset-0"></div>
-    {/if}
+
+      {#if loading}
+      <div class="absolute inset-0 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm z-10">
+          <div class="relative">
+              <div class="animate-spin rounded-full h-14 w-14 border-4 border-gray-100 border-t-[#20784d]"></div>
+              <Icon icon="heroicons:map" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-5 w-5 text-[#20784d]" />
+          </div>
+          <p class="mt-4 font-medium text-gray-500 animate-pulse">Initialisation de la carte...</p>
+      </div>
+      {/if}
   </div>
   
 </div>

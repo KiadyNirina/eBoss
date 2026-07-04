@@ -53,10 +53,56 @@ class Etablissement(models.Model):
     type_etablissement = models.CharField(max_length=20, choices=TYPE_CHOICES)
     nom = models.CharField(max_length=255)
     adresse = models.TextField()
+    latitude = models.DecimalField(
+        max_digits=10, 
+        decimal_places=8, 
+        null=True, 
+        blank=True,
+        help_text="Latitude de l'établissement"
+    )
+    longitude = models.DecimalField(
+        max_digits=11, 
+        decimal_places=8, 
+        null=True, 
+        blank=True,
+        help_text="Longitude de l'établissement"
+    )
+    # Champ pour stocker si les coordonnées ont été vérifiées
+    coordinates_verified = models.BooleanField(
+        default=False,
+        help_text="Indique si les coordonnées ont été vérifiées"
+    )
+    
+    # Date de dernière mise à jour des coordonnées
+    coordinates_updated_at = models.DateTimeField(
+        null=True, 
+        blank=True,
+        help_text="Date de dernière mise à jour des coordonnées"
+    )
     annees_scolaires = models.ManyToManyField(AnneeScolaire, blank=True)
     
     def __str__(self):
         return self.nom
+    
+    @property
+    def coordinates(self):
+        """Retourne les coordonnées sous forme de tuple"""
+        if self.latitude and self.longitude:
+            return (float(self.latitude), float(self.longitude))
+        return None
+    
+    @property
+    def has_coordinates(self):
+        """Vérifie si l'établissement a des coordonnées"""
+        return self.latitude is not None and self.longitude is not None
+    
+    def update_coordinates(self, latitude, longitude, verified=True):
+        """Met à jour les coordonnées"""
+        self.latitude = latitude
+        self.longitude = longitude
+        self.coordinates_verified = verified
+        self.coordinates_updated_at = timezone.now()
+        self.save()
     
 class Matiere(models.Model):
     nom = models.CharField(max_length=100)

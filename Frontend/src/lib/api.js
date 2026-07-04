@@ -192,6 +192,96 @@ export const authApi = {
     registerEleve: (data) => registerPublic('/register/eleve/', data),
     registerParent: (data) => registerPublic('/register/parent/', data),
 
+    // Gestion des établissements avec géolocalisation
+    getEtablissements: (filters = {}) => {
+        const query = new URLSearchParams();
+        
+        // Filtres existants
+        if (filters.type && filters.type !== 'all') {
+            query.append('type', filters.type);
+        }
+        
+        if (filters.search && filters.search.trim()) {
+            query.append('search', filters.search.trim());
+        }
+        
+        // Filtres de géolocalisation
+        if (filters.lat && filters.lng) {
+            query.append('lat', filters.lat);
+            query.append('lng', filters.lng);
+            query.append('radius', filters.radius || 50);
+        }
+        
+        if (filters.only_with_coords) {
+            query.append('with_coords', 'true');
+        }
+        
+        const queryString = query.toString();
+        const url = `/api/etablissements/${queryString ? '?' + queryString : ''}`;
+        
+        return fetchWithAuth(url).then(response => response.json());
+    },
+
+    // Créer un établissement (avec géocodage automatique)
+    createEtablissement: (data) => fetchWithAuth('/api/etablissements/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }).then(response => response.json()),
+
+    // Mettre à jour un établissement
+    updateEtablissement: (id, data) => fetchWithAuth(`/api/etablissements/${id}/`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+    }).then(response => response.json()),
+
+    // Supprimer un établissement
+    deleteEtablissement: (id) => fetchWithAuth(`/api/etablissements/${id}/`, {
+        method: 'DELETE',
+    }).then(() => ({ message: 'Établissement supprimé' })),
+
+    // Recherche d'établissements à proximité
+    getNearbyEtablissements: (lat, lng, radius = 10) => {
+        const query = new URLSearchParams({
+            lat: lat,
+            lng: lng,
+            radius: radius,
+            with_coords: true
+        });
+        
+        return fetchWithAuth(`/api/etablissements/nearby/?${query}`)
+            .then(response => response.json());
+    },
+
+    // Mettre à jour les coordonnées d'un établissement spécifique
+    updateEtablissementCoordinates: (id, latitude = null, longitude = null) => {
+        const data = {};
+        if (latitude !== null) data.latitude = latitude;
+        if (longitude !== null) data.longitude = longitude;
+        
+        return fetchWithAuth(`/api/etablissements/${id}/update_coordinates/`, {
+            method: 'POST',
+            body: JSON.stringify(data),
+        }).then(response => response.json());
+    },
+
+    // Géocoder en lot tous les établissements sans coordonnées (admin seulement)
+    geocodeAllEtablissements: () => fetchWithAuth('/api/etablissements/geocode/', {
+        method: 'POST',
+    }).then(response => response.json()),
+
+    // Récupérer les types d'établissements pour les filtres
+    getEtablissementTypes: () => {
+        // Vous pouvez ajouter un endpoint dédié ou utiliser les données du modèle
+        return Promise.resolve({
+            types: [
+                { value: 'ecole', label: 'École primaire' },
+                { value: 'college', label: 'Collège' },
+                { value: 'lycee', label: 'Lycée' },
+                { value: 'universite', label: 'Université' },
+            ]
+        });
+    },
+
     getAnneesScolaires: () => fetchWithAuth('/api/annees-scolaires/').then(response => response.json()),
     
     createAnneeScolaire: (data) => fetchWithAuth('/api/annees-scolaires/', {

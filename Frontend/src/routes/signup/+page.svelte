@@ -1,3 +1,4 @@
+<!-- src/routes/register/+page.svelte -->
 <script>
   import Icon from '@iconify/svelte';
   import { authApi } from '$lib/api';
@@ -7,11 +8,21 @@
     getEleveFormData,
     getParentFormData 
   } from '$lib/formData';
+  import AddressAutocomplete from '$lib/components/AddressAutocomplete.svelte';
+  import GeocodingService from '$lib/geocoding.js';
+  import geocodingCache from '$lib/geocoding-cache.js';
   
   let activeTab = 'etablissement';
   let isLoading = false;
   let errorMessage = '';
   let successMessage = '';
+  
+  // Statut du géocodage
+  let geocodingStatus = '';
+  let geocodingSuccess = false;
+  let geocodingCoordinates = null;
+  let addressValid = false;
+  let addressData = null;
   
   // Liste des années scolaires et classes
   let anneesScolaires = [];
@@ -30,10 +41,11 @@
     email: '',
     telephone: '',
     adresse: '',
+    latitude: null,
+    longitude: null,
     typeEtablissement: '',
     password: '',
     confirmPassword: '',
-    // Nouveaux champs
     anneeScolaire: {
       nom: '',
       date_debut: '',
@@ -154,11 +166,137 @@
     lastTypeEtab = etablissementData.typeEtablissement;
     setDefaultClasses(etablissementData.typeEtablissement);
   }
+
+  // Gestionnaire de sélection d'adresse
+  function handleAddressSelect(event) {
+    const { address, latitude, longitude, fullData } = event.detail;
+    
+    etablissementData.adresse = address;
+    etablissementData.latitude = latitude;
+    etablissementData.longitude = longitude;
+    addressValid = true;
+    geocodingSuccess = true;
+    geocodingCoordinates = { lat: latitude, lng: longitude };
+    geocodingStatus = `✅ Adresse géocodée: ${latitude}, ${longitude}`;
+    
+    console.log('Adresse sélectionnée:', {
+      address,
+      latitude,
+      longitude,
+      fullData
+    });
+  }
+
+  // Gestionnaire de géocodage automatique
+  function handleGeocode(event) {
+    const { latitude, longitude, address } = event.detail;
+    
+    etablissementData.latitude = latitude;
+    etablissementData.longitude = longitude;
+    if (address) {
+      etablissementData.adresse = address;
+    }
+    addressValid = true;
+    geocodingSuccess = true;
+    geocodingCoordinates = { lat: latitude, lng: longitude };
+    geocodingStatus = `✅ Coordonnées trouvées: ${latitude}, ${longitude}`;
+  }
+
+  // Fonction pour géocoder l'adresse manuellement
+  async function geocodeAddressManually() {
+    if (!etablissementData.adresse) {
+      geocodingStatus = '⚠️ Veuillez saisir une adresse d\'abord';
+      return;
+    }
+
+    geocodingStatus = '🔍 Recherche des coordonnées en cours...';
+    geocodingSuccess = false;
+    addressValid = false;
+
+    try {
+      // Utiliser le service de géocodage avec cache
+      const result = await geocodingCache.geocode(etablissementData.adresse);
+      
+      if (result) {
+        etablissementData.latitude = result.latitude;
+        etablissementData.longitude = result.longitude;
+        addressValid = true;
+        geocodingSuccess = true;
+        geocodingCoordinates = {
+          lat: result.latitude,
+          lng: result.longitude
+        };
+        geocodingStatus = `✅ Coordonnées trouvées: ${result.latitude}, ${result.longitude}`;
+        
+        // Mettre à jour l'affichage avec le nom normalisé
+        if (result.display_name) {
+          etablissementData.adresse = result.display_name;
+        }
+      } else {
+        geocodingStatus = '❌ Adresse non trouvée. Vérifiez l\'adresse saisie.';
+        etablissementData.latitude = null;
+        etablissementData.longitude = null;
+        addressValid = false;
+      }
+    } catch (error) {
+      geocodingStatus = `❌ Erreur de géocodage: ${error.message}`;
+      console.error('Erreur de géocodage:', error);
+    }
+  }
+
+  // Fonction pour ouvrir un lien Google Maps avec l'adresse
+  function openGoogleMaps() {
+    if (!etablissementData.adresse) return;
+    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(etablissementData.adresse)}`;
+    window.open(url, '_blank');
+  }
+
+  // Fonction pour utiliser la position actuelle
+  async function useCurrentLocation() {
+    if (!navigator.geolocation) {
+      geocodingStatus = '⚠️ La géolocalisation n\'est pas supportée par votre navigateur';
+      return;
+    }
+
+    geocodingStatus = '📍 Obtention de votre position...';
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          
+          // Géocodage inverse avec cache
+          const result = await geocodingCache.reverseGeocode(latitude, longitude);
+          
+          if (result) {
+            etablissementData.adresse = result.display_name;
+            etablissementData.latitude = latitude;
+            etablissementData.longitude = longitude;
+            addressValid = true;
+            geocodingSuccess = true;
+            geocodingCoordinates = { lat: latitude, lng: longitude };
+            geocodingStatus = `✅ Position trouvée: ${latitude}, ${longitude}`;
+          } else {
+            geocodingStatus = '❌ Impossible de récupérer l\'adresse depuis votre position';
+          }
+        } catch (error) {
+          geocodingStatus = '❌ Erreur lors du géocodage inverse';
+          console.error('Erreur:', error);
+        }
+      },
+      (error) => {
+        geocodingStatus = '❌ Impossible d\'obtenir votre position. Vérifiez les permissions.';
+        console.error('Erreur de géolocalisation:', error);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
   
   async function handleSubmit() {
     isLoading = true;
     errorMessage = '';
     successMessage = '';
+    geocodingStatus = '';
     
     try {
         let formData;
@@ -187,12 +325,56 @@
                   }
                 }
 
-                // Création de l'établissement
-                const etablissement = await authApi.registerEtablissement(
-                  getEtablissementFormData(etablissementData)
-                );
+                // Vérifier si l'adresse a été géocodée
+                if (!addressValid && etablissementData.adresse) {
+                  geocodingStatus = '🌍 Géocodage de l\'adresse...';
+                  try {
+                    const result = await geocodingCache.geocode(etablissementData.adresse);
+                    if (result) {
+                      etablissementData.latitude = result.latitude;
+                      etablissementData.longitude = result.longitude;
+                      addressValid = true;
+                      geocodingSuccess = true;
+                      geocodingCoordinates = {
+                        lat: result.latitude,
+                        lng: result.longitude
+                      };
+                    } else {
+                      throw new Error('Adresse non trouvée');
+                    }
+                  } catch (error) {
+                    throw new Error(`Erreur de géocodage: ${error.message}`);
+                  }
+                }
 
-                console.log(etablissement);
+                geocodingStatus = '🌍 Enregistrement de l\'établissement...';
+
+                // Création de l'établissement avec les coordonnées déjà géocodées
+                const etablissementFormData = getEtablissementFormData(etablissementData);
+                // Ajouter les coordonnées manuellement si elles ne sont pas dans le formulaire
+                if (!etablissementFormData.latitude && etablissementData.latitude) {
+                  etablissementFormData.latitude = etablissementData.latitude;
+                  etablissementFormData.longitude = etablissementData.longitude;
+                }
+                
+                const etablissement = await authApi.registerEtablissement(etablissementFormData);
+
+                console.log('Établissement créé:', etablissement);
+                
+                // Vérifier si l'établissement a des coordonnées
+                if (etablissement.etablissement?.latitude && etablissement.etablissement?.longitude) {
+                  geocodingStatus = '✅ Établissement enregistré et géocodé avec succès !';
+                  geocodingSuccess = true;
+                  geocodingCoordinates = {
+                    lat: parseFloat(etablissement.etablissement.latitude),
+                    lng: parseFloat(etablissement.etablissement.longitude)
+                  };
+                } else if (etablissementData.latitude && etablissementData.longitude) {
+                  geocodingStatus = '✅ Établissement enregistré avec les coordonnées fournies';
+                  geocodingSuccess = true;
+                } else {
+                  geocodingStatus = '⚠️ Établissement enregistré mais coordonnées non disponibles.';
+                }
                 
                 // Création de l'année scolaire
                 const anneeScolaire = await authApi.createAnneeScolaire({
@@ -257,6 +439,7 @@
         
     } catch (error) {
         errorMessage = error.message || "Une erreur s'est produite lors de l'inscription";
+        geocodingStatus = '❌ Erreur : ' + errorMessage;
     } finally {
         isLoading = false;
     }
@@ -360,14 +543,91 @@
             </div>
             
             <div class="sm:col-span-2">
-              <label for="etab-adresse" class="block text-sm font-medium text-gray-700">Adresse</label>
-              <input
-                id="etab-adresse"
-                type="text"
+              <AddressAutocomplete
                 bind:value={etablissementData.adresse}
-                required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                label="Adresse de l'établissement"
+                placeholder="Ex: 123 Rue de l'Éducation, Antananarivo, Madagascar"
+                countryFilter="mg"
+                language="fr"
+                showMap={true}
+                required={true}
+                on:select={handleAddressSelect}
+                on:geocode={handleGeocode}
+                on:clear={() => {
+                  addressValid = false;
+                  geocodingSuccess = false;
+                  geocodingCoordinates = null;
+                  etablissementData.latitude = null;
+                  etablissementData.longitude = null;
+                  geocodingStatus = '';
+                }}
               />
+              
+              <!-- Boutons d'action supplémentaires -->
+              <div class="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  on:click={geocodeAddressManually}
+                  class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                >
+                  <Icon icon="heroicons:magnifying-glass" class="h-4 w-4 mr-1" />
+                  Géocoder manuellement
+                </button>
+                <button
+                  type="button"
+                  on:click={useCurrentLocation}
+                  class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                >
+                  <Icon icon="heroicons:map-pin" class="h-4 w-4 mr-1" />
+                  Ma position
+                </button>
+                {#if etablissementData.adresse}
+                  <button
+                    type="button"
+                    on:click={openGoogleMaps}
+                    class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                  >
+                    <Icon icon="logos:google-maps" class="h-4 w-4 mr-1" />
+                    Voir sur Maps
+                  </button>
+                {/if}
+              </div>
+              
+              <!-- Affichage des coordonnées -->
+              {#if geocodingCoordinates}
+                <div class="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <span class="text-sm font-medium text-green-700">📍 Coordonnées trouvées</span>
+                      <p class="text-xs text-gray-600 mt-0.5">
+                        Latitude: {geocodingCoordinates.lat.toFixed(6)} 
+                        | Longitude: {geocodingCoordinates.lng.toFixed(6)}
+                      </p>
+                    </div>
+                    <a
+                      href={`https://www.openstreetmap.org/?mlat=${geocodingCoordinates.lat}&mlon=${geocodingCoordinates.lng}&zoom=15`}
+                      target="_blank"
+                      class="text-xs text-blue-500 hover:text-blue-700 underline"
+                    >
+                      Voir sur OpenStreetMap
+                    </a>
+                  </div>
+                </div>
+              {/if}
+              
+              <!-- Statut du géocodage -->
+              {#if geocodingStatus && !geocodingCoordinates}
+                <div class="mt-2 p-2 rounded-md text-sm">
+                  <span class={`
+                    ${geocodingStatus.includes('✅') ? 'text-green-700' : ''}
+                    ${geocodingStatus.includes('⚠️') ? 'text-yellow-700' : ''}
+                    ${geocodingStatus.includes('❌') || geocodingStatus.includes('Erreur') ? 'text-red-700' : ''}
+                    ${geocodingStatus.includes('🔍') || geocodingStatus.includes('📍') || geocodingStatus.includes('🌍') ? 'text-blue-700' : ''}
+                  `}>
+                    {geocodingStatus}
+                  </span>
+                </div>
+              {/if}
             </div>
           </div>
           
@@ -510,6 +770,11 @@
                 </div>
                 <div class="ml-3">
                   <p class="text-sm text-green-700">{successMessage}</p>
+                  {#if geocodingCoordinates}
+                    <p class="text-xs text-green-600 mt-1">
+                      📍 Coordonnées: {geocodingCoordinates.lat.toFixed(6)}, {geocodingCoordinates.lng.toFixed(6)}
+                    </p>
+                  {/if}
                 </div>
               </div>
             </div>

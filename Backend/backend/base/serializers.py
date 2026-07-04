@@ -214,13 +214,94 @@ class EtablissementSerializer(serializers.ModelSerializer):
     annees_scolaires = AnneeScolaireSerializer(many=True, read_only=True)
     classes = ClasseSerializer(many=True, read_only=True)
     
+    # Champs supplémentaires pour la réponse
+    distance = serializers.SerializerMethodField()
+    has_coordinates = serializers.SerializerMethodField()
+    
     class Meta:
         model = Etablissement
         fields = '__all__'
         extra_kwargs = {
             'nom': {'required': True},
             'type_etablissement': {'required': True},
+            'latitude': {'required': False, 'allow_null': True},
+            'longitude': {'required': False, 'allow_null': True},
+            'coordinates_verified': {'read_only': True},
+            'coordinates_updated_at': {'read_only': True},
         }
+    
+    def get_distance(self, obj):
+        """Calcule la distance depuis la position de l'utilisateur"""
+        request = self.context.get('request')
+        if not request:
+            return None
+            
+        user_lat = request.query_params.get('lat')
+        user_lng = request.query_params.get('lng')
+        
+        if user_lat and user_lng and obj.latitude and obj.longitude:
+            import math
+            R = 6371  # Rayon de la Terre en km
+            
+            lat1 = float(user_lat)
+            lng1 = float(user_lng)
+            lat2 = float(obj.latitude)
+            lng2 = float(obj.longitude)
+            
+            dlat = math.radians(lat2 - lat1)
+            dlng = math.radians(lng2 - lng1)
+            
+            a = math.sin(dlat/2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlng/2)**2
+            c = 2 * math.atan2(math.sqrt(a), math.sqrt(1-a))
+            
+            return round(R * c, 2)
+        
+        return None
+    
+    def get_has_coordinates(self, obj):
+        return obj.has_coordinates
+    
+    def validate(self, data):
+        """Validation des données"""
+        # Si des coordonnées sont fournies, vérifier qu'elles sont valides
+        latitude = data.get('latitude')
+        longitude = data.get('longitude')
+        
+        if latitude is not None and longitude is not None:
+            # Vérifier que les coordonnées sont dans des plages valides
+            if not (-90 <= float(latitude) <= 90):
+                raise serializers.ValidationError({
+                    'latitude': 'La latitude doit être comprise entre -90 et 90 degrés'
+                })
+            if not (-180 <= float(longitude) <= 180):
+                raise serializers.ValidationError({
+                    'longitude': 'La longitude doit être comprise entre -180 et 180 degrés'
+                })
+        
+        return data
+    
+    def create(self, validated_data):
+        user_data = validated_data.pop('user')
+        user_data['user_type'] = 'etablissement'
+        
+        user_serializer = UserSerializer(data=user_data)
+        user_serializer.is_valid(raise_exception=True)
+        user = user_serializer.save()
+        
+        # Si des coordonnées sont fournies, marquer comme vérifiées
+        if validated_data.get('latitude') and validated_data.get('longitude'):
+            validated_data['coordinates_verified'] = True
+            validated_data['coordinates_updated_at'] = timezone.now()
+        
+        return Etablissement.objects.create(user=user, **validated_data)
+    
+    def update(self, instance, validated_data):
+        # Si les coordonnées sont mises à jour
+        if 'latitude' in validated_data or 'longitude' in validated_data:
+            validated_data['coordinates_verified'] = True
+            validated_data['coordinates_updated_at'] = timezone.now()
+        
+        return super().update(instance, validated_data)
     
     def create(self, validated_data):
         user_data = validated_data.pop('user')
@@ -231,6 +312,18 @@ class EtablissementSerializer(serializers.ModelSerializer):
         user = user_serializer.save()
         
         return Etablissement.objects.create(user=user, **validated_data)
+    
+    def update(self, instance, validated_data):
+        # Si l'adresse change, on met à jour les coordonnées
+        if 'adresse' in validated_data and validated_data['adresse'] != instance.adresse:
+            from .services.geocoding import GeocodingService
+            
+            coords = GeocodingService.geocode_address(validated_data['adresse'])
+            if coords:
+                validated_data['latitude'] = coords['latitude']
+                validated_data['longitude'] = coords['longitude']
+        
+        return super().update(instance, validated_data)
 
 class ProfesseurSerializer(serializers.ModelSerializer):
     user = UserSerializer(required=True)

@@ -11,6 +11,7 @@ router.register(r'professeurs', ProfesseurViewSet, basename='professeur')
 router.register(r'matieres', MatiereViewSet, basename='matiere')
 router.register(r'salles', SalleViewSet, basename='salle')
 router.register(r'cours', CoursViewSet, basename='cours')
+router.register(r'etablissements', EtablissementViewSet, basename='etablissement') 
 
 urlpatterns = [
     path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
@@ -24,4 +25,6 @@ urlpatterns = [
     path('profile/', UserProfileView.as_view(), name='profile'),
     
     path('api/', include(router.urls)),
+    path('api/geocode/', geocode_proxy, name='geocode-proxy'),
+    path('api/reverse-geocode/', reverse_geocode_proxy, name='reverse-geocode-proxy'),
 ]
