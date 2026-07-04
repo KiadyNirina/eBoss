@@ -406,6 +406,34 @@
       updateEdgeMarkers();
     }, 100);
   }
+
+  function getTooltipDirection(position, bounds) {
+    const center = bounds.getCenter();
+    const lat = position.lat;
+    const lng = position.lng;
+    
+    const isTop = lat > center.lat;
+    const isBottom = lat < center.lat;
+    const isLeft = lng < center.lng;
+    const isRight = lng > center.lng;
+    
+    // Si le marqueur est en haut, le tooltip doit aller vers le bas
+    if (isTop && !isLeft && !isRight) return 'bottom';
+    // Si le marqueur est en bas, le tooltip doit aller vers le haut
+    if (isBottom && !isLeft && !isRight) return 'top';
+    // Si le marqueur est à gauche, le tooltip doit aller vers la droite
+    if (isLeft && !isTop && !isBottom) return 'right';
+    // Si le marqueur est à droite, le tooltip doit aller vers la gauche
+    if (isRight && !isTop && !isBottom) return 'left';
+    
+    // Pour les coins, choisir la direction la plus appropriée
+    if (isTop && isLeft) return 'bottomright';
+    if (isTop && isRight) return 'bottomleft';
+    if (isBottom && isLeft) return 'topright';
+    if (isBottom && isRight) return 'topleft';
+    
+    return 'top';
+  }
   
   function updateEdgeMarkers() {
     if (!mapInitialized || !L) return;
@@ -425,7 +453,7 @@
     markers.forEach((marker, index) => {
       const latLng = marker.getLatLng();
       const position = latLng;
-      
+
       if (!bounds.contains(position)) {
         const edgePosition = getEdgePosition(position, bounds);
         
@@ -440,7 +468,47 @@
         const distance = establishment ? getEstablishmentDistance(establishment) : null;
         const distanceText = distance !== null ? formatDistance(distance) : 'N/A';
         
-        // Tooltip pour le marqueur de bordure
+        // Déterminer la direction du tooltip
+        const tooltipDirection = getTooltipDirection(edgePosition, bounds);
+        
+        // Calculer l'offset en fonction de la direction
+        let offsetX = 0;
+        let offsetY = 0;
+        
+        switch(tooltipDirection) {
+            case 'top':
+                offsetY = -15;
+                break;
+            case 'bottom':
+                offsetY = 15;
+                break;
+            case 'left':
+                offsetX = -15;
+                break;
+            case 'right':
+                offsetX = 15;
+                break;
+            case 'topright':
+                offsetX = 15;
+                offsetY = -15;
+                break;
+            case 'topleft':
+                offsetX = -15;
+                offsetY = -15;
+                break;
+            case 'bottomright':
+                offsetX = 15;
+                offsetY = 15;
+                break;
+            case 'bottomleft':
+                offsetX = -15;
+                offsetY = 15;
+                break;
+            default:
+                offsetY = -15;
+        }
+        
+        // Tooltip pour le marqueur de bordure avec direction adaptative
         const edgeTooltipContent = `
           <div class="distance-tooltip">
             <div class="font-bold text-[#20784d]">${establishmentName}</div>
@@ -538,11 +606,11 @@
         })
         .addTo(map);
         
-        // Ajouter le tooltip
+        // Ajouter le tooltip avec direction adaptative
         edgeMarker.bindTooltip(edgeTooltipContent, {
           permanent: false,
-          direction: 'top',
-          offset: [0, -15],
+          direction: tooltipDirection,
+          offset: [offsetX, offsetY],
           className: 'custom-tooltip',
           sticky: true,
           interactive: true
@@ -565,8 +633,8 @@
     
     if (userLocation && !bounds.contains([userLocation.lat, userLocation.lng])) {
       const edgePosition = getEdgePosition(
-        { lat: userLocation.lat, lng: userLocation.lng }, 
-        bounds
+          { lat: userLocation.lat, lng: userLocation.lng }, 
+          bounds
       );
       
       const userEdgeIcon = L.divIcon({
