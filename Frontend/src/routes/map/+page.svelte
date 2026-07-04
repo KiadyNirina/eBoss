@@ -14,6 +14,9 @@
   let userLocation = null;
   let mapInitialized = false;
   let L = null;
+  let userMarker = null;
+  let locationFound = false;
+  let userEdgeMarker = null;
   
   // Données des établissements
   const establishmentData = [
@@ -114,6 +117,21 @@
     }
   }
   
+  function goToUserLocation() {
+    if (!browser || !userLocation || !map) return;
+    
+    map.setView([userLocation.lat, userLocation.lng], 14, {
+      animate: true,
+      duration: 1
+    });
+    
+    if (userMarker) {
+      setTimeout(() => {
+        userMarker.openPopup();
+      }, 500);
+    }
+  }
+  
   onMount(async () => {
     establishments = establishmentData;
     filteredEstablishments = establishments;
@@ -123,21 +141,40 @@
     
     if (browser) {
       await initMap();
-    }
-    
-    if (browser && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          userLocation = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude
-          };
-          addUserLocationMarker();
-        },
-        (error) => {
-          console.log('Géolocalisation non disponible');
+      
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            userLocation = {
+              lat: position.coords.latitude,
+              lng: position.coords.longitude
+            };
+            locationFound = true;
+            addUserLocationMarker();
+            if (map) {
+              map.setView([userLocation.lat, userLocation.lng], 14);
+            }
+            setTimeout(() => {
+              updateEdgeMarkers();
+            }, 200);
+          },
+          (error) => {
+            console.log('Géolocalisation non disponible ou refusée');
+            if (map) {
+              map.setView([48.8566, 2.3522], 12);
+            }
+          },
+          {
+            enableHighAccuracy: true,
+            timeout: 5000,
+            maximumAge: 0
+          }
+        );
+      } else {
+        if (map) {
+          map.setView([48.8566, 2.3522], 12);
         }
-      );
+      }
     }
   });
   
@@ -156,8 +193,8 @@
     });
     
     map = L.map('map', {
-      center: [46.603354, 1.888334],
-      zoom: 6,
+      center: [48.8566, 2.3522],
+      zoom: 12,
       attributionControl: false
     });
     
@@ -260,12 +297,17 @@
   }
   
   function updateEdgeMarkers() {
-    if (!mapInitialized || !L || markers.length === 0) return;
+    if (!mapInitialized || !L) return;
     
     edgeMarkers.forEach(marker => {
       if (map) map.removeLayer(marker);
     });
     edgeMarkers = [];
+    
+    if (userEdgeMarker) {
+      map.removeLayer(userEdgeMarker);
+      userEdgeMarker = null;
+    }
     
     const bounds = map.getBounds();
     
@@ -282,14 +324,15 @@
         const popupContent = marker.getPopup().getContent();
         const idMatch = popupContent.match(/selectEstablishment\((\d+)\)/);
         const establishmentId = idMatch ? parseInt(idMatch[1]) : null;
+        const establishmentName = establishmentData.find(e => e.id === establishmentId)?.name || 'Établissement';
         
         const edgeIcon = L.divIcon({
           className: 'edge-marker',
           html: `
-            <div style="
+            <div class="edge-marker-container" style="
               background-color: ${color};
-              width: 18px;
-              height: 18px;
+              width: 32px;
+              height: 32px;
               border-radius: 50%;
               border: 3px solid white;
               box-shadow: 0 2px 12px rgba(0,0,0,0.4);
@@ -297,44 +340,47 @@
               display: flex;
               align-items: center;
               justify-content: center;
-              font-size: 10px;
+              font-size: 12px;
               color: white;
               font-weight: bold;
               position: relative;
               transition: all 0.3s ease;
+              z-index: 500;
             "
-            onmouseover="this.style.transform='scale(1.4)'; this.style.boxShadow='0 4px 20px rgba(0,0,0,0.5)'"
+            onmouseover="this.style.transform='scale(1.3)'; this.style.boxShadow='0 4px 20px rgba(0,0,0,0.6)'"
             onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 12px rgba(0,0,0,0.4)'"
             onclick="window.goToEstablishment(${establishmentId})"
-            title="Cliquer pour voir ${establishmentData.find(e => e.id === establishmentId)?.name || 'cet établissement'}"
+            title="Cliquer pour voir ${establishmentName}"
             >
               <div style="
                 position: absolute;
-                top: -6px;
-                left: -6px;
-                right: -6px;
-                bottom: -6px;
+                top: -4px;
+                left: -4px;
+                right: -4px;
+                bottom: -4px;
                 border-radius: 50%;
                 border: 2px solid ${color};
-                opacity: 0.3;
+                opacity: 0.4;
                 animation: edgePulse 1.5s ease-in-out infinite;
               "></div>
-              <span style="position: relative; z-index: 1;">${index + 1}</span>
+              <span style="position: relative; z-index: 1; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">${index + 1}</span>
             </div>
           `,
-          iconSize: [18, 18],
-          iconAnchor: [9, 9]
+          iconSize: [32, 32],
+          iconAnchor: [16, 16],
+          className: 'edge-marker-wrapper'
         });
         
         const edgeMarker = L.marker(edgePosition, { 
           icon: edgeIcon,
-          riseOnHover: true
+          riseOnHover: true,
+          zIndexOffset: 500
         })
         .addTo(map)
         .bindPopup(`
-          <div class="p-2 max-w-xs">
+          <div class="p-3 max-w-xs">
             <div class="flex items-center justify-between mb-2">
-              <span class="text-xs font-bold text-gray-500">#${index + 1}</span>
+              <span class="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded">#${index + 1}</span>
               <span class="text-xs px-2 py-1 bg-[#20784d] text-white rounded-full">Cliquez pour voir</span>
             </div>
             ${popupContent}
@@ -344,6 +390,86 @@
         edgeMarkers.push(edgeMarker);
       }
     });
+    
+    if (userLocation && !bounds.contains([userLocation.lat, userLocation.lng])) {
+      const edgePosition = getEdgePosition(
+        { lat: userLocation.lat, lng: userLocation.lng }, 
+        bounds
+      );
+      
+      const userEdgeIcon = L.divIcon({
+        className: 'user-edge-marker',
+        html: `
+          <div class="user-edge-container" style="
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 2px 12px rgba(32, 120, 77, 0.6);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background: #20784d;
+            transition: all 0.3s ease;
+            z-index: 1000;
+          "
+          onmouseover="this.style.transform='scale(1.3)'; this.style.boxShadow='0 4px 25px rgba(32, 120, 77, 0.8)'"
+          onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 12px rgba(32, 120, 77, 0.6)'"
+          onclick="window.goToUserLocation()"
+          title="Cliquer pour revenir à votre position"
+          >
+            <div style="
+              position: absolute;
+              top: -6px;
+              left: -6px;
+              right: -6px;
+              bottom: -6px;
+              border-radius: 50%;
+              border: 2px solid #20784d;
+              opacity: 0.5;
+              animation: userEdgePulse 1.5s ease-in-out infinite;
+            "></div>
+            <div style="
+              position: absolute;
+              top: -12px;
+              left: -12px;
+              right: -12px;
+              bottom: -12px;
+              border-radius: 50%;
+              border: 2px solid #20784d;
+              opacity: 0.2;
+              animation: userEdgePulse 1.5s ease-in-out 0.5s infinite;
+            "></div>
+            <span style="position: relative; z-index: 1; font-size: 18px;">📍</span>
+          </div>
+        `,
+        iconSize: [40, 40],
+        iconAnchor: [20, 20],
+        className: 'user-edge-wrapper'
+      });
+      
+      userEdgeMarker = L.marker(edgePosition, { 
+        icon: userEdgeIcon,
+        riseOnHover: true,
+        zIndexOffset: 1000
+      })
+      .addTo(map)
+      .bindPopup(`
+        <div class="p-3">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="text-lg">📍</span>
+            <span class="font-bold text-[#20784d]">Votre position</span>
+          </div>
+          <p class="text-sm text-gray-600">Cliquez sur le marqueur pour revenir à votre position</p>
+          <button onclick="window.goToUserLocation()" 
+                  class="mt-2 w-full bg-[#20784d] text-white px-3 py-1.5 rounded text-sm hover:bg-green-700 transition-colors">
+            Revenir à ma position
+          </button>
+        </div>
+      `);
+    }
   }
   
   function getEdgePosition(position, bounds) {
@@ -387,30 +513,54 @@
   function addUserLocationMarker() {
     if (!mapInitialized || !userLocation || !L) return;
     
+    if (userMarker) {
+      map.removeLayer(userMarker);
+    }
+    
     const userIcon = L.divIcon({
       className: 'user-marker',
-      html: `<div style="
-        background-color: #20784d;
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        border: 3px solid white;
-        box-shadow: 0 0 0 3px #20784d, 0 2px 8px rgba(0,0,0,0.3);
-        animation: pulse 2s infinite;
-      "></div>`,
-      iconSize: [16, 16],
-      iconAnchor: [8, 8]
+      html: `
+        <div class="user-marker-container" onclick="window.goToUserLocation()" style="cursor: pointer;">
+          <!-- Anneau de pulsation extérieur -->
+          <div class="pulse-ring-outer"></div>
+          
+          <!-- Anneau de pulsation intérieur -->
+          <div class="pulse-ring-inner"></div>
+          
+          <!-- Marqueur principal -->
+          <div class="user-marker-dot">
+            <div class="user-marker-center"></div>
+          </div>
+          
+          <!-- Icône de localisation -->
+          <div class="user-marker-icon">📍</div>
+        </div>
+      `,
+      iconSize: [60, 60],
+      iconAnchor: [30, 30],
+      popupAnchor: [0, -34],
+      className: 'user-marker-wrapper'
     });
     
-    L.marker([userLocation.lat, userLocation.lng], { icon: userIcon })
-      .addTo(map)
-      .bindPopup(`
-        <div class="p-2">
-          <p class="font-bold text-[#20784d]">📍 Vous êtes ici</p>
-          <p class="text-sm text-gray-500">Lat: ${userLocation.lat.toFixed(4)}</p>
-          <p class="text-sm text-gray-500">Lng: ${userLocation.lng.toFixed(4)}</p>
+    userMarker = L.marker([userLocation.lat, userLocation.lng], { 
+      icon: userIcon,
+      zIndexOffset: 1000
+    })
+    .addTo(map)
+    .bindPopup(`
+      <div class="p-3">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-xl">📍</span>
+          <p class="font-bold text-[#20784d]">Vous êtes ici</p>
         </div>
-      `);
+        <p class="text-sm text-gray-500">Lat: ${userLocation.lat.toFixed(6)}</p>
+        <p class="text-sm text-gray-500">Lng: ${userLocation.lng.toFixed(6)}</p>
+        <button onclick="window.goToUserLocation()" 
+                class="mt-2 w-full bg-[#20784d] text-white px-3 py-1.5 rounded text-sm hover:bg-green-700 transition-colors">
+          Centrer sur ma position
+        </button>
+      </div>
+    `);
   }
   
   function addLegend() {
@@ -428,6 +578,21 @@
           <div><span class="inline-block w-3 h-3 rounded-full bg-orange-500 mr-2"></span>Collège</div>
           <div><span class="inline-block w-3 h-3 rounded-full bg-red-500 mr-2"></span>Lycée</div>
           <div><span class="inline-block w-3 h-3 rounded-full bg-purple-500 mr-2"></span>Université</div>
+        </div>
+        <div class="mt-2 pt-2 border-t">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center">
+              <div class="w-3 h-3 rounded-full bg-[#20784d] mr-2 ring-2 ring-[#20784d] ring-opacity-50 animate-pulse"></div>
+              <span class="text-xs text-gray-600">Votre position</span>
+            </div>
+            <span class="text-xs text-[#20784d] font-medium cursor-pointer hover:underline" onclick="window.goToUserLocation()">
+              Centrer →
+            </span>
+          </div>
+          <div class="flex items-center mt-1">
+            <div class="w-3 h-3 rounded-full bg-[#20784d] mr-2 border-2 border-white shadow-md"></div>
+            <span class="text-xs text-gray-500">Marqueur en bordure</span>
+          </div>
         </div>
       `;
       return div;
@@ -474,6 +639,7 @@
   if (browser) {
     window.selectEstablishment = selectEstablishment;
     window.goToEstablishment = goToEstablishment;
+    window.goToUserLocation = goToUserLocation;
   }
   
   function goBack() {
@@ -499,7 +665,18 @@
           </button>
           <h1 class="text-xl font-bold text-gray-900">Rechercher des établissements</h1>
         </div>
-        <span class="text-sm text-gray-500">{filteredEstablishments.length} établissements trouvés</span>
+        <div class="flex items-center gap-3">
+          {#if userLocation}
+            <button 
+              on:click={goToUserLocation}
+              class="flex items-center gap-1 text-sm bg-[#20784d] text-white px-3 py-1.5 rounded-full hover:bg-green-700 transition-colors shadow-sm"
+            >
+              <Icon icon="heroicons:map-pin" class="h-4 w-4" />
+              Ma position
+            </button>
+          {/if}
+          <span class="text-sm text-gray-500">{filteredEstablishments.length} établissements</span>
+        </div>
       </div>
     </div>
   </div>
@@ -563,8 +740,17 @@
   <!-- Liste des établissements -->
   <div class="max-w-7xl mx-auto px-4 pb-8 sm:px-6 lg:px-8">
     <div class="bg-white rounded-lg shadow">
-      <div class="p-4 border-b">
+      <div class="p-4 border-b flex items-center justify-between">
         <h2 class="font-semibold text-gray-900">Liste des établissements</h2>
+        {#if userLocation}
+          <button 
+            on:click={goToUserLocation}
+            class="text-xs text-[#20784d] hover:text-green-700 font-medium flex items-center gap-1"
+          >
+            <Icon icon="heroicons:map-pin" class="h-3 w-3" />
+            Revenir à ma position
+          </button>
+        {/if}
       </div>
       <div class="divide-y divide-gray-200 max-h-60 overflow-y-auto">
         {#if filteredEstablishments.length === 0}
@@ -633,7 +819,130 @@
     border: none !important;
   }
 
-  /* Animation des marqueurs */
+  :global(.user-edge-marker) {
+    background: transparent !important;
+    border: none !important;
+  }
+
+  /* Conteneur du marqueur utilisateur */
+  :global(.user-marker-container) {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  /* Anneau de pulsation extérieur */
+  :global(.pulse-ring-outer) {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgba(32, 120, 77, 0.15);
+    animation: pulseRing 2s ease-in-out infinite;
+  }
+
+  /* Anneau de pulsation intérieur */
+  :global(.pulse-ring-inner) {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    background: rgba(32, 120, 77, 0.25);
+    animation: pulseRing 2s ease-in-out 0.6s infinite;
+  }
+
+  /* Point principal du marqueur */
+  :global(.user-marker-dot) {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px;
+    height: 24px;
+    background: #20784d;
+    border-radius: 50%;
+    border: 3px solid white;
+    box-shadow: 0 0 0 3px #20784d, 0 4px 12px rgba(0, 0, 0, 0.3);
+    animation: popIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    z-index: 2;
+  }
+
+  /* Point central blanc */
+  :global(.user-marker-center) {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 8px;
+    height: 8px;
+    background: white;
+    border-radius: 50%;
+    animation: pulse 2s ease-in-out 0.6s infinite;
+  }
+
+  /* Icône de localisation */
+  :global(.user-marker-icon) {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 14px;
+    color: white;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+    z-index: 3;
+    animation: popIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  }
+
+  /* Animation popin */
+  @keyframes popIn {
+    0% {
+      transform: translate(-50%, -50%) scale(0);
+      opacity: 0;
+    }
+    70% {
+      transform: translate(-50%, -50%) scale(1.2);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(-50%, -50%) scale(1);
+      opacity: 1;
+    }
+  }
+
+  /* Animation pulse du point central */
+  @keyframes pulse {
+    0%, 100% {
+      transform: translate(-50%, -50%) scale(1);
+    }
+    50% {
+      transform: translate(-50%, -50%) scale(1.3);
+    }
+  }
+
+  /* Animation pulse ring */
+  @keyframes pulseRing {
+    0% {
+      transform: translate(-50%, -50%) scale(0.6);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(-50%, -50%) scale(1.6);
+      opacity: 0;
+    }
+  }
+
+  /* Animation des marqueurs des établissements */
   @keyframes markerPulse {
     0%, 100% {
       transform: scale(1);
@@ -653,30 +962,28 @@
       opacity: 0;
     }
   }
-  
-  @keyframes pulse {
-    0% {
-      transform: scale(1);
-      opacity: 1;
-    }
-    50% {
-      transform: scale(1.2);
-      opacity: 0.8;
-    }
-    100% {
-      transform: scale(1);
-      opacity: 1;
-    }
-  }
 
+  /* Animation pour les marqueurs de bordure */
   @keyframes edgePulse {
     0%, 100% {
       transform: scale(1);
-      opacity: 1;
+      opacity: 0.4;
     }
     50% {
-      transform: scale(1.3);
-      opacity: 0.7;
+      transform: scale(1.4);
+      opacity: 0.8;
+    }
+  }
+
+  /* Animation pour le marqueur de bordure utilisateur */
+  @keyframes userEdgePulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 0.5;
+    }
+    50% {
+      transform: scale(1.5);
+      opacity: 0.8;
     }
   }
   
@@ -708,5 +1015,17 @@
   :global(.leaflet-control-zoom a:hover) {
     background: #f3f4f6 !important;
     color: #20784d !important;
+  }
+
+  /* Style pour les marqueurs de bordure au survol */
+  :global(.edge-marker-container:hover) {
+    transform: scale(1.3) !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.6) !important;
+  }
+
+  /* Style pour le marqueur de bordure utilisateur au survol */
+  :global(.user-edge-container:hover) {
+    transform: scale(1.3) !important;
+    box-shadow: 0 4px 25px rgba(32, 120, 77, 0.8) !important;
   }
 </style>
