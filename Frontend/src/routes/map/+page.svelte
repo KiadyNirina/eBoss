@@ -76,6 +76,40 @@
   let filterType = 'all';
   let filteredEstablishments = [];
   
+  // Fonction pour calculer la distance entre deux points en kilomètres
+  function calculateDistance(lat1, lng1, lat2, lng2) {
+    const R = 6371; // Rayon de la Terre en km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLng = (lng2 - lng1) * Math.PI / 180;
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLng/2) * Math.sin(dLng/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
+  
+  // Fonction pour formater la distance
+  function formatDistance(distance) {
+    if (distance === null || distance === undefined) return 'N/A';
+    if (distance < 1) {
+      return `${Math.round(distance * 1000)} m`;
+    } else if (distance < 10) {
+      return `${distance.toFixed(1)} km`;
+    } else {
+      return `${Math.round(distance)} km`;
+    }
+  }
+  
+  // Fonction pour obtenir la distance d'un établissement
+  function getEstablishmentDistance(establishment) {
+    if (!userLocation) return null;
+    return calculateDistance(
+      userLocation.lat, userLocation.lng,
+      establishment.lat, establishment.lng
+    );
+  }
+  
   // Fonction pour sélectionner un établissement
   function selectEstablishment(id) {
     if (!browser) return;
@@ -155,6 +189,8 @@
               map.setView([userLocation.lat, userLocation.lng], 14);
             }
             setTimeout(() => {
+              // Re-créer les marqueurs avec les distances
+              addEstablishmentMarkers();
               updateEdgeMarkers();
             }, 200);
           },
@@ -236,51 +272,126 @@
     filteredEstablishments.forEach((establishment, index) => {
       const color = typeColors[establishment.type] || '#6b7280';
       const delay = index * 0.2;
+      const distance = getEstablishmentDistance(establishment);
+      const distanceText = distance !== null ? formatDistance(distance) : 'Distance non disponible';
+      
+      // Créer le HTML du marqueur avec badge de distance si disponible
+      let markerHtml = `
+        <div style="
+          background-color: ${color};
+          width: 16px;
+          height: 16px;
+          border-radius: 50%;
+          border: 3px solid white;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+          cursor: pointer;
+          transition: transform 0.3s ease;
+          animation: markerPulse 2s ease-in-out ${delay}s infinite;
+          position: relative;
+        ">
+          <div style="
+            position: absolute;
+            top: -8px;
+            left: -8px;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: ${color};
+            opacity: 0.2;
+            animation: markerRipple 2s ease-out ${delay}s infinite;
+          "></div>
+      `;
+      
+      // Ajouter le badge de distance si disponible
+      if (distance !== null && distance < 50) {
+        markerHtml += `
+          <div style="
+            position: absolute;
+            top: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(32, 120, 77, 0.95);
+            color: white;
+            font-size: 9px;
+            padding: 2px 8px;
+            border-radius: 10px;
+            white-space: nowrap;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            z-index: 10;
+            pointer-events: none;
+            border: 1px solid rgba(255,255,255,0.2);
+          ">
+            📏 ${distanceText}
+          </div>
+        `;
+      }
+      
+      markerHtml += `</div>`;
       
       const customIcon = L.divIcon({
         className: 'custom-marker',
-        html: `
-          <div style="
-            background-color: ${color};
-            width: 16px;
-            height: 16px;
-            border-radius: 50%;
-            border: 3px solid white;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            cursor: pointer;
-            transition: transform 0.3s ease;
-            animation: markerPulse 2s ease-in-out ${delay}s infinite;
-          ">
-            <div style="
-              position: absolute;
-              top: -8px;
-              left: -8px;
-              width: 32px;
-              height: 32px;
-              border-radius: 50%;
-              background: ${color};
-              opacity: 0.2;
-              animation: markerRipple 2s ease-out ${delay}s infinite;
-            "></div>
-          </div>
-        `,
+        html: markerHtml,
         iconSize: [16, 16],
         iconAnchor: [8, 8],
         popupAnchor: [0, -12]
       });
       
+      // Créer le contenu du tooltip avec la distance
+      const tooltipContent = `
+        <div class="distance-tooltip">
+          <div class="font-bold text-[#20784d]">${establishment.name}</div>
+          <div class="text-sm text-gray-600">📍 ${establishment.address}</div>
+          ${distance !== null ? `
+            <div class="flex items-center gap-1 mt-1 text-sm">
+              <span class="text-gray-500">📏 Distance:</span>
+              <span class="font-semibold text-[#20784d]">${distanceText}</span>
+              <span class="text-gray-400 text-xs">de vous</span>
+            </div>
+          ` : `
+            <div class="text-xs text-gray-400 mt-1">📍 Localisez-vous pour voir la distance</div>
+          `}
+          <div class="text-xs text-gray-400 mt-1">🏫 ${establishment.type}</div>
+        </div>
+      `;
+      
       const marker = L.marker([establishment.lat, establishment.lng], { 
         icon: customIcon,
         riseOnHover: true
       })
-      .addTo(map)
-      .bindPopup(`
+      .addTo(map);
+      
+      // Ajouter le tooltip
+      marker.bindTooltip(tooltipContent, {
+        permanent: false,
+        direction: 'top',
+        offset: [0, -10],
+        className: 'custom-tooltip',
+        sticky: true,
+        interactive: true
+      });
+      
+      // Ajouter le popup
+      marker.bindPopup(`
         <div class="p-2 max-w-xs">
           <h3 class="font-bold text-[#20784d] text-lg">${establishment.name}</h3>
           <p class="text-sm text-gray-600 mt-1">📍 ${establishment.address}</p>
           <p class="text-sm text-gray-600">🏫 ${establishment.type}</p>
           <p class="text-sm text-gray-600">📞 ${establishment.phone}</p>
           <p class="text-sm text-gray-600">✉️ ${establishment.email}</p>
+          ${distance !== null ? `
+            <div class="mt-2 p-2 bg-green-50 rounded-md border border-green-200">
+              <p class="text-sm font-medium text-[#20784d]">
+                📏 Distance: ${distanceText}
+              </p>
+            </div>
+          ` : `
+            <div class="mt-2 p-2 bg-gray-50 rounded-md border border-gray-200">
+              <p class="text-sm text-gray-500">
+                📏 Activez la géolocalisation pour voir la distance
+              </p>
+            </div>
+          `}
           <button onclick="window.selectEstablishment(${establishment.id})" 
                   class="mt-2 w-full bg-[#20784d] text-white px-3 py-1.5 rounded text-sm hover:bg-green-700 transition-colors">
             Voir détails
@@ -324,48 +435,97 @@
         const popupContent = marker.getPopup().getContent();
         const idMatch = popupContent.match(/selectEstablishment\((\d+)\)/);
         const establishmentId = idMatch ? parseInt(idMatch[1]) : null;
-        const establishmentName = establishmentData.find(e => e.id === establishmentId)?.name || 'Établissement';
+        const establishment = establishmentData.find(e => e.id === establishmentId);
+        const establishmentName = establishment?.name || 'Établissement';
+        const distance = establishment ? getEstablishmentDistance(establishment) : null;
+        const distanceText = distance !== null ? formatDistance(distance) : 'N/A';
+        
+        // Tooltip pour le marqueur de bordure
+        const edgeTooltipContent = `
+          <div class="distance-tooltip">
+            <div class="font-bold text-[#20784d]">${establishmentName}</div>
+            ${distance !== null ? `
+              <div class="flex items-center gap-1 mt-1 text-sm">
+                <span class="text-gray-500">📏 Distance:</span>
+                <span class="font-semibold text-[#20784d]">${distanceText}</span>
+                <span class="text-gray-400 text-xs">de vous</span>
+              </div>
+            ` : `
+              <div class="text-xs text-gray-400 mt-1">📍 Localisez-vous pour voir la distance</div>
+            `}
+            <div class="text-xs text-gray-400 mt-1">#${index + 1} - Cliquez pour voir</div>
+          </div>
+        `;
+        
+        // Créer le HTML du marqueur de bordure avec badge de distance
+        let edgeHtml = `
+          <div class="edge-marker-container" style="
+            background-color: ${color};
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.4);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: white;
+            font-weight: bold;
+            position: relative;
+            transition: all 0.3s ease;
+            z-index: 500;
+          "
+          onmouseover="this.style.transform='scale(1.3)'; this.style.boxShadow='0 4px 20px rgba(0,0,0,0.6)'"
+          onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 12px rgba(0,0,0,0.4)'"
+          onclick="window.goToEstablishment(${establishmentId})"
+          title="Cliquer pour voir ${establishmentName}"
+          >
+            <div style="
+              position: absolute;
+              top: -4px;
+              left: -4px;
+              right: -4px;
+              bottom: -4px;
+              border-radius: 50%;
+              border: 2px solid ${color};
+              opacity: 0.4;
+              animation: edgePulse 1.5s ease-in-out infinite;
+            "></div>
+            <span style="position: relative; z-index: 1; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">${index + 1}</span>
+        `;
+        
+        // Ajouter le badge de distance si disponible
+        if (distance !== null && distance < 50) {
+          edgeHtml += `
+            <div style="
+              position: absolute;
+              top: -28px;
+              left: 50%;
+              transform: translateX(-50%);
+              background: rgba(32, 120, 77, 0.95);
+              color: white;
+              font-size: 8px;
+              padding: 2px 8px;
+              border-radius: 10px;
+              white-space: nowrap;
+              font-weight: bold;
+              box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+              z-index: 10;
+              pointer-events: none;
+              border: 1px solid rgba(255,255,255,0.2);
+            ">
+              📏 ${distanceText}
+            </div>
+          `;
+        }
+        
+        edgeHtml += `</div>`;
         
         const edgeIcon = L.divIcon({
           className: 'edge-marker',
-          html: `
-            <div class="edge-marker-container" style="
-              background-color: ${color};
-              width: 32px;
-              height: 32px;
-              border-radius: 50%;
-              border: 3px solid white;
-              box-shadow: 0 2px 12px rgba(0,0,0,0.4);
-              cursor: pointer;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              font-size: 12px;
-              color: white;
-              font-weight: bold;
-              position: relative;
-              transition: all 0.3s ease;
-              z-index: 500;
-            "
-            onmouseover="this.style.transform='scale(1.3)'; this.style.boxShadow='0 4px 20px rgba(0,0,0,0.6)'"
-            onmouseout="this.style.transform='scale(1)'; this.style.boxShadow='0 2px 12px rgba(0,0,0,0.4)'"
-            onclick="window.goToEstablishment(${establishmentId})"
-            title="Cliquer pour voir ${establishmentName}"
-            >
-              <div style="
-                position: absolute;
-                top: -4px;
-                left: -4px;
-                right: -4px;
-                bottom: -4px;
-                border-radius: 50%;
-                border: 2px solid ${color};
-                opacity: 0.4;
-                animation: edgePulse 1.5s ease-in-out infinite;
-              "></div>
-              <span style="position: relative; z-index: 1; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">${index + 1}</span>
-            </div>
-          `,
+          html: edgeHtml,
           iconSize: [32, 32],
           iconAnchor: [16, 16],
           className: 'edge-marker-wrapper'
@@ -376,8 +536,20 @@
           riseOnHover: true,
           zIndexOffset: 500
         })
-        .addTo(map)
-        .bindPopup(`
+        .addTo(map);
+        
+        // Ajouter le tooltip
+        edgeMarker.bindTooltip(edgeTooltipContent, {
+          permanent: false,
+          direction: 'top',
+          offset: [0, -15],
+          className: 'custom-tooltip',
+          sticky: true,
+          interactive: true
+        });
+        
+        // Ajouter le popup
+        edgeMarker.bindPopup(`
           <div class="p-3 max-w-xs">
             <div class="flex items-center justify-between mb-2">
               <span class="text-xs font-bold text-gray-500 bg-gray-100 px-2 py-1 rounded">#${index + 1}</span>
@@ -593,6 +765,14 @@
             <div class="w-3 h-3 rounded-full bg-[#20784d] mr-2 border-2 border-white shadow-md"></div>
             <span class="text-xs text-gray-500">Marqueur en bordure</span>
           </div>
+          <div class="flex items-center mt-1 text-xs text-gray-400">
+            <span class="mr-1">📏</span>
+            <span>Survolez un marqueur pour voir la distance</span>
+          </div>
+          <div class="flex items-center mt-1 text-xs text-green-600">
+            <span class="mr-1">●</span>
+            <span>Badge = établissement à moins de 50km</span>
+          </div>
         </div>
       `;
       return div;
@@ -773,6 +953,11 @@
                       {establishment.type}
                     </span>
                     <span class="text-xs text-gray-400">{establishment.phone}</span>
+                    {#if userLocation}
+                      <span class="text-xs text-gray-400">
+                        📏 {formatDistance(getEstablishmentDistance(establishment))}
+                      </span>
+                    {/if}
                   </div>
                 </div>
                 <button 
@@ -822,6 +1007,32 @@
   :global(.user-edge-marker) {
     background: transparent !important;
     border: none !important;
+  }
+
+  /* Style des tooltips de distance */
+  :global(.custom-tooltip) {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border: none !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    padding: 8px 12px !important;
+    max-width: 280px !important;
+    backdrop-filter: blur(10px) !important;
+    font-size: 12px !important;
+  }
+
+  :global(.custom-tooltip::before) {
+    border-top-color: rgba(255, 255, 255, 0.95) !important;
+  }
+
+  :global(.distance-tooltip) {
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  :global(.distance-tooltip .font-bold) {
+    font-size: 13px;
+    margin-bottom: 2px;
   }
 
   /* Conteneur du marqueur utilisateur */
@@ -1027,5 +1238,9 @@
   :global(.user-edge-container:hover) {
     transform: scale(1.3) !important;
     box-shadow: 0 4px 25px rgba(32, 120, 77, 0.8) !important;
+  }
+
+  :global(.leaflet-tooltip-pane) {
+    z-index: 1000 !important;
   }
 </style>
