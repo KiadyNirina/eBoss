@@ -212,7 +212,18 @@
         }
       }
     }
+    
+    // Resize map when window resizes to avoid grey areas in split view
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
   });
+  
+  function handleResize() {
+    if (map) {
+      map.invalidateSize();
+      updateEdgeMarkers();
+    }
+  }
   
   async function initMap() {
     if (mapInitialized || !browser) return;
@@ -231,8 +242,14 @@
     map = L.map('map', {
       center: [48.8566, 2.3522],
       zoom: 12,
-      attributionControl: false
+      attributionControl: false,
+      zoomControl: false // On va le repositionner
     });
+    
+    // Repositionner les contrôles de zoom
+    L.control.zoom({
+      position: 'topright'
+    }).addTo(map);
     
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '',
@@ -275,7 +292,6 @@
       const distance = getEstablishmentDistance(establishment);
       const distanceText = distance !== null ? formatDistance(distance) : 'Distance non disponible';
       
-      // Créer le HTML du marqueur avec badge de distance si disponible
       let markerHtml = `
         <div style="
           background-color: ${color};
@@ -302,7 +318,6 @@
           "></div>
       `;
       
-      // Ajouter le badge de distance si disponible
       if (distance !== null && distance < 50) {
         markerHtml += `
           <div style="
@@ -337,7 +352,6 @@
         popupAnchor: [0, -12]
       });
       
-      // Créer le contenu du tooltip avec la distance
       const tooltipContent = `
         <div class="distance-tooltip">
           <div class="font-bold text-[#20784d]">${establishment.name}</div>
@@ -361,7 +375,6 @@
       })
       .addTo(map);
       
-      // Ajouter le tooltip
       marker.bindTooltip(tooltipContent, {
         permanent: false,
         direction: 'top',
@@ -371,7 +384,6 @@
         interactive: true
       });
       
-      // Ajouter le popup
       marker.bindPopup(`
         <div class="p-2 max-w-xs">
           <h3 class="font-bold text-[#20784d] text-lg">${establishment.name}</h3>
@@ -393,7 +405,7 @@
             </div>
           `}
           <button onclick="window.selectEstablishment(${establishment.id})" 
-                  class="mt-2 w-full bg-[#20784d] text-white px-3 py-1.5 rounded text-sm hover:bg-green-700 transition-colors">
+                  class="mt-3 w-full bg-[#20784d] text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors shadow-sm">
             Voir détails
           </button>
         </div>
@@ -417,16 +429,11 @@
     const isLeft = lng < center.lng;
     const isRight = lng > center.lng;
     
-    // Si le marqueur est en haut, le tooltip doit aller vers le bas
     if (isTop && !isLeft && !isRight) return 'bottom';
-    // Si le marqueur est en bas, le tooltip doit aller vers le haut
     if (isBottom && !isLeft && !isRight) return 'top';
-    // Si le marqueur est à gauche, le tooltip doit aller vers la droite
     if (isLeft && !isTop && !isBottom) return 'right';
-    // Si le marqueur est à droite, le tooltip doit aller vers la gauche
     if (isRight && !isTop && !isBottom) return 'left';
     
-    // Pour les coins, choisir la direction la plus appropriée
     if (isTop && isLeft) return 'bottomright';
     if (isTop && isRight) return 'bottomleft';
     if (isBottom && isLeft) return 'topright';
@@ -468,47 +475,23 @@
         const distance = establishment ? getEstablishmentDistance(establishment) : null;
         const distanceText = distance !== null ? formatDistance(distance) : 'N/A';
         
-        // Déterminer la direction du tooltip
         const tooltipDirection = getTooltipDirection(edgePosition, bounds);
         
-        // Calculer l'offset en fonction de la direction
         let offsetX = 0;
         let offsetY = 0;
         
         switch(tooltipDirection) {
-            case 'top':
-                offsetY = -15;
-                break;
-            case 'bottom':
-                offsetY = 15;
-                break;
-            case 'left':
-                offsetX = -15;
-                break;
-            case 'right':
-                offsetX = 15;
-                break;
-            case 'topright':
-                offsetX = 15;
-                offsetY = -15;
-                break;
-            case 'topleft':
-                offsetX = -15;
-                offsetY = -15;
-                break;
-            case 'bottomright':
-                offsetX = 15;
-                offsetY = 15;
-                break;
-            case 'bottomleft':
-                offsetX = -15;
-                offsetY = 15;
-                break;
-            default:
-                offsetY = -15;
+            case 'top': offsetY = -15; break;
+            case 'bottom': offsetY = 15; break;
+            case 'left': offsetX = -15; break;
+            case 'right': offsetX = 15; break;
+            case 'topright': offsetX = 15; offsetY = -15; break;
+            case 'topleft': offsetX = -15; offsetY = -15; break;
+            case 'bottomright': offsetX = 15; offsetY = 15; break;
+            case 'bottomleft': offsetX = -15; offsetY = 15; break;
+            default: offsetY = -15;
         }
         
-        // Tooltip pour le marqueur de bordure avec direction adaptative
         const edgeTooltipContent = `
           <div class="distance-tooltip">
             <div class="font-bold text-[#20784d]">${establishmentName}</div>
@@ -525,7 +508,6 @@
           </div>
         `;
         
-        // Créer le HTML du marqueur de bordure avec badge de distance
         let edgeHtml = `
           <div class="edge-marker-container" style="
             background-color: ${color};
@@ -564,7 +546,6 @@
             <span style="position: relative; z-index: 1; text-shadow: 0 1px 2px rgba(0,0,0,0.5);">${index + 1}</span>
         `;
         
-        // Ajouter le badge de distance si disponible
         if (distance !== null && distance < 50) {
           edgeHtml += `
             <div style="
@@ -606,7 +587,6 @@
         })
         .addTo(map);
         
-        // Ajouter le tooltip avec direction adaptative
         edgeMarker.bindTooltip(edgeTooltipContent, {
           permanent: false,
           direction: tooltipDirection,
@@ -616,7 +596,6 @@
           interactive: true
         });
         
-        // Ajouter le popup
         edgeMarker.bindPopup(`
           <div class="p-3 max-w-xs">
             <div class="flex items-center justify-between mb-2">
@@ -704,7 +683,7 @@
           </div>
           <p class="text-sm text-gray-600">Cliquez sur le marqueur pour revenir à votre position</p>
           <button onclick="window.goToUserLocation()" 
-                  class="mt-2 w-full bg-[#20784d] text-white px-3 py-1.5 rounded text-sm hover:bg-green-700 transition-colors">
+                  class="mt-3 w-full bg-[#20784d] text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors shadow-sm">
             Revenir à ma position
           </button>
         </div>
@@ -761,18 +740,11 @@
       className: 'user-marker',
       html: `
         <div class="user-marker-container" onclick="window.goToUserLocation()" style="cursor: pointer;">
-          <!-- Anneau de pulsation extérieur -->
           <div class="pulse-ring-outer"></div>
-          
-          <!-- Anneau de pulsation intérieur -->
           <div class="pulse-ring-inner"></div>
-          
-          <!-- Marqueur principal -->
           <div class="user-marker-dot">
             <div class="user-marker-center"></div>
           </div>
-          
-          <!-- Icône de localisation -->
           <div class="user-marker-icon">📍</div>
         </div>
       `,
@@ -796,7 +768,7 @@
         <p class="text-sm text-gray-500">Lat: ${userLocation.lat.toFixed(6)}</p>
         <p class="text-sm text-gray-500">Lng: ${userLocation.lng.toFixed(6)}</p>
         <button onclick="window.goToUserLocation()" 
-                class="mt-2 w-full bg-[#20784d] text-white px-3 py-1.5 rounded text-sm hover:bg-green-700 transition-colors">
+                class="mt-3 w-full bg-[#20784d] text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors shadow-sm">
           Centrer sur ma position
         </button>
       </div>
@@ -809,37 +781,29 @@
     const legend = L.control({ position: 'bottomright' });
     
     legend.onAdd = function() {
-      const div = L.DomUtil.create('div', 'bg-white p-3 rounded-lg shadow-md text-sm min-w-[150px]');
+      const div = L.DomUtil.create('div', 'bg-white/95 backdrop-blur-sm p-4 rounded-xl shadow-lg border border-gray-100 text-sm min-w-[160px] m-4');
       div.innerHTML = `
-        <div class="font-bold text-gray-700 mb-2">Types d'établissements</div>
-        <div class="space-y-1">
-          <div><span class="inline-block w-3 h-3 rounded-full bg-blue-500 mr-2"></span>Maternelle</div>
-          <div><span class="inline-block w-3 h-3 rounded-full bg-green-500 mr-2"></span>Primaire</div>
-          <div><span class="inline-block w-3 h-3 rounded-full bg-orange-500 mr-2"></span>Collège</div>
-          <div><span class="inline-block w-3 h-3 rounded-full bg-red-500 mr-2"></span>Lycée</div>
-          <div><span class="inline-block w-3 h-3 rounded-full bg-purple-500 mr-2"></span>Université</div>
+        <div class="font-bold text-gray-800 mb-3 flex items-center gap-2">
+          <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+          Légende
         </div>
-        <div class="mt-2 pt-2 border-t">
-          <div class="flex items-center justify-between">
+        <div class="space-y-2">
+          <div class="flex items-center"><span class="inline-block w-3 h-3 rounded-full bg-blue-500 mr-3 shadow-sm"></span><span class="text-gray-600">Maternelle</span></div>
+          <div class="flex items-center"><span class="inline-block w-3 h-3 rounded-full bg-green-500 mr-3 shadow-sm"></span><span class="text-gray-600">Primaire</span></div>
+          <div class="flex items-center"><span class="inline-block w-3 h-3 rounded-full bg-orange-500 mr-3 shadow-sm"></span><span class="text-gray-600">Collège</span></div>
+          <div class="flex items-center"><span class="inline-block w-3 h-3 rounded-full bg-red-500 mr-3 shadow-sm"></span><span class="text-gray-600">Lycée</span></div>
+          <div class="flex items-center"><span class="inline-block w-3 h-3 rounded-full bg-purple-500 mr-3 shadow-sm"></span><span class="text-gray-600">Université</span></div>
+        </div>
+        <div class="mt-3 pt-3 border-t border-gray-100 space-y-2">
+          <div class="flex items-center justify-between group">
             <div class="flex items-center">
-              <div class="w-3 h-3 rounded-full bg-[#20784d] mr-2 ring-2 ring-[#20784d] ring-opacity-50 animate-pulse"></div>
+              <div class="w-3 h-3 rounded-full bg-[#20784d] mr-3 ring-4 ring-[#20784d]/20 animate-pulse"></div>
               <span class="text-xs text-gray-600">Votre position</span>
             </div>
-            <span class="text-xs text-[#20784d] font-medium cursor-pointer hover:underline" onclick="window.goToUserLocation()">
-              Centrer →
-            </span>
           </div>
-          <div class="flex items-center mt-1">
-            <div class="w-3 h-3 rounded-full bg-[#20784d] mr-2 border-2 border-white shadow-md"></div>
-            <span class="text-xs text-gray-500">Marqueur en bordure</span>
-          </div>
-          <div class="flex items-center mt-1 text-xs text-gray-400">
-            <span class="mr-1">📏</span>
-            <span>Survolez un marqueur pour voir la distance</span>
-          </div>
-          <div class="flex items-center mt-1 text-xs text-green-600">
-            <span class="mr-1">●</span>
-            <span>Badge = établissement à moins de 50km</span>
+          <div class="flex items-center">
+            <div class="w-3 h-3 rounded-full bg-[#20784d] mr-3 border-2 border-white shadow-md"></div>
+            <span class="text-xs text-gray-500">Marqueur bordure</span>
           </div>
         </div>
       `;
@@ -899,58 +863,56 @@
   <title>Rechercher des établissements - Carte interactive</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50">
-  <!-- Header -->
-  <div class="bg-white shadow-sm sticky top-0 z-10">
-    <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
-      <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-4">
-          <button 
-            on:click={goBack}
-            class="text-gray-600 hover:text-[#20784d] transition-colors p-2 rounded-full hover:bg-green-50"
-          >
-            <Icon icon="heroicons:arrow-left" class="h-6 w-6" />
-          </button>
-          <h1 class="text-xl font-bold text-gray-900">Rechercher des établissements</h1>
-        </div>
-        <div class="flex items-center gap-3">
-          {#if userLocation}
-            <button 
-              on:click={goToUserLocation}
-              class="flex items-center gap-1 text-sm bg-[#20784d] text-white px-3 py-1.5 rounded-full hover:bg-green-700 transition-colors shadow-sm"
-            >
-              <Icon icon="heroicons:map-pin" class="h-4 w-4" />
-              Ma position
-            </button>
-          {/if}
-          <span class="text-sm text-gray-500">{filteredEstablishments.length} établissements</span>
-        </div>
-      </div>
-    </div>
-  </div>
+<!-- Layout divisé: Sidebar (gauche/bas) + Carte (droite/haut) -->
+<div class="flex flex-col-reverse md:flex-row h-screen bg-gray-50 overflow-hidden">
   
-  <!-- Filtres -->
-  <div class="bg-white border-b">
-    <div class="max-w-7xl mx-auto px-4 py-3 sm:px-6 lg:px-8">
-      <div class="flex flex-col sm:flex-row gap-3">
-        <div class="flex-1 relative">
-          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-            <Icon icon="heroicons:magnifying-glass" class="h-5 w-5 text-gray-400" />
-          </div>
-          <input
-            type="text"
-            placeholder="Rechercher un établissement..."
-            bind:value={searchQuery}
-            on:input={filterEstablishments}
-            class="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#20784d] focus:border-transparent"
-          />
+  <!-- Panneau latéral (Liste & Filtres) -->
+  <div class="w-full md:w-[400px] lg:w-[450px] h-[50vh] md:h-full flex flex-col bg-white shadow-2xl z-20 shrink-0">
+    
+    <!-- En-tête -->
+    <div class="p-4 sm:p-5 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
+      <div class="flex items-center space-x-3">
+        <button 
+          on:click={goBack}
+          class="text-gray-500 hover:text-[#20784d] transition-colors p-2 rounded-full hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-[#20784d]/50"
+        >
+          <Icon icon="heroicons:arrow-left" class="h-5 w-5" />
+        </button>
+        <h1 class="text-lg font-bold text-gray-900 leading-tight">Recherche</h1>
+      </div>
+      
+      {#if userLocation}
+        <button 
+          on:click={goToUserLocation}
+          class="flex items-center gap-1.5 text-xs font-medium bg-green-50 text-[#20784d] px-3 py-1.5 rounded-full hover:bg-[#20784d] hover:text-white transition-all shadow-sm border border-green-100"
+        >
+          <Icon icon="heroicons:map-pin" class="h-4 w-4" />
+          Ma position
+        </button>
+      {/if}
+    </div>
+    
+    <!-- Section Filtres -->
+    <div class="p-4 sm:px-5 bg-gray-50/50 border-b border-gray-100 shrink-0 space-y-3">
+      <div class="relative">
+        <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+          <Icon icon="heroicons:magnifying-glass" class="h-4 w-4 text-gray-400" />
         </div>
-        
-        <div class="sm:w-48">
+        <input
+          type="text"
+          placeholder="Nom, adresse, type..."
+          bind:value={searchQuery}
+          on:input={filterEstablishments}
+          class="block w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#20784d]/50 focus:border-[#20784d] transition-all shadow-sm"
+        />
+      </div>
+      
+      <div class="flex gap-2">
+        <div class="relative flex-1">
           <select
             bind:value={filterType}
             on:change={filterEstablishments}
-            class="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-[#20784d] focus:border-transparent"
+            class="block w-full pl-3 pr-8 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 appearance-none focus:outline-none focus:ring-2 focus:ring-[#20784d]/50 focus:border-[#20784d] transition-all shadow-sm"
           >
             <option value="all">Tous les types</option>
             <option value="Maternelle">Maternelle</option>
@@ -959,102 +921,111 @@
             <option value="Lycée">Lycée</option>
             <option value="Université">Université</option>
           </select>
+          <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+             <Icon icon="heroicons:chevron-down" class="h-4 w-4 text-gray-400" />
+          </div>
         </div>
         
         <button
           on:click={clearFilters}
-          class="px-4 py-2 text-sm text-gray-600 hover:text-[#20784d] border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+          class="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all shadow-sm flex items-center gap-1"
+          title="Réinitialiser"
         >
-          Réinitialiser
+          <Icon icon="heroicons:arrow-path" class="h-4 w-4" />
         </button>
       </div>
+      
+      <div class="text-xs text-gray-500 pt-1 font-medium">
+        {filteredEstablishments.length} établissement{filteredEstablishments.length > 1 ? 's' : ''} trouvé{filteredEstablishments.length > 1 ? 's' : ''}
+      </div>
     </div>
-  </div>
-  
-  <!-- Carte -->
-  <div class="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8">
-    {#if loading}
-      <div class="flex items-center justify-center h-[500px] bg-white rounded-lg shadow">
-        <div class="text-center">
-          <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-[#20784d] mx-auto"></div>
-          <p class="mt-4 text-gray-500">Chargement de la carte...</p>
-        </div>
-      </div>
-    {:else}
-      <div id="map" class="h-[500px] rounded-lg shadow-lg"></div>
-    {/if}
-  </div>
-  
-  <!-- Liste des établissements -->
-  <div class="max-w-7xl mx-auto px-4 pb-8 sm:px-6 lg:px-8">
-    <div class="bg-white rounded-lg shadow">
-      <div class="p-4 border-b flex items-center justify-between">
-        <h2 class="font-semibold text-gray-900">Liste des établissements</h2>
-        {#if userLocation}
-          <button 
-            on:click={goToUserLocation}
-            class="text-xs text-[#20784d] hover:text-green-700 font-medium flex items-center gap-1"
-          >
-            <Icon icon="heroicons:map-pin" class="h-3 w-3" />
-            Revenir à ma position
-          </button>
-        {/if}
-      </div>
-      <div class="divide-y divide-gray-200 max-h-60 overflow-y-auto">
-        {#if filteredEstablishments.length === 0}
-          <div class="p-8 text-center text-gray-500">
-            <Icon icon="heroicons:map-pin" class="h-12 w-12 mx-auto text-gray-300 mb-2" />
-            <p>Aucun établissement trouvé</p>
+    
+    <!-- Liste des résultats -->
+    <div class="flex-1 overflow-y-auto p-4 sm:p-5 bg-gray-50 space-y-3">
+      {#if filteredEstablishments.length === 0}
+        <div class="flex flex-col items-center justify-center h-full text-center p-6 text-gray-500">
+          <div class="bg-gray-100 p-4 rounded-full mb-3">
+            <Icon icon="heroicons:building-library" class="h-8 w-8 text-gray-400" />
           </div>
-        {:else}
-          {#each filteredEstablishments as establishment}
-            <div 
-              class="p-4 hover:bg-gray-50 cursor-pointer transition-colors"
-              on:click={() => selectEstablishment(establishment.id)}
-            >
-              <div class="flex items-start justify-between">
-                <div>
-                  <h3 class="font-medium text-gray-900">{establishment.name}</h3>
-                  <p class="text-sm text-gray-500">{establishment.address}</p>
-                  <div class="flex items-center mt-1 space-x-2">
-                    <span class="text-xs px-2 py-1 bg-[#20784d] text-white rounded-full">
-                      {establishment.type}
+          <p class="font-medium text-gray-700">Aucun résultat</p>
+          <p class="text-sm mt-1 text-gray-400">Essayez de modifier vos filtres de recherche.</p>
+        </div>
+      {:else}
+        {#each filteredEstablishments as establishment}
+          <!-- Carte d'établissement moderne -->
+          <div 
+            class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-green-200 cursor-pointer transition-all duration-200 group relative overflow-hidden"
+            on:click={() => selectEstablishment(establishment.id)}
+          >
+            <!-- Liseré de couleur décoratif au survol -->
+            <div class="absolute left-0 top-0 bottom-0 w-1 bg-transparent group-hover:bg-[#20784d] transition-colors"></div>
+            
+            <div class="flex items-start justify-between">
+              <div class="pr-3">
+                <h3 class="font-bold text-gray-900 group-hover:text-[#20784d] transition-colors line-clamp-1">{establishment.name}</h3>
+                <p class="text-xs text-gray-500 mt-1 flex items-start gap-1">
+                  <Icon icon="heroicons:map-pin" class="h-3.5 w-3.5 shrink-0 mt-0.5 text-gray-400" />
+                  <span class="line-clamp-2">{establishment.address}</span>
+                </p>
+                
+                <div class="flex flex-wrap items-center mt-3 gap-2">
+                  <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 bg-gray-100 text-gray-600 rounded-md">
+                    {establishment.type}
+                  </span>
+                  
+                  {#if userLocation}
+                    <span class="text-xs font-medium text-[#20784d] bg-green-50 px-2 py-1 rounded-md flex items-center gap-1">
+                       <Icon icon="heroicons:arrows-right-left" class="h-3 w-3" />
+                      {formatDistance(getEstablishmentDistance(establishment))}
                     </span>
-                    <span class="text-xs text-gray-400">{establishment.phone}</span>
-                    {#if userLocation}
-                      <span class="text-xs text-gray-400">
-                        📏 {formatDistance(getEstablishmentDistance(establishment))}
-                      </span>
-                    {/if}
-                  </div>
+                  {/if}
                 </div>
+              </div>
+              
+              <div class="shrink-0">
                 <button 
-                  class="text-[#20784d] hover:text-green-700 transition-colors"
+                  class="h-8 w-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-[#20784d] group-hover:text-white transition-all shadow-sm"
                   on:click={(e) => {
                     e.stopPropagation();
                     selectEstablishment(establishment.id);
                   }}
+                  title="Voir sur la carte"
                 >
-                  <Icon icon="heroicons:map-pin" class="h-5 w-5" />
+                  <Icon icon="heroicons:chevron-right" class="h-4 w-4" />
                 </button>
               </div>
             </div>
-          {/each}
-        {/if}
-      </div>
+          </div>
+        {/each}
+      {/if}
     </div>
   </div>
+  
+  <!-- Zone de la Carte (Prend tout le reste de l'espace) -->
+  <div class="flex-1 h-[50vh] md:h-full relative z-10 bg-gray-200">
+    {#if loading}
+      <div class="absolute inset-0 flex flex-col items-center justify-center bg-white">
+        <div class="relative">
+          <div class="animate-spin rounded-full h-14 w-14 border-4 border-gray-100 border-t-[#20784d]"></div>
+          <Icon icon="heroicons:map" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 h-5 w-5 text-[#20784d]" />
+        </div>
+        <p class="mt-4 font-medium text-gray-500 animate-pulse">Initialisation de la carte...</p>
+      </div>
+    {:else}
+      <!-- Le conteneur map prend toute la place de son parent -->
+      <div id="map" class="w-full h-full absolute inset-0"></div>
+    {/if}
+  </div>
+  
 </div>
 
 <style>
-  :global(.leaflet-control-attribution) {
-    display: none !important;
+  :global(.leaflet-container) {
+    font-family: "Fredoka", sans-serif !important;
   }
 
-  :global(#map) {
-    height: 500px;
-    width: 100%;
-    border-radius: 0.5rem;
+  :global(.leaflet-control-attribution) {
+    display: none !important;
   }
   
   :global(.custom-marker) {
@@ -1081,12 +1052,12 @@
   :global(.custom-tooltip) {
     background: rgba(255, 255, 255, 0.95) !important;
     border: none !important;
-    border-radius: 8px !important;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
-    padding: 8px 12px !important;
+    border-radius: 12px !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+    padding: 10px 14px !important;
     max-width: 280px !important;
-    backdrop-filter: blur(10px) !important;
-    font-size: 12px !important;
+    backdrop-filter: blur(12px) !important;
+    font-size: 13px !important;
   }
 
   :global(.custom-tooltip::before) {
@@ -1094,12 +1065,12 @@
   }
 
   :global(.distance-tooltip) {
-    font-size: 12px;
-    line-height: 1.4;
+    font-size: 13px;
+    line-height: 1.5;
   }
 
   :global(.distance-tooltip .font-bold) {
-    font-size: 13px;
+    font-size: 14px;
     margin-bottom: 2px;
   }
 
@@ -1114,7 +1085,7 @@
     cursor: pointer;
   }
 
-  /* Anneau de pulsation extérieur */
+  /* Anneaux */
   :global(.pulse-ring-outer) {
     position: absolute;
     top: 50%;
@@ -1127,7 +1098,6 @@
     animation: pulseRing 2s ease-in-out infinite;
   }
 
-  /* Anneau de pulsation intérieur */
   :global(.pulse-ring-inner) {
     position: absolute;
     top: 50%;
@@ -1140,23 +1110,21 @@
     animation: pulseRing 2s ease-in-out 0.6s infinite;
   }
 
-  /* Point principal du marqueur */
   :global(.user-marker-dot) {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 24px;
-    height: 24px;
+    width: 26px;
+    height: 26px;
     background: #20784d;
     border-radius: 50%;
     border: 3px solid white;
-    box-shadow: 0 0 0 3px #20784d, 0 4px 12px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 0 3px rgba(32, 120, 77, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
     animation: popIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     z-index: 2;
   }
 
-  /* Point central blanc */
   :global(.user-marker-center) {
     position: absolute;
     top: 50%;
@@ -1169,7 +1137,6 @@
     animation: pulse 2s ease-in-out 0.6s infinite;
   }
 
-  /* Icône de localisation */
   :global(.user-marker-icon) {
     position: absolute;
     top: 50%;
@@ -1183,129 +1150,89 @@
     animation: popIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   }
 
-  /* Animation popin */
   @keyframes popIn {
-    0% {
-      transform: translate(-50%, -50%) scale(0);
-      opacity: 0;
-    }
-    70% {
-      transform: translate(-50%, -50%) scale(1.2);
-      opacity: 1;
-    }
-    100% {
-      transform: translate(-50%, -50%) scale(1);
-      opacity: 1;
-    }
+    0% { transform: translate(-50%, -50%) scale(0); opacity: 0; }
+    70% { transform: translate(-50%, -50%) scale(1.2); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
   }
 
-  /* Animation pulse du point central */
   @keyframes pulse {
-    0%, 100% {
-      transform: translate(-50%, -50%) scale(1);
-    }
-    50% {
-      transform: translate(-50%, -50%) scale(1.3);
-    }
+    0%, 100% { transform: translate(-50%, -50%) scale(1); }
+    50% { transform: translate(-50%, -50%) scale(1.3); }
   }
 
-  /* Animation pulse ring */
   @keyframes pulseRing {
-    0% {
-      transform: translate(-50%, -50%) scale(0.6);
-      opacity: 1;
-    }
-    100% {
-      transform: translate(-50%, -50%) scale(1.6);
-      opacity: 0;
-    }
+    0% { transform: translate(-50%, -50%) scale(0.6); opacity: 1; }
+    100% { transform: translate(-50%, -50%) scale(1.6); opacity: 0; }
   }
 
-  /* Animation des marqueurs des établissements */
   @keyframes markerPulse {
-    0%, 100% {
-      transform: scale(1);
-    }
-    50% {
-      transform: scale(1.2);
-    }
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.2); }
   }
   
   @keyframes markerRipple {
-    0% {
-      transform: scale(0.8);
-      opacity: 0.3;
-    }
-    100% {
-      transform: scale(2);
-      opacity: 0;
-    }
+    0% { transform: scale(0.8); opacity: 0.3; }
+    100% { transform: scale(2.2); opacity: 0; }
   }
 
-  /* Animation pour les marqueurs de bordure */
   @keyframes edgePulse {
-    0%, 100% {
-      transform: scale(1);
-      opacity: 0.4;
-    }
-    50% {
-      transform: scale(1.4);
-      opacity: 0.8;
-    }
+    0%, 100% { transform: scale(1); opacity: 0.4; }
+    50% { transform: scale(1.4); opacity: 0.8; }
   }
 
-  /* Animation pour le marqueur de bordure utilisateur */
   @keyframes userEdgePulse {
-    0%, 100% {
-      transform: scale(1);
-      opacity: 0.5;
-    }
-    50% {
-      transform: scale(1.5);
-      opacity: 0.8;
-    }
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.5); opacity: 0.8; }
   }
   
   :global(.leaflet-popup-content) {
-    min-width: 200px;
-    max-width: 300px;
+    min-width: 220px;
+    max-width: 320px;
+    margin: 16px !important;
   }
   
   :global(.leaflet-popup-content-wrapper) {
-    border-radius: 12px !important;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    border-radius: 16px !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+    padding: 0 !important;
   }
   
   :global(.leaflet-popup-tip) {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1) !important;
   }
   
   :global(.leaflet-control-zoom) {
     border: none !important;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06) !important;
     border-radius: 8px !important;
+    margin-top: 20px !important;
+    margin-right: 20px !important;
+    overflow: hidden;
   }
   
   :global(.leaflet-control-zoom a) {
-    color: #374151 !important;
+    color: #4b5563 !important;
     background: white !important;
+    transition: all 0.2s ease !important;
+    width: 36px !important;
+    height: 36px !important;
+    line-height: 36px !important;
   }
   
   :global(.leaflet-control-zoom a:hover) {
-    background: #f3f4f6 !important;
+    background: #f9fafb !important;
     color: #20784d !important;
   }
 
-  /* Style pour les marqueurs de bordure au survol */
   :global(.edge-marker-container:hover) {
     transform: scale(1.3) !important;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.6) !important;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.6) !important;
   }
 
-  /* Style pour le marqueur de bordure utilisateur au survol */
   :global(.user-edge-container:hover) {
     transform: scale(1.3) !important;
-    box-shadow: 0 4px 25px rgba(32, 120, 77, 0.8) !important;
+    box-shadow: 0 10px 25px rgba(32, 120, 77, 0.8) !important;
   }
 
   :global(.leaflet-tooltip-pane) {
