@@ -271,6 +271,20 @@
     // }
   }
 
+  function handleClearAddress() {
+    addressValid = false;
+    geocodingSuccess = false;
+    geocodingCoordinates = null;
+    etablissementData.latitude = null;
+    etablissementData.longitude = null;
+    geocodingStatus = '';
+    showManualGeocode = false;
+    // Vider également les champs manuels
+    manualLatitude = '';
+    manualLongitude = '';
+    manualGeocodeError = '';
+  }
+
   // Fonction pour ouvrir Google Maps avec un guide
   function openGoogleMapsGuide() {
     // Ouvrir Google Maps dans un nouvel onglet
@@ -668,15 +682,7 @@
                     required={true}
                     on:select={handleAddressSelect}
                     on:geocode={handleGeocode}
-                    on:clear={() => {
-                      addressValid = false;
-                      geocodingSuccess = false;
-                      geocodingCoordinates = null;
-                      etablissementData.latitude = null;
-                      etablissementData.longitude = null;
-                      geocodingStatus = '';
-                      showManualGeocode = false;
-                    }}
+                    on:clear={handleClearAddress}
                   />
                 </div>
                 <div class="mt-6">
