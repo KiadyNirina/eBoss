@@ -1007,7 +1007,307 @@
       
       <!-- Formulaire pour Professeur -->
       {:else if activeTab === 'professeur'}
-        <!-- ... (reste du code inchangé) ... -->
+        <form class="space-y-6" on:submit|preventDefault={handleSubmit}>
+          <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div>
+              <label for="prof-nom" class="block text-sm font-medium text-gray-700">Nom</label>
+              <input
+                id="prof-nom"
+                type="text"
+                bind:value={professeurData.nom}
+                required
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              />
+            </div>
+            
+            <div>
+              <label for="prof-prenom" class="block text-sm font-medium text-gray-700">Prénom</label>
+              <input
+                id="prof-prenom"
+                type="text"
+                bind:value={professeurData.prenom}
+                required
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              />
+            </div>
+            
+            <div>
+              <label for="prof-email" class="block text-sm font-medium text-gray-700">Email</label>
+              <input
+                id="prof-email"
+                type="email"
+                bind:value={professeurData.email}
+                required
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              />
+            </div>
+            
+            <div>
+              <label for="prof-telephone" class="block text-sm font-medium text-gray-700">Téléphone</label>
+              <input
+                id="prof-telephone"
+                type="tel"
+                bind:value={professeurData.telephone}
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              />
+            </div>
+            
+            <div>
+              <label for="prof-matiere" class="block text-sm font-medium text-gray-700">Matière enseignée</label>
+              <input
+                id="prof-matiere"
+                type="text"
+                bind:value={professeurData.matiere}
+                required
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              />
+            </div>
+            
+            <div>
+              <label for="prof-etablissement" class="block text-sm font-medium text-gray-700">Établissement</label>
+              <input
+                id="prof-etablissement"
+                type="text"
+                bind:value={professeurData.etablissement}
+                required
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              />
+            </div>
+            
+            <div>
+              <label for="prof-password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
+              <input
+                id="prof-password"
+                type="password"
+                bind:value={professeurData.password}
+                required
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              />
+            </div>
+            
+            <div>
+              <label for="prof-confirm-password" class="block text-sm font-medium text-gray-700">Confirmer le mot de passe</label>
+              <input
+                id="prof-confirm-password"
+                type="password"
+                bind:value={professeurData.confirmPassword}
+                required
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              class={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+            >
+              {#if isLoading}
+                <Icon icon="heroicons:arrow-path" class="animate-spin h-5 w-5 mr-2" />
+                Inscription en cours...
+              {:else}
+                S'inscrire en tant que professeur
+              {/if}
+            </button>
+          </div>
+        </form>
+      
+      <!-- Formulaire pour Élève -->
+      {:else if activeTab === 'eleve'}
+        <form class="space-y-6" on:submit|preventDefault={handleSubmit}>
+          <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div>
+              <label for="eleve-nom" class="block text-sm font-medium text-gray-700">Nom</label>
+              <input
+                id="eleve-nom"
+                type="text"
+                bind:value={eleveData.nom}
+                required
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              />
+            </div>
+            
+            <div>
+              <label for="eleve-prenom" class="block text-sm font-medium text-gray-700">Prénom</label>
+              <input
+                id="eleve-prenom"
+                type="text"
+                bind:value={eleveData.prenom}
+                required
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              />
+            </div>
+            
+            <div>
+              <label for="eleve-email" class="block text-sm font-medium text-gray-700">Email</label>
+              <input
+                id="eleve-email"
+                type="email"
+                bind:value={eleveData.email}
+                required
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              />
+            </div>
+            
+            <div>
+              <label for="eleve-classe" class="block text-sm font-medium text-gray-700">Classe</label>
+              <input
+                id="eleve-classe"
+                type="text"
+                bind:value={eleveData.classe}
+                required
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              />
+            </div>
+            
+            <div class="sm:col-span-2">
+              <label for="eleve-etablissement" class="block text-sm font-medium text-gray-700">Établissement</label>
+              <input
+                id="eleve-etablissement"
+                type="text"
+                bind:value={eleveData.etablissement}
+                required
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              />
+            </div>
+            
+            <div>
+              <label for="eleve-password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
+              <input
+                id="eleve-password"
+                type="password"
+                bind:value={eleveData.password}
+                required
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              />
+            </div>
+            
+            <div>
+              <label for="eleve-confirm-password" class="block text-sm font-medium text-gray-700">Confirmer le mot de passe</label>
+              <input
+                id="eleve-confirm-password"
+                type="password"
+                bind:value={eleveData.confirmPassword}
+                required
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              class={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+            >
+              {#if isLoading}
+                <Icon icon="heroicons:arrow-path" class="animate-spin h-5 w-5 mr-2" />
+                Inscription en cours...
+              {:else}
+                S'inscrire en tant qu'élève
+              {/if}
+            </button>
+          </div>
+        </form>
+      
+      <!-- Formulaire pour Parent -->
+      {:else}
+        <form class="space-y-6" on:submit|preventDefault={handleSubmit}>
+          <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+            <div>
+              <label for="parent-nom" class="block text-sm font-medium text-gray-700">Nom</label>
+              <input
+                id="parent-nom"
+                type="text"
+                bind:value={parentData.nom}
+                required
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              />
+            </div>
+            
+            <div>
+              <label for="parent-prenom" class="block text-sm font-medium text-gray-700">Prénom</label>
+              <input
+                id="parent-prenom"
+                type="text"
+                bind:value={parentData.prenom}
+                required
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              />
+            </div>
+            
+            <div>
+              <label for="parent-email" class="block text-sm font-medium text-gray-700">Email</label>
+              <input
+                id="parent-email"
+                type="email"
+                bind:value={parentData.email}
+                required
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              />
+            </div>
+            
+            <div>
+              <label for="parent-telephone" class="block text-sm font-medium text-gray-700">Téléphone</label>
+              <input
+                id="parent-telephone"
+                type="tel"
+                bind:value={parentData.telephone}
+                required
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              />
+            </div>
+            
+            <div class="sm:col-span-2">
+              <label for="parent-enfants" class="block text-sm font-medium text-gray-700">Enfants (noms et classes, séparés par des virgules)</label>
+              <textarea
+                id="parent-enfants"
+                bind:value={enfantsText}
+                on:input={(e) => updateEnfants(e.target.value)}
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                placeholder="Ex: Jean Dupont (3ème A), Marie Dupont (5ème B)"
+              ></textarea>
+            </div>
+            
+            <div>
+              <label for="parent-password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
+              <input
+                id="parent-password"
+                type="password"
+                bind:value={parentData.password}
+                required
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              />
+            </div>
+            
+            <div>
+              <label for="parent-confirm-password" class="block text-sm font-medium text-gray-700">Confirmer le mot de passe</label>
+              <input
+                id="parent-confirm-password"
+                type="password"
+                bind:value={parentData.confirmPassword}
+                required
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              class={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+            >
+              {#if isLoading}
+                <Icon icon="heroicons:arrow-path" class="animate-spin h-5 w-5 mr-2" />
+                Inscription en cours...
+              {:else}
+                S'inscrire en tant que parent
+              {/if}
+            </button>
+          </div>
+        </form>
       {/if}
       
       <div class="mt-6">
