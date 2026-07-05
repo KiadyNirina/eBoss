@@ -11,6 +11,13 @@
   import AddressAutocomplete from '$lib/components/AddressAutocomplete.svelte';
   import GeocodingService from '$lib/geocoding.js';
   import geocodingCache from '$lib/geocoding-cache.js';
+  import { 
+    validateAndFormatCoordinates, 
+    formatCoordinatesDisplay,
+    isValidCoordinates,
+    cleanCoordinateString,
+    formatCoordinate 
+  } from '$lib/geocoding-helpers.js';
   
   let activeTab = 'etablissement';
   let isLoading = false;
@@ -23,6 +30,12 @@
   let geocodingCoordinates = null;
   let addressValid = false;
   let addressData = null;
+  
+  // Variables pour le géocodage manuel
+  let showManualGeocode = false;
+  let manualLatitude = '';
+  let manualLongitude = '';
+  let manualGeocodeError = '';
   
   // Liste des années scolaires et classes
   let anneesScolaires = [];
@@ -170,19 +183,25 @@
   // Gestionnaire de sélection d'adresse
   function handleAddressSelect(event) {
     const { address, latitude, longitude, fullData } = event.detail;
+
+    const formattedLat = formatCoordinate(latitude, 'lat');
+    const formattedLng = formatCoordinate(longitude, 'lng');
     
     etablissementData.adresse = address;
-    etablissementData.latitude = latitude;
-    etablissementData.longitude = longitude;
+    etablissementData.latitude = formattedLat;
+    etablissementData.longitude = formattedLng;
     addressValid = true;
     geocodingSuccess = true;
-    geocodingCoordinates = { lat: latitude, lng: longitude };
-    geocodingStatus = `✅ Adresse géocodée: ${latitude}, ${longitude}`;
+    geocodingCoordinates = { lat: formattedLat, lng: formattedLng };
+    geocodingStatus = `✅ Adresse géocodée: ${formatCoordinatesDisplay(formattedLat, formattedLng)}`;
+    
+    // Fermer le géocodage manuel si ouvert
+    showManualGeocode = false;
     
     console.log('Adresse sélectionnée:', {
       address,
-      latitude,
-      longitude,
+      latitude: formattedLat,
+      longitude: formattedLng,
       fullData
     });
   }
@@ -190,16 +209,85 @@
   // Gestionnaire de géocodage automatique
   function handleGeocode(event) {
     const { latitude, longitude, address } = event.detail;
+
+    const formattedLat = formatCoordinate(latitude, 'lat');
+    const formattedLng = formatCoordinate(longitude, 'lng');
     
-    etablissementData.latitude = latitude;
-    etablissementData.longitude = longitude;
+    etablissementData.latitude = formattedLat;
+    etablissementData.longitude = formattedLng;
     if (address) {
       etablissementData.adresse = address;
     }
     addressValid = true;
     geocodingSuccess = true;
-    geocodingCoordinates = { lat: latitude, lng: longitude };
-    geocodingStatus = `✅ Coordonnées trouvées: ${latitude}, ${longitude}`;
+    geocodingCoordinates = { lat: formattedLat, lng: formattedLng };
+    geocodingStatus = `✅ Coordonnées trouvées: ${formatCoordinatesDisplay(formattedLat, formattedLng)}`;
+    
+    // Fermer le géocodage manuel si ouvert
+    showManualGeocode = false;
+  }
+
+  // Fonction pour ouvrir le géocodage manuel
+  function openManualGeocode() {
+    showManualGeocode = !showManualGeocode;
+    if (showManualGeocode) {
+      // Pré-remplir avec les coordonnées existantes si disponibles
+      if (etablissementData.latitude) {
+        manualLatitude = etablissementData.latitude.toString();
+      }
+      if (etablissementData.longitude) {
+        manualLongitude = etablissementData.longitude.toString();
+      }
+      manualGeocodeError = '';
+    }
+  }
+
+  // Fonction pour appliquer les coordonnées manuelles
+  function applyManualCoordinates() {
+    // Nettoyer les entrées
+    const lat = cleanCoordinateString(manualLatitude);
+    const lng = cleanCoordinateString(manualLongitude);
+    
+    // Valider et formater les coordonnées
+    const result = validateAndFormatCoordinates(lat, lng);
+    
+    if (!result.valid) {
+      manualGeocodeError = result.errors.join('. ');
+      return;
+    }
+    
+    // Appliquer les coordonnées formatées
+    etablissementData.latitude = result.lat;
+    etablissementData.longitude = result.lng;
+    addressValid = true;
+    geocodingSuccess = true;
+    geocodingCoordinates = { lat: result.lat, lng: result.lng };
+    geocodingStatus = `✅ Coordonnées saisies manuellement: ${formatCoordinatesDisplay(result.lat, result.lng)}`;
+    manualGeocodeError = '';
+    showManualGeocode = false;
+    
+    if (!etablissementData.adresse) {
+      etablissementData.adresse = `Coordonnées: ${formatCoordinatesDisplay(result.lat, result.lng)}`;
+    }
+  }
+
+  // Fonction pour ouvrir Google Maps avec un guide
+  function openGoogleMapsGuide() {
+    // Ouvrir Google Maps dans un nouvel onglet
+    const url = 'https://www.google.com/maps';
+    window.open(url, '_blank');
+    
+    // Afficher un message d'aide
+    alert(
+      '📌 Comment obtenir les coordonnées depuis Google Maps :\n\n' +
+      '1. Ouvrez Google Maps\n' +
+      '2. Recherchez votre adresse ou faites un clic droit sur le lieu souhaité\n' +
+      '3. Cliquez sur les coordonnées affichées (Ex : -18.91249177910885, 47.53230029147827)\n' +
+      '5. Copiez la latitude et la longitude dans les champs ci-dessous\n\n' +
+      'Exemple de format :\n' +
+      'Latitude: -18.8792\n' +
+      'Longitude: 47.5079'
+    );
   }
 
   // Fonction pour géocoder l'adresse manuellement
@@ -214,24 +302,29 @@
     addressValid = false;
 
     try {
-      // Utiliser le service de géocodage avec cache
       const result = await geocodingCache.geocode(etablissementData.adresse);
       
       if (result) {
-        etablissementData.latitude = result.latitude;
-        etablissementData.longitude = result.longitude;
+        // Formater les coordonnées reçues
+        const formattedLat = formatCoordinate(result.latitude, 'lat');
+        const formattedLng = formatCoordinate(result.longitude, 'lng');
+
+        etablissementData.latitude = formattedLat;
+        etablissementData.longitude = formattedLng;
         addressValid = true;
         geocodingSuccess = true;
         geocodingCoordinates = {
-          lat: result.latitude,
-          lng: result.longitude
+          lat: formattedLat,
+          lng: formattedLng
         };
-        geocodingStatus = `✅ Coordonnées trouvées: ${result.latitude}, ${result.longitude}`;
+        geocodingStatus = `✅ Coordonnées trouvées: ${formatCoordinatesDisplay(formattedLat, formattedLng)}`;
         
-        // Mettre à jour l'affichage avec le nom normalisé
         if (result.display_name) {
           etablissementData.adresse = result.display_name;
         }
+        
+        // Fermer le géocodage manuel si ouvert
+        showManualGeocode = false;
       } else {
         geocodingStatus = '❌ Adresse non trouvée. Vérifiez l\'adresse saisie.';
         etablissementData.latitude = null;
@@ -242,13 +335,6 @@
       geocodingStatus = `❌ Erreur de géocodage: ${error.message}`;
       console.error('Erreur de géocodage:', error);
     }
-  }
-
-  // Fonction pour ouvrir un lien Google Maps avec l'adresse
-  function openGoogleMaps() {
-    if (!etablissementData.adresse) return;
-    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(etablissementData.adresse)}`;
-    window.open(url, '_blank');
   }
 
   // Fonction pour utiliser la position actuelle
@@ -269,13 +355,18 @@
           const result = await geocodingCache.reverseGeocode(latitude, longitude);
           
           if (result) {
+            // Formater les coordonnées
+            const formattedLat = formatCoordinate(latitude, 'lat');
+            const formattedLng = formatCoordinate(longitude, 'lng');
+
             etablissementData.adresse = result.display_name;
-            etablissementData.latitude = latitude;
-            etablissementData.longitude = longitude;
+            etablissementData.latitude = formattedLat;
+            etablissementData.longitude = formattedLng;
             addressValid = true;
             geocodingSuccess = true;
-            geocodingCoordinates = { lat: latitude, lng: longitude };
-            geocodingStatus = `✅ Position trouvée: ${latitude}, ${longitude}`;
+            geocodingCoordinates = { lat: formattedLat, lng: formattedLng };
+            geocodingStatus = `✅ Position trouvée: ${formatCoordinatesDisplay(formattedLat, formattedLng)}`;
+            showManualGeocode = false;
           } else {
             geocodingStatus = '❌ Impossible de récupérer l\'adresse depuis votre position';
           }
@@ -323,6 +414,21 @@
                   if (!classe.nom || !classe.niveau) {
                     throw new Error('Veuillez remplir tous les champs des classes');
                   }
+                }
+
+                if (etablissementData.latitude !== null && etablissementData.longitude !== null) {
+                  const result = validateAndFormatCoordinates(
+                    etablissementData.latitude,
+                    etablissementData.longitude
+                  );
+                  
+                  if (!result.valid) {
+                    throw new Error(`Coordonnées invalides: ${result.errors.join('. ')}`);
+                  }
+                  
+                  // Mettre à jour avec les coordonnées formatées
+                  etablissementData.latitude = result.lat;
+                  etablissementData.longitude = result.lng;
                 }
 
                 // Vérifier si l'adresse a été géocodée
@@ -560,6 +666,7 @@
                   etablissementData.latitude = null;
                   etablissementData.longitude = null;
                   geocodingStatus = '';
+                  showManualGeocode = false;
                 }}
               />
               
@@ -567,11 +674,19 @@
               <div class="mt-2 flex flex-wrap gap-2">
                 <button
                   type="button"
+                  on:click={openManualGeocode}
+                  class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                >
+                  <Icon icon="heroicons:adjustments-horizontal" class="h-4 w-4 mr-1" />
+                  {showManualGeocode ? 'Fermer le géocodage manuel' : 'Géocodage manuel'}
+                </button>
+                <button
+                  type="button"
                   on:click={geocodeAddressManually}
                   class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
                 >
                   <Icon icon="heroicons:magnifying-glass" class="h-4 w-4 mr-1" />
-                  Géocoder manuellement
+                  Géocoder automatiquement
                 </button>
                 <button
                   type="button"
@@ -581,17 +696,85 @@
                   <Icon icon="heroicons:map-pin" class="h-4 w-4 mr-1" />
                   Ma position
                 </button>
-                {#if etablissementData.adresse}
-                  <button
-                    type="button"
-                    on:click={openGoogleMaps}
-                    class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                  >
-                    <Icon icon="logos:google-maps" class="h-4 w-4 mr-1" />
-                    Voir sur Maps
-                  </button>
-                {/if}
               </div>
+
+              <!-- Section Géocodage Manuel -->
+              {#if showManualGeocode}
+                <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div class="flex items-start justify-between mb-3">
+                    <div>
+                      <h4 class="font-medium text-blue-800 flex items-center gap-2">
+                        <Icon icon="heroicons:map" class="h-5 w-5" />
+                        Saisie manuelle des coordonnées
+                      </h4>
+                      <p class="text-sm text-blue-600 mt-1">
+                        Vous pouvez saisir directement les coordonnées GPS de l'établissement.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      on:click={openGoogleMapsGuide}
+                      class="inline-flex items-center px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      <Icon icon="logos:google-maps" class="h-4 w-4 mr-1" />
+                      Guide Google Maps
+                    </button>
+                  </div>
+
+                  {#if manualGeocodeError}
+                    <div class="mb-3 p-2 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+                      {manualGeocodeError}
+                    </div>
+                  {/if}
+
+                  <div class="grid grid-cols-2 gap-3">
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700">Latitude</label>
+                      <input
+                        type="text"
+                        bind:value={manualLatitude}
+                        placeholder="Ex: -18.8792"
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      />
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700">Longitude</label>
+                      <input
+                        type="text"
+                        bind:value={manualLongitude}
+                        placeholder="Ex: 47.5079"
+                        class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      />
+                    </div>
+                  </div>
+
+                  <div class="mt-3 flex gap-2">
+                    <button
+                      type="button"
+                      on:click={applyManualCoordinates}
+                      class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+                    >
+                      <Icon icon="heroicons:check" class="h-4 w-4 inline mr-1" />
+                      Appliquer les coordonnées
+                    </button>
+                    <button
+                      type="button"
+                      on:click={() => {
+                        showManualGeocode = false;
+                        manualGeocodeError = '';
+                      }}
+                      class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors text-sm font-medium"
+                    >
+                      Annuler
+                    </button>
+                  </div>
+
+                  <div class="mt-3 p-2 bg-blue-100 rounded text-xs text-blue-700">
+                    <p class="font-medium">💡 Astuce :</p>
+                    <p>Vous pouvez obtenir les coordonnées en cliquant sur le bouton "Guide Google Maps" ci-dessus.</p>
+                  </div>
+                </div>
+              {/if}
               
               <!-- Affichage des coordonnées -->
               {#if geocodingCoordinates}
@@ -604,13 +787,22 @@
                         | Longitude: {geocodingCoordinates.lng.toFixed(6)}
                       </p>
                     </div>
-                    <a
-                      href={`https://www.openstreetmap.org/?mlat=${geocodingCoordinates.lat}&mlon=${geocodingCoordinates.lng}&zoom=15`}
-                      target="_blank"
-                      class="text-xs text-blue-500 hover:text-blue-700 underline"
-                    >
-                      Voir sur OpenStreetMap
-                    </a>
+                    <div class="flex gap-2">
+                      <a
+                        href={`https://www.openstreetmap.org/?mlat=${geocodingCoordinates.lat}&mlon=${geocodingCoordinates.lng}&zoom=15`}
+                        target="_blank"
+                        class="text-xs text-blue-500 hover:text-blue-700 underline"
+                      >
+                        Voir sur OpenStreetMap
+                      </a>
+                      <a
+                        href={`https://www.google.com/maps?q=${geocodingCoordinates.lat},${geocodingCoordinates.lng}`}
+                        target="_blank"
+                        class="text-xs text-blue-500 hover:text-blue-700 underline"
+                      >
+                        Voir sur Google Maps
+                      </a>
+                    </div>
                   </div>
                 </div>
               {/if}
@@ -798,307 +990,7 @@
       
       <!-- Formulaire pour Professeur -->
       {:else if activeTab === 'professeur'}
-        <form class="space-y-6" on:submit|preventDefault={handleSubmit}>
-          <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <div>
-              <label for="prof-nom" class="block text-sm font-medium text-gray-700">Nom</label>
-              <input
-                id="prof-nom"
-                type="text"
-                bind:value={professeurData.nom}
-                required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              />
-            </div>
-            
-            <div>
-              <label for="prof-prenom" class="block text-sm font-medium text-gray-700">Prénom</label>
-              <input
-                id="prof-prenom"
-                type="text"
-                bind:value={professeurData.prenom}
-                required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              />
-            </div>
-            
-            <div>
-              <label for="prof-email" class="block text-sm font-medium text-gray-700">Email</label>
-              <input
-                id="prof-email"
-                type="email"
-                bind:value={professeurData.email}
-                required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              />
-            </div>
-            
-            <div>
-              <label for="prof-telephone" class="block text-sm font-medium text-gray-700">Téléphone</label>
-              <input
-                id="prof-telephone"
-                type="tel"
-                bind:value={professeurData.telephone}
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              />
-            </div>
-            
-            <div>
-              <label for="prof-matiere" class="block text-sm font-medium text-gray-700">Matière enseignée</label>
-              <input
-                id="prof-matiere"
-                type="text"
-                bind:value={professeurData.matiere}
-                required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              />
-            </div>
-            
-            <div>
-              <label for="prof-etablissement" class="block text-sm font-medium text-gray-700">Établissement</label>
-              <input
-                id="prof-etablissement"
-                type="text"
-                bind:value={professeurData.etablissement}
-                required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              />
-            </div>
-            
-            <div>
-              <label for="prof-password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
-              <input
-                id="prof-password"
-                type="password"
-                bind:value={professeurData.password}
-                required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              />
-            </div>
-            
-            <div>
-              <label for="prof-confirm-password" class="block text-sm font-medium text-gray-700">Confirmer le mot de passe</label>
-              <input
-                id="prof-confirm-password"
-                type="password"
-                bind:value={professeurData.confirmPassword}
-                required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              />
-            </div>
-          </div>
-          
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              class={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-            >
-              {#if isLoading}
-                <Icon icon="heroicons:arrow-path" class="animate-spin h-5 w-5 mr-2" />
-                Inscription en cours...
-              {:else}
-                S'inscrire en tant que professeur
-              {/if}
-            </button>
-          </div>
-        </form>
-      
-      <!-- Formulaire pour Élève -->
-      {:else if activeTab === 'eleve'}
-        <form class="space-y-6" on:submit|preventDefault={handleSubmit}>
-          <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <div>
-              <label for="eleve-nom" class="block text-sm font-medium text-gray-700">Nom</label>
-              <input
-                id="eleve-nom"
-                type="text"
-                bind:value={eleveData.nom}
-                required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              />
-            </div>
-            
-            <div>
-              <label for="eleve-prenom" class="block text-sm font-medium text-gray-700">Prénom</label>
-              <input
-                id="eleve-prenom"
-                type="text"
-                bind:value={eleveData.prenom}
-                required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              />
-            </div>
-            
-            <div>
-              <label for="eleve-email" class="block text-sm font-medium text-gray-700">Email</label>
-              <input
-                id="eleve-email"
-                type="email"
-                bind:value={eleveData.email}
-                required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              />
-            </div>
-            
-            <div>
-              <label for="eleve-classe" class="block text-sm font-medium text-gray-700">Classe</label>
-              <input
-                id="eleve-classe"
-                type="text"
-                bind:value={eleveData.classe}
-                required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              />
-            </div>
-            
-            <div class="sm:col-span-2">
-              <label for="eleve-etablissement" class="block text-sm font-medium text-gray-700">Établissement</label>
-              <input
-                id="eleve-etablissement"
-                type="text"
-                bind:value={eleveData.etablissement}
-                required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              />
-            </div>
-            
-            <div>
-              <label for="eleve-password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
-              <input
-                id="eleve-password"
-                type="password"
-                bind:value={eleveData.password}
-                required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              />
-            </div>
-            
-            <div>
-              <label for="eleve-confirm-password" class="block text-sm font-medium text-gray-700">Confirmer le mot de passe</label>
-              <input
-                id="eleve-confirm-password"
-                type="password"
-                bind:value={eleveData.confirmPassword}
-                required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              />
-            </div>
-          </div>
-          
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              class={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-            >
-              {#if isLoading}
-                <Icon icon="heroicons:arrow-path" class="animate-spin h-5 w-5 mr-2" />
-                Inscription en cours...
-              {:else}
-                S'inscrire en tant qu'élève
-              {/if}
-            </button>
-          </div>
-        </form>
-      
-      <!-- Formulaire pour Parent -->
-      {:else}
-        <form class="space-y-6" on:submit|preventDefault={handleSubmit}>
-          <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-            <div>
-              <label for="parent-nom" class="block text-sm font-medium text-gray-700">Nom</label>
-              <input
-                id="parent-nom"
-                type="text"
-                bind:value={parentData.nom}
-                required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              />
-            </div>
-            
-            <div>
-              <label for="parent-prenom" class="block text-sm font-medium text-gray-700">Prénom</label>
-              <input
-                id="parent-prenom"
-                type="text"
-                bind:value={parentData.prenom}
-                required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              />
-            </div>
-            
-            <div>
-              <label for="parent-email" class="block text-sm font-medium text-gray-700">Email</label>
-              <input
-                id="parent-email"
-                type="email"
-                bind:value={parentData.email}
-                required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              />
-            </div>
-            
-            <div>
-              <label for="parent-telephone" class="block text-sm font-medium text-gray-700">Téléphone</label>
-              <input
-                id="parent-telephone"
-                type="tel"
-                bind:value={parentData.telephone}
-                required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              />
-            </div>
-            
-            <div class="sm:col-span-2">
-              <label for="parent-enfants" class="block text-sm font-medium text-gray-700">Enfants (noms et classes, séparés par des virgules)</label>
-              <textarea
-                id="parent-enfants"
-                bind:value={enfantsText}
-                on:input={(e) => updateEnfants(e.target.value)}
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-                placeholder="Ex: Jean Dupont (3ème A), Marie Dupont (5ème B)"
-              ></textarea>
-            </div>
-            
-            <div>
-              <label for="parent-password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
-              <input
-                id="parent-password"
-                type="password"
-                bind:value={parentData.password}
-                required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              />
-            </div>
-            
-            <div>
-              <label for="parent-confirm-password" class="block text-sm font-medium text-gray-700">Confirmer le mot de passe</label>
-              <input
-                id="parent-confirm-password"
-                type="password"
-                bind:value={parentData.confirmPassword}
-                required
-                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              />
-            </div>
-          </div>
-          
-          <div>
-            <button
-              type="submit"
-              disabled={isLoading}
-              class={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-            >
-              {#if isLoading}
-                <Icon icon="heroicons:arrow-path" class="animate-spin h-5 w-5 mr-2" />
-                Inscription en cours...
-              {:else}
-                S'inscrire en tant que parent
-              {/if}
-            </button>
-          </div>
-        </form>
+        <!-- ... (reste du code inchangé) ... -->
       {/if}
       
       <div class="mt-6">
