@@ -656,29 +656,99 @@
             </div>
             
             <div class="sm:col-span-2">
-              <AddressAutocomplete
-                bind:value={etablissementData.adresse}
-                label="Adresse de l'établissement"
-                placeholder="Ex: 123 Rue de l'Éducation, Antananarivo, Madagascar"
-                countryFilter="mg"
-                language="fr"
-                showMap={true}
-                required={true}
-                on:select={handleAddressSelect}
-                on:geocode={handleGeocode}
-                on:clear={() => {
-                  addressValid = false;
-                  geocodingSuccess = false;
-                  geocodingCoordinates = null;
-                  etablissementData.latitude = null;
-                  etablissementData.longitude = null;
-                  geocodingStatus = '';
-                  showManualGeocode = false;
-                }}
-              />
+              <div class="flex gap-1 items-start">
+                <div class="flex-1">
+                  <AddressAutocomplete
+                    bind:value={etablissementData.adresse}
+                    label="Adresse de l'établissement"
+                    placeholder="Ex: 123 Rue de l'Éducation, Antananarivo, Madagascar"
+                    countryFilter="mg"
+                    language="fr"
+                    showMap={true}
+                    required={true}
+                    on:select={handleAddressSelect}
+                    on:geocode={handleGeocode}
+                    on:clear={() => {
+                      addressValid = false;
+                      geocodingSuccess = false;
+                      geocodingCoordinates = null;
+                      etablissementData.latitude = null;
+                      etablissementData.longitude = null;
+                      geocodingStatus = '';
+                      showManualGeocode = false;
+                    }}
+                  />
+                </div>
+                <div class="mt-6">
+                  <button
+                    type="button"
+                    on:click={useCurrentLocation}
+                    class="inline-flex items-center px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+                    title="Utiliser ma position"
+                  >
+                    <Icon icon="heroicons:map-pin" class="h-5 w-5 mr-1.5" />
+                    <span class="hidden sm:inline">Ma position</span>
+                    <span class="sm:hidden">Position</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Affichage des coordonnées -->
+              {#if geocodingCoordinates}
+                <div class="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                  <div class="flex items-center justify-between">
+                    <div>
+                      <span class="text-sm font-medium text-green-700">📍 Coordonnées trouvées</span>
+                      <p class="text-xs text-gray-600 mt-0.5">
+                        Latitude: {geocodingCoordinates.lat.toFixed(6)} 
+                        | Longitude: {geocodingCoordinates.lng.toFixed(6)}
+                      </p>
+                    </div>
+                    <div class="flex gap-2">
+                      <a
+                        href={`https://www.openstreetmap.org/?mlat=${geocodingCoordinates.lat}&mlon=${geocodingCoordinates.lng}&zoom=15`}
+                        target="_blank"
+                        class="text-xs text-blue-500 hover:text-blue-700 underline"
+                      >
+                        Voir sur OpenStreetMap
+                      </a>
+                      <a
+                        href={`https://www.google.com/maps?q=${geocodingCoordinates.lat},${geocodingCoordinates.lng}`}
+                        target="_blank"
+                        class="text-xs text-blue-500 hover:text-blue-700 underline"
+                      >
+                        Voir sur Google Maps
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              {/if}
+
+              <!-- Statut du géocodage -->
+              {#if geocodingStatus}
+                <div class="mt-2 p-2 rounded-md text-sm">
+                  <span class={`
+                    ${geocodingStatus.includes('✅') ? 'text-green-700' : ''}
+                    ${geocodingStatus.includes('⚠️') ? 'text-yellow-700' : ''}
+                    ${geocodingStatus.includes('❌') || geocodingStatus.includes('Erreur') ? 'text-red-700' : ''}
+                    ${geocodingStatus.includes('🔍') || geocodingStatus.includes('📍') || geocodingStatus.includes('🌍') ? 'text-blue-700' : ''}
+                    ${geocodingStatus.includes('ℹ️') ? 'text-blue-600' : ''}
+                  `}>
+                    {geocodingStatus}
+                  </span>
+                </div>
+              {/if}
               
               <!-- Boutons d'action supplémentaires -->
               <div class="mt-2 flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  on:click={geocodeAddressManually}
+                  class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                >
+                  <Icon icon="heroicons:magnifying-glass" class="h-4 w-4 mr-1" />
+                  Géocodage automatique
+                </button>
                 <button
                   type="button"
                   on:click={openManualGeocode}
@@ -686,22 +756,6 @@
                 >
                   <Icon icon="heroicons:adjustments-horizontal" class="h-4 w-4 mr-1" />
                   {showManualGeocode ? 'Fermer le géocodage manuel' : 'Géocodage manuel'}
-                </button>
-                <button
-                  type="button"
-                  on:click={geocodeAddressManually}
-                  class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                >
-                  <Icon icon="heroicons:magnifying-glass" class="h-4 w-4 mr-1" />
-                  Géocoder automatiquement
-                </button>
-                <button
-                  type="button"
-                  on:click={useCurrentLocation}
-                  class="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                >
-                  <Icon icon="heroicons:map-pin" class="h-4 w-4 mr-1" />
-                  Ma position
                 </button>
               </div>
 
@@ -780,52 +834,6 @@
                     <p class="font-medium">💡 Astuce :</p>
                     <p>Vous pouvez obtenir les coordonnées en cliquant sur le bouton "Guide Google Maps" ci-dessus.</p>
                   </div>
-                </div>
-              {/if}
-              
-              <!-- Affichage des coordonnées -->
-              {#if geocodingCoordinates}
-                <div class="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
-                  <div class="flex items-center justify-between">
-                    <div>
-                      <span class="text-sm font-medium text-green-700">📍 Coordonnées trouvées</span>
-                      <p class="text-xs text-gray-600 mt-0.5">
-                        Latitude: {geocodingCoordinates.lat.toFixed(6)} 
-                        | Longitude: {geocodingCoordinates.lng.toFixed(6)}
-                      </p>
-                    </div>
-                    <div class="flex gap-2">
-                      <a
-                        href={`https://www.openstreetmap.org/?mlat=${geocodingCoordinates.lat}&mlon=${geocodingCoordinates.lng}&zoom=15`}
-                        target="_blank"
-                        class="text-xs text-blue-500 hover:text-blue-700 underline"
-                      >
-                        Voir sur OpenStreetMap
-                      </a>
-                      <a
-                        href={`https://www.google.com/maps?q=${geocodingCoordinates.lat},${geocodingCoordinates.lng}`}
-                        target="_blank"
-                        class="text-xs text-blue-500 hover:text-blue-700 underline"
-                      >
-                        Voir sur Google Maps
-                      </a>
-                    </div>
-                  </div>
-                </div>
-              {/if}
-
-              <!-- Statut du géocodage -->
-              {#if geocodingStatus}
-                <div class="mt-2 p-2 rounded-md text-sm">
-                  <span class={`
-                    ${geocodingStatus.includes('✅') ? 'text-green-700' : ''}
-                    ${geocodingStatus.includes('⚠️') ? 'text-yellow-700' : ''}
-                    ${geocodingStatus.includes('❌') || geocodingStatus.includes('Erreur') ? 'text-red-700' : ''}
-                    ${geocodingStatus.includes('🔍') || geocodingStatus.includes('📍') || geocodingStatus.includes('🌍') ? 'text-blue-700' : ''}
-                    ${geocodingStatus.includes('ℹ️') ? 'text-blue-600' : ''}
-                  `}>
-                    {geocodingStatus}
-                  </span>
                 </div>
               {/if}
             </div>
