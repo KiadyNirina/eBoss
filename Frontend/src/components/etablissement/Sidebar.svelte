@@ -80,7 +80,7 @@
               : $user.username || 'Utilisateur'}
           </p>
 
-          <a href="/profil" class="text-xs font-medium text-green-600 hover:text-green-500">
+          <a href="/etablissement/profile" class="text-xs font-medium text-green-600 hover:text-green-500">
             Voir profil
           </a>
         </div>

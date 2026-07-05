@@ -8,8 +8,10 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.views import TokenObtainPairView
 import csv
-from django.http import HttpResponse
-from django.db.models import Q
+from django.http import HttpResponse, JsonResponse
+from django.db.models import Q, F, Value, ExpressionWrapper, FloatField
+from django.db.models.functions import ACos, Cos, Radians, Sin
+from django.utils import timezone
 from .serializers import (
     CustomTokenObtainPairSerializer,
     EtablissementSerializer, 
@@ -24,9 +26,339 @@ from .serializers import (
     CoursSerializer
 )
 from .models import *
+from django.views.decorators.csrf import csrf_exempt
+import requests
+import json
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
+
+@csrf_exempt
+def geocode_proxy(request):
+    """
+    Proxy pour les requêtes de géocodage vers Nominatim
+    """
+    if request.method == 'GET':
+        query = request.GET.get('q', '')
+        format_type = request.GET.get('format', 'json')
+        limit = request.GET.get('limit', 1)
+        
+        if not query:
+            return JsonResponse({'error': 'Query parameter "q" is required'}, status=400)
+        
+        try:
+            # Appel à Nominatim depuis le serveur
+            url = 'https://nominatim.openstreetmap.org/search'
+            params = {
+                'q': query,
+                'format': format_type,
+                'limit': limit,
+                'addressdetails': 1,
+                'accept-language': 'fr'
+            }
+            
+            headers = {
+                'User-Agent': 'VotreApplication/1.0'
+            }
+            
+            response = requests.get(url, params=params, headers=headers, timeout=10)
+            
+            if response.status_code == 200:
+                return JsonResponse(response.json(), safe=False)
+            else:
+                return JsonResponse(
+                    {'error': f'Erreur Nominatim: {response.status_code}'},
+                    status=response.status_code
+                )
+                
+        except requests.exceptions.RequestException as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+@csrf_exempt
+def reverse_geocode_proxy(request):
+    """
+    Proxy pour le géocodage inverse vers Nominatim
+    """
+    if request.method == 'GET':
+        lat = request.GET.get('lat')
+        lon = request.GET.get('lon')
+        
+        if not lat or not lon:
+            return JsonResponse({'error': 'Latitude and longitude required'}, status=400)
+        
+        try:
+            url = 'https://nominatim.openstreetmap.org/reverse'
+            params = {
+                'lat': lat,
+                'lon': lon,
+                'format': 'json',
+                'addressdetails': 1,
+                'accept-language': 'fr'
+            }
+            
+            headers = {
+                'User-Agent': 'Sekora/1.0'
+            }
+            
+            response = requests.get(url, params=params, headers=headers, timeout=10)
+            
+            if response.status_code == 200:
+                return JsonResponse(response.json(), safe=False)
+            else:
+                return JsonResponse(
+                    {'error': f'Erreur Nominatim: {response.status_code}'},
+                    status=response.status_code
+                )
+                
+        except requests.exceptions.RequestException as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+class EtablissementViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet pour gérer les établissements avec géolocalisation
+    """
+    queryset = Etablissement.objects.all().select_related('user')
+    serializer_class = EtablissementSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = PageNumberPagination
+    
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        
+        # Filtres de base
+        type_etablissement = self.request.query_params.get('type')
+        search = self.request.query_params.get('search')
+        
+        if type_etablissement:
+            queryset = queryset.filter(type_etablissement=type_etablissement)
+        
+        if search:
+            queryset = queryset.filter(
+                Q(nom__icontains=search) |
+                Q(adresse__icontains=search) |
+                Q(user__email__icontains=search)
+            )
+        
+        # Filtrage par proximité (calcul avec Haversine)
+        lat = self.request.query_params.get('lat')
+        lng = self.request.query_params.get('lng')
+        radius = self.request.query_params.get('radius', 10)
+        
+        if lat and lng:
+            try:
+                lat = float(lat)
+                lng = float(lng)
+                radius = float(radius)
+                
+                # Calcul de distance avec Haversine
+                rad_lat = Radians(Value(lat))
+                rad_lng = Radians(Value(lng))
+                rad_est_lat = Radians(F('latitude'))
+                rad_est_lng = Radians(F('longitude'))
+                
+                distance_expr = ExpressionWrapper(
+                    6371 * ACos(
+                        Cos(rad_lat) * Cos(rad_est_lat) *
+                        Cos(rad_est_lng - rad_lng) +
+                        Sin(rad_lat) * Sin(rad_est_lat)
+                    ),
+                    output_field=FloatField()
+                )
+                
+                queryset = queryset.annotate(
+                    distance=distance_expr
+                ).filter(
+                    distance__lte=radius,
+                    latitude__isnull=False,
+                    longitude__isnull=False
+                ).order_by('distance')
+                
+            except (ValueError, TypeError):
+                pass
+        
+        # Filtrer les établissements avec/sans coordonnées
+        only_with_coords = self.request.query_params.get('with_coords', 'false')
+        if only_with_coords.lower() == 'true':
+            queryset = queryset.exclude(
+                Q(latitude__isnull=True) | Q(longitude__isnull=True)
+            )
+        
+        return queryset
+    
+    @action(detail=False, methods=['get'])
+    def nearby(self, request):
+        """
+        Endpoint pour trouver les établissements proches
+        """
+        lat = request.query_params.get('lat')
+        lng = request.query_params.get('lng')
+        radius = request.query_params.get('radius', 10)
+        
+        if not lat or not lng:
+            return Response({
+                'error': 'Les paramètres lat et lng sont requis'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            lat = float(lat)
+            lng = float(lng)
+            radius = float(radius)
+            
+            queryset = self.get_queryset()
+            
+            # Si pas déjà annoté avec distance
+            if 'distance' not in queryset.query.annotations:
+                rad_lat = Radians(Value(lat))
+                rad_lng = Radians(Value(lng))
+                rad_est_lat = Radians(F('latitude'))
+                rad_est_lng = Radians(F('longitude'))
+                
+                distance_expr = ExpressionWrapper(
+                    6371 * ACos(
+                        Cos(rad_lat) * Cos(rad_est_lat) *
+                        Cos(rad_est_lng - rad_lng) +
+                        Sin(rad_lat) * Sin(rad_est_lat)
+                    ),
+                    output_field=FloatField()
+                )
+                
+                queryset = queryset.annotate(
+                    distance=distance_expr
+                ).filter(
+                    distance__lte=radius,
+                    latitude__isnull=False,
+                    longitude__isnull=False
+                ).order_by('distance')
+            
+            serializer = self.get_serializer(queryset, many=True)
+            
+            return Response({
+                'count': queryset.count(),
+                'results': serializer.data,
+                'center': {'lat': lat, 'lng': lng},
+                'radius': radius
+            })
+            
+        except ValueError:
+            return Response({
+                'error': 'Latitude et longitude doivent être des nombres valides'
+            }, status=status.HTTP_400_BAD_REQUEST)
+    
+    @action(detail=False, methods=['post'])
+    def update_coordinates_batch(self, request):
+        """
+        Met à jour les coordonnées en lot depuis les données frontend
+        """
+        establishments_data = request.data.get('establishments', [])
+        
+        if not establishments_data:
+            return Response({
+                'error': 'Aucune donnée fournie'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        results = []
+        for est_data in establishments_data:
+            est_id = est_data.get('id')
+            latitude = est_data.get('latitude')
+            longitude = est_data.get('longitude')
+            
+            if not est_id or latitude is None or longitude is None:
+                results.append({
+                    'id': est_id,
+                    'success': False,
+                    'error': 'Données incomplètes'
+                })
+                continue
+            
+            try:
+                establishment = Etablissement.objects.get(id=est_id)
+                establishment.latitude = float(latitude)
+                establishment.longitude = float(longitude)
+                establishment.coordinates_verified = True
+                establishment.coordinates_updated_at = timezone.now()
+                establishment.save()
+                
+                results.append({
+                    'id': est_id,
+                    'success': True,
+                    'latitude': establishment.latitude,
+                    'longitude': establishment.longitude
+                })
+            except Etablissement.DoesNotExist:
+                results.append({
+                    'id': est_id,
+                    'success': False,
+                    'error': 'Établissement non trouvé'
+                })
+            except Exception as e:
+                results.append({
+                    'id': est_id,
+                    'success': False,
+                    'error': str(e)
+                })
+        
+        success_count = sum(1 for r in results if r['success'])
+        
+        return Response({
+            'message': f'{success_count} établissements mis à jour sur {len(results)}',
+            'total': len(results),
+            'success': success_count,
+            'failed': len(results) - success_count,
+            'results': results
+        })
+    
+    @action(detail=True, methods=['post'])
+    def verify_coordinates(self, request, pk=None):
+        """
+        Vérifie et valide les coordonnées d'un établissement
+        """
+        establishment = self.get_object()
+        
+        if not establishment.has_coordinates:
+            return Response({
+                'error': 'Cet établissement n\'a pas de coordonnées'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Marquer comme vérifié
+        establishment.coordinates_verified = True
+        establishment.coordinates_updated_at = timezone.now()
+        establishment.save()
+        
+        return Response({
+            'success': True,
+            'message': 'Coordonnées vérifiées',
+            'latitude': establishment.latitude,
+            'longitude': establishment.longitude,
+            'verified': establishment.coordinates_verified
+        })
+    
+    @action(detail=False, methods=['get'])
+    def statistics(self, request):
+        """
+        Statistiques sur les coordonnées des établissements
+        """
+        total = Etablissement.objects.count()
+        with_coords = Etablissement.objects.filter(
+            latitude__isnull=False,
+            longitude__isnull=False
+        ).count()
+        verified = Etablissement.objects.filter(
+            coordinates_verified=True
+        ).count()
+        
+        return Response({
+            'total': total,
+            'with_coordinates': with_coords,
+            'without_coordinates': total - with_coords,
+            'verified': verified,
+            'percentage_with_coords': round((with_coords / total * 100) if total > 0 else 0, 2),
+            'percentage_verified': round((verified / total * 100) if total > 0 else 0, 2)
+        })
+
 
 class EtablissementRegistrationView(generics.CreateAPIView):
     serializer_class = EtablissementSerializer
@@ -36,7 +368,7 @@ class EtablissementRegistrationView(generics.CreateAPIView):
         print("Données reçues:", request.data)
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        etablissement = serializer.save()  # On récupère l'instance créée
+        etablissement = serializer.save()
         
         # Génération du token
         user = etablissement.user
@@ -47,7 +379,11 @@ class EtablissementRegistrationView(generics.CreateAPIView):
             "etablissement": {
                 "id": etablissement.id,
                 "nom": etablissement.nom,
-                "type_etablissement": etablissement.type_etablissement
+                "type_etablissement": etablissement.type_etablissement,
+                "adresse": etablissement.adresse,
+                "latitude": etablissement.latitude,
+                "longitude": etablissement.longitude,
+                "coordinates_verified": etablissement.coordinates_verified
             },
             "tokens": {
                 "refresh": str(refresh),

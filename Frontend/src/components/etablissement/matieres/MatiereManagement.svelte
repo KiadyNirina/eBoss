@@ -168,16 +168,16 @@
   $: applyFilters();
 </script>
 
-<div class="bg-white shadow-sm rounded-lg border border-gray-200 overflow-hidden">
+<div>
   <!-- En-tête -->
-  <div class="px-4 py-5 sm:px-6 border-b border-gray-200">
-    <div class="flex items-center justify-between">
-      <div>
-        <h3 class="text-lg leading-6 font-medium text-gray-900">Gestion des Matières</h3>
-        <p class="mt-1 text-sm text-gray-500">
-          Créer, modifier et supprimer les matières
-        </p>
-      </div>
+  <div class="sm:flex sm:items-center justify-between">
+    <div class="mb-4 sm:mb-0">
+      <h1 class="text-2xl font-bold text-gray-900">Gestion des Matières</h1>
+      <p class="mt-2 text-sm text-gray-700">
+        {matieres.length} matière au total
+      </p>
+    </div>
+    <div class="flex space-x-3">
       <button
         on:click={openAddForm}
         class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
@@ -209,7 +209,7 @@
   
   <!-- Formulaire -->
   {#if showForm}
-    <div class="px-4 py-5 sm:p-6 border-b border-gray-200 bg-gray-50">
+    <div class="mt-6 mb-6 p-4 border border-gray-200 rounded-lg bg-gray-50">
       <h4 class="text-sm font-medium text-gray-700 mb-4">
         {isEditing ? 'Modifier la matière' : 'Ajouter une nouvelle matière'}
       </h4>
@@ -264,22 +264,27 @@
   {/if}
   
   <!-- Recherche -->
-  <div class="px-4 py-3 border-b border-gray-200 bg-white">
-    <div class="relative">
-      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-        <Icon icon="heroicons:magnifying-glass" class="h-4 w-4 text-gray-400" />
+  <div class="mt-6 bg-white shadow-sm rounded-lg p-6 border border-gray-200">
+    <div>
+      <label for="search" class="block text-sm font-medium text-gray-700">Recherche</label>
+      <div class="mt-1 relative rounded-lg shadow-sm bg-gray-50">
+        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+          <Icon icon="heroicons:magnifying-glass" class="h-5 w-5 text-gray-400" />
+        </div>
+        <input
+          type="text"
+          id="search"
+          bind:value={searchTerm}
+          class="block w-full pl-9 pr-3 py-1.5 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-green-500 focus:border-green-500 sm:text-sm"
+          placeholder="Rechercher une matière..."
+          on:input={applyFilters}
+        />
       </div>
-      <input
-        type="text"
-        bind:value={searchTerm}
-        on:input={applyFilters}
-        class="block w-full pl-9 pr-3 py-1.5 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-        placeholder="Rechercher une matière..."
-      />
     </div>
   </div>
   
   <!-- Liste des matières -->
+  <div class="mt-6 shadow-sm border border-gray-200 rounded-lg overflow-hidden">
   {#if loading && matieres.length === 0}
     <div class="flex justify-center items-center py-12">
       <Icon icon="heroicons:arrow-path" class="h-8 w-8 animate-spin text-green-600" />
@@ -381,6 +386,7 @@
       </button>
     </div>
   {/if}
+  </div>
 </div>
 
 <style>
