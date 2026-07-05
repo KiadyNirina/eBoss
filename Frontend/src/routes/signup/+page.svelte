@@ -266,9 +266,9 @@
     manualGeocodeError = '';
     showManualGeocode = false;
     
-    if (!etablissementData.adresse) {
-      etablissementData.adresse = `Coordonnées: ${formatCoordinatesDisplay(result.lat, result.lng)}`;
-    }
+    // if (!etablissementData.adresse) {
+    //   etablissementData.adresse = `Coordonnées: ${formatCoordinatesDisplay(result.lat, result.lng)}`;
+    // }
   }
 
   // Fonction pour ouvrir Google Maps avec un guide
@@ -326,7 +326,7 @@
         // Fermer le géocodage manuel si ouvert
         showManualGeocode = false;
       } else {
-        geocodingStatus = '❌ Adresse non trouvée. Vérifiez l\'adresse saisie.';
+        geocodingStatus = '❌ Adresse non trouvée. Vérifiez l\'adresse saisie ou Geocoder manuellement.'
         etablissementData.latitude = null;
         etablissementData.longitude = null;
         addressValid = false;

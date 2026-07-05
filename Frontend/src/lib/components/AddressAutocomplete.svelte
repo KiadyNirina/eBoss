@@ -98,113 +98,6 @@
     }
   }
 
-  async function geocodeCurrentAddress() {
-    if (!value || value.length < minChars) {
-      geocodeStatus = '⚠️ Veuillez saisir une adresse';
-      return;
-    }
-
-    isSearching = true;
-    geocodeStatus = '🔍 Recherche en cours...';
-
-    try {
-      const result = await GeocodingService.geocode(value, {
-        language: language,
-        limit: 1
-      });
-
-      if (result) {
-        coordinates = {
-          lat: result.latitude,
-          lng: result.longitude
-        };
-        geocodedData = result;
-        isValid = true;
-        geocodeStatus = '✅ Adresse géocodée avec succès';
-
-        if (result.display_name) {
-          value = result.display_name;
-        }
-
-        dispatch('geocode', {
-          address: result.display_name,
-          latitude: result.latitude,
-          longitude: result.longitude,
-          fullData: result
-        });
-
-        return result;
-      } else {
-        geocodeStatus = '❌ Adresse non trouvée';
-        isValid = false;
-        return null;
-      }
-    } catch (error) {
-      geocodeStatus = `❌ Erreur: ${error.message}`;
-      isValid = false;
-      return null;
-    } finally {
-      isSearching = false;
-    }
-  }
-
-  async function useCurrentLocation() {
-    if (!navigator.geolocation) {
-      geocodeStatus = '⚠️ Géolocalisation non supportée';
-      return;
-    }
-
-    geocodeStatus = '📍 Obtention de votre position...';
-
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        try {
-          const { latitude, longitude } = position.coords;
-          
-          const result = await GeocodingService.reverseGeocode(latitude, longitude, {
-            language: language,
-            zoom: 18
-          });
-
-          if (result) {
-            value = result.display_name;
-            coordinates = { lat: latitude, lng: longitude };
-            geocodedData = {
-              latitude: latitude,
-              longitude: longitude,
-              display_name: result.display_name,
-              address: result.address
-            };
-            isValid = true;
-            geocodeStatus = '✅ Position trouvée';
-
-            dispatch('geocode', {
-              address: result.display_name,
-              latitude: latitude,
-              longitude: longitude,
-              fullData: geocodedData
-            });
-
-            dispatch('select', {
-              address: result.display_name,
-              latitude: latitude,
-              longitude: longitude,
-              fullData: geocodedData
-            });
-          }
-        } catch (error) {
-          geocodeStatus = '❌ Erreur de géocodage inverse';
-          console.error(error);
-        }
-      },
-      (error) => {
-        geocodeStatus = '❌ Impossible d\'obtenir votre position';
-        console.error('Erreur de géolocalisation:', error);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  }
-
   function clearAddress() {
     value = '';
     suggestions = [];
@@ -313,28 +206,6 @@
       </div>
 
       <div class="flex gap-2 shrink-0">
-        <button
-          type="button"
-          on:click={geocodeCurrentAddress}
-          disabled={isSearching || disabled}
-          class="px-3 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center gap-1"
-          title="Géocoder l'adresse"
-        >
-          <Icon icon="heroicons:magnifying-glass" class="h-4 w-4" />
-          <span class="hidden sm:inline">Géocoder</span>
-        </button>
-
-        <button
-          type="button"
-          on:click={useCurrentLocation}
-          disabled={disabled}
-          class="px-3 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors disabled:opacity-50 flex items-center gap-1"
-          title="Utiliser ma position"
-        >
-          <Icon icon="heroicons:map-pin" class="h-4 w-4" />
-          <span class="hidden sm:inline">Position</span>
-        </button>
-
         {#if value}
           <button
             type="button"
@@ -347,33 +218,6 @@
         {/if}
       </div>
     </div>
-
-    {#if geocodeStatus}
-      <div class="mt-1 text-sm">
-        <span class={`
-          ${geocodeStatus.includes('✅') ? 'text-green-600' : ''}
-          ${geocodeStatus.includes('⚠️') ? 'text-yellow-600' : ''}
-          ${geocodeStatus.includes('❌') ? 'text-red-600' : ''}
-        `}>
-          {geocodeStatus}
-        </span>
-      </div>
-    {/if}
-
-    {#if coordinates}
-      <div class="mt-1 text-xs text-gray-500">
-        📍 {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
-        {#if showMap}
-          <a
-            href={`https://www.openstreetmap.org/?mlat=${coordinates.lat}&mlon=${coordinates.lng}&zoom=15`}
-            target="_blank"
-            class="ml-2 text-blue-500 hover:text-blue-700 underline"
-          >
-            Voir sur la carte
-          </a>
-        {/if}
-      </div>
-    {/if}
   </div>
 </div>
 
