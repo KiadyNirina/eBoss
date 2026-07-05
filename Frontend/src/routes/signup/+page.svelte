@@ -292,6 +292,13 @@
 
   // Fonction pour géocoder l'adresse manuellement
   async function geocodeAddressManually() {
+    // Vérifier si l'adresse est déjà géocodée
+    if (addressValid && geocodingCoordinates) {
+      geocodingStatus = 'ℹ️ Cette adresse est déjà géocodée.';
+      geocodingSuccess = true;
+      return;
+    }
+
     if (!etablissementData.adresse) {
       geocodingStatus = '⚠️ Veuillez saisir une adresse d\'abord';
       return;
@@ -806,15 +813,16 @@
                   </div>
                 </div>
               {/if}
-              
+
               <!-- Statut du géocodage -->
-              {#if geocodingStatus && !geocodingCoordinates}
+              {#if geocodingStatus}
                 <div class="mt-2 p-2 rounded-md text-sm">
                   <span class={`
                     ${geocodingStatus.includes('✅') ? 'text-green-700' : ''}
                     ${geocodingStatus.includes('⚠️') ? 'text-yellow-700' : ''}
                     ${geocodingStatus.includes('❌') || geocodingStatus.includes('Erreur') ? 'text-red-700' : ''}
                     ${geocodingStatus.includes('🔍') || geocodingStatus.includes('📍') || geocodingStatus.includes('🌍') ? 'text-blue-700' : ''}
+                    ${geocodingStatus.includes('ℹ️') ? 'text-blue-600' : ''}
                   `}>
                     {geocodingStatus}
                   </span>
