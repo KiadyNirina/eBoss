@@ -152,8 +152,8 @@
   {/if}
 
   <div class="relative">
-    <div class="flex gap-2">
-      <div class="relative flex-1">
+    <div class="flex gap-1">
+      <div class="relative flex-1" style="line-height: normal;">
         <input
           id="address-input"
           type="text"
