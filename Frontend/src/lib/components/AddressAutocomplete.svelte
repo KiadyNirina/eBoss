@@ -1,9 +1,7 @@
 <!-- src/lib/components/AddressAutocomplete.svelte -->
 <script>
   import { onMount, createEventDispatcher } from 'svelte';
-  // IMPORT CORRECT - Utilisez l'import nommé ou l'import par défaut
   import GeocodingService from '$lib/geocoding.js';
-  // OU import { search } from '$lib/geocoding.js';
   import Icon from '@iconify/svelte';
 
   const dispatch = createEventDispatcher();
@@ -26,6 +24,7 @@
   let coordinates = null;
   let geocodeStatus = '';
   let searchTimeout = null;
+  let hasSearched = false;
 
   export let geocodedData = null;
   export let isValid = false;
@@ -35,6 +34,7 @@
     value = query;
     selectedSuggestion = null;
     isValid = false;
+    hasSearched = false;
 
     if (query.length < minChars) {
       suggestions = [];
@@ -51,6 +51,7 @@
     if (query.length < minChars) return;
 
     isSearching = true;
+    hasSearched = true;
     try {
       const options = {
         limit: 5,
@@ -58,14 +59,21 @@
         countrycodes: countryFilter || undefined
       };
 
-      // Utiliser la méthode search de GeocodingService
       const results = await GeocodingService.search(query, options);
       suggestions = results;
+
+      // Si aucun résultat et que la recherche est terminée
+      if (results.length === 0 && query.length >= minChars) {
+        geocodeStatus = 'ℹ️ Aucune adresse trouvée. Vous pouvez utiliser le géocodage manuel.';
+      } else {
+        geocodeStatus = '';
+      }
 
       dispatch('search', { query, results });
     } catch (error) {
       console.error('Erreur de recherche:', error);
       suggestions = [];
+      geocodeStatus = '❌ Erreur de recherche. Veuillez réessayer ou utiliser le géocodage manuel.';
     } finally {
       isSearching = false;
     }
@@ -76,6 +84,7 @@
     value = suggestion.display_name;
     suggestions = [];
     isValid = true;
+    hasSearched = false;
 
     coordinates = {
       lat: suggestion.latitude,
@@ -106,6 +115,7 @@
     isValid = false;
     geocodedData = null;
     geocodeStatus = '';
+    hasSearched = false;
 
     dispatch('clear');
   }
@@ -131,7 +141,6 @@
   });
 </script>
 
-<!-- Le reste du template reste identique -->
 <div class="address-autocomplete">
   {#if label}
     <label for="address-input" class="block text-sm font-medium text-gray-700 mb-1">
@@ -159,7 +168,8 @@
           class={`
             w-full px-4 py-2.5 border rounded-lg
             ${isValid ? 'border-green-400 bg-green-50' : 'border-gray-300'}
-            ${!isValid && value.length > 0 ? 'border-yellow-300 bg-yellow-50' : ''}
+            ${!isValid && value.length > 0 && !isSearching && hasSearched && suggestions.length === 0 ? 'border-yellow-300 bg-yellow-50' : ''}
+            ${!isValid && value.length > 0 && !isSearching && !hasSearched ? 'border-gray-300' : ''}
             focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent
             transition-all
             pr-10
@@ -171,7 +181,9 @@
             <div class="animate-spin h-5 w-5 border-2 border-green-500 border-t-transparent rounded-full"></div>
           {:else if isValid}
             <Icon icon="heroicons:check-circle" class="h-5 w-5 text-green-500" />
-          {:else if value && !isValid}
+          {:else if value && !isValid && !isSearching && hasSearched && suggestions.length === 0}
+            <Icon icon="heroicons:exclamation-circle" class="h-5 w-5 text-yellow-500" />
+          {:else if value && !isValid && !isSearching}
             <Icon icon="heroicons:exclamation-circle" class="h-5 w-5 text-yellow-500" />
           {/if}
         </div>
@@ -219,6 +231,23 @@
       </div>
     </div>
   </div>
+
+  <!-- Message d'information quand aucune suggestion n'est trouvée -->
+  {#if !isSearching && hasSearched && suggestions.length === 0 && value.length >= minChars && !isValid}
+    <div class="z-50 w-full mt-1 bg-yellow-50 border border-yellow-200 rounded-lg p-3 text-sm text-yellow-800">
+      <div class="flex items-start gap-2">
+        <Icon icon="heroicons:information-circle" class="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+        <div>
+          <p class="font-medium">Aucune adresse trouvée</p>
+          <p class="text-xs text-yellow-700 mt-1">
+            Vérifiez l'orthographe ou utilisez le bouton 
+            <span class="font-semibold">"Géocodage manuel"</span> 
+            pour saisir les coordonnées directement.
+          </p>
+        </div>
+      </div>
+    </div>
+  {/if}
 </div>
 
 <style>
