@@ -107,10 +107,10 @@
   
   async function loadStats() {
     try {
-      const eleves = await authApi.getEleves();
-      const professeurs = await authApi.getProfesseurs();
-      const classes = await authApi.getClasses();
-      const matieres = await authApi.getMatieres();
+      const eleves = await authApi.getEleves({ etablissement: profile.etablissement.id });
+      const professeurs = await authApi.getProfesseurs({ etablissement: profile.etablissement.id });
+      const classes = await authApi.getClasses({ etablissement: profile.etablissement.id });
+      const matieres = await authApi.getMatieres({ etablissement: profile.etablissement.id });
       
       profile.stats = {
         total_eleves: eleves.results ? eleves.results.length : eleves.length || 0,
@@ -134,7 +134,7 @@
   
   async function loadClasses() {
     try {
-      const classes = await authApi.getClasses();
+      const classes = await authApi.getClasses({ etablissement: profile.etablissement.id });
       profile.classes = classes.results || classes || [];
     } catch (err) {
       console.error('Erreur chargement classes:', err);
@@ -143,7 +143,7 @@
   
   async function loadProfesseurs() {
     try {
-      const professeurs = await authApi.getProfesseurs();
+      const professeurs = await authApi.getProfesseurs({ etablissement: profile.etablissement.id });
       profile.professeurs = professeurs.results || professeurs || [];
     } catch (err) {
       console.error('Erreur chargement professeurs:', err);
@@ -152,7 +152,7 @@
   
   async function loadMatieres() {
     try {
-      const matieres = await authApi.getMatieres();
+      const matieres = await authApi.getMatieres({ etablissement: profile.etablissement.id });
       profile.matieres = matieres.results || matieres || [];
     } catch (err) {
       console.error('Erreur chargement matières:', err);
