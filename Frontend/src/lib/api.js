@@ -309,9 +309,10 @@ export const authApi = {
         method: 'DELETE',
     }).then(() => ({ message: 'Classe supprimée' })),
 
-    getMatieres: () => 
-        fetchWithAuth('/api/matieres/')
-        .then(response => response.json()),
+    getMatieres: (filters = {}) => {
+        const query = new URLSearchParams(filters).toString();
+        return fetchWithAuth(`/api/matieres/?${query}`).then(response => response.json());
+    },
 
     createMatiere: (data) => fetchWithAuth('/api/matieres/', {
         method: 'POST',

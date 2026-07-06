@@ -12,6 +12,7 @@
     pendingPayments: 0
   };
   
+  let etablissementId = null;
   let loading = true;
   let error = null;
 
@@ -20,10 +21,17 @@
     error = null;
     
     try {
+      const profile = await authApi.getProfile();
+      etablissementId = profile.profile?.id || profile.etablissement?.id;
+      
+      if (!etablissementId) {
+        throw new Error('Établissement non trouvé');
+      }
+      
       const [eleves, professeurs, classes] = await Promise.all([
-        authApi.getEleves({ limit: 1 }), 
-        authApi.getProfesseurs({ limit: 1 }),
-        authApi.getClasses({ limit: 1 }),
+        authApi.getEleves({ etablissement: etablissementId, limit: 1 }), 
+        authApi.getProfesseurs({ etablissement: etablissementId, limit: 1 }),
+        authApi.getClasses({ etablissement: etablissementId, limit: 1 }),
       ]);
       
       const getCount = (data) => {
