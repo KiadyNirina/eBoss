@@ -16,6 +16,13 @@ class User(AbstractUser):
     
     # Champs communs
     adresse = models.TextField(blank=True, null=True)
+
+    profile_image = models.ImageField(
+        upload_to='profiles/', 
+        blank=True, 
+        null=True,
+        help_text="Photo de profil de l'utilisateur"
+    )
     
     def clean(self):
         if self.user_type == 'etablissement' and not hasattr(self, 'etablissement'):
