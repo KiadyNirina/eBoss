@@ -51,9 +51,45 @@
     { value: 'lycee', label: 'Lycée' },
     { value: 'universite', label: 'Université' }
   ];
+
+  function initMap() {
+    const mapContainer = document.getElementById('map');
+    if (!mapContainer) return;
+    
+    const lat = parseFloat(mapContainer.dataset.lat);
+    const lon = parseFloat(mapContainer.dataset.lon);
+    
+    if (isNaN(lat) || isNaN(lon)) return;
+    
+    // Charger Leaflet dynamiquement
+    const leafletCSS = document.createElement('link');
+    leafletCSS.rel = 'stylesheet';
+    leafletCSS.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    document.head.appendChild(leafletCSS);
+    
+    const leafletJS = document.createElement('script');
+    leafletJS.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    leafletJS.onload = () => {
+      const L = window.L;
+      const map = L.map(mapContainer).setView([lat, lon], 15);
+      
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+      
+      const marker = L.marker([lat, lon]).addTo(map);
+      marker.bindPopup('<b>Établissement</b><br>Votre établissement');
+      
+      setTimeout(() => {
+        map.invalidateSize();
+      }, 100);
+    };
+    document.body.appendChild(leafletJS);
+  }
   
   onMount(async () => {
     await loadProfile();
+    setTimeout(initMap, 500);
   });
   
   async function loadProfile() {
@@ -87,7 +123,9 @@
           email: profile.user.email || '',
           telephone: profile.user.telephone || '',
           first_name: profile.user.first_name || '',
-          last_name: profile.user.last_name || ''
+          last_name: profile.user.last_name || '',
+          latitude: profile.etablissement.latitude || '',
+          longitude: profile.etablissement.longitude || ''
         };
         
         // Charger le logo
@@ -227,7 +265,9 @@
         type_etablissement: formData.type_etablissement,
         adresse: formData.adresse,
         description: formData.description,
-        site_web: formData.site_web
+        site_web: formData.site_web,
+        latitude: formData.latitude ? parseFloat(formData.latitude) : null,
+        longitude: formData.longitude ? parseFloat(formData.longitude) : null
       };
       
       if (logoUrl) {
@@ -500,6 +540,110 @@
     </div>
   </div>
   
+  <div class="mt-4">
+    <label class="block text-sm font-medium text-gray-700 mb-1">
+      Localisation
+    </label>
+    
+    {#if isEditing}
+      <div class="space-y-3">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Latitude</label>
+            <input
+              type="number"
+              step="0.000001"
+              bind:value={formData.latitude}
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              placeholder="48.856614"
+            />
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">Longitude</label>
+            <input
+              type="number"
+              step="0.000001"
+              bind:value={formData.longitude}
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              placeholder="2.352222"
+            />
+          </div>
+        </div>
+        <p class="text-xs text-gray-500">
+          <Icon icon="heroicons:information-circle" class="h-4 w-4 inline mr-1" />
+          Vous pouvez obtenir les coordonnées GPS via Google Maps ou un service de géocodage
+        </p>
+      </div>
+    {:else}
+      <div class="space-y-3">
+        {#if profile.etablissement.latitude && profile.etablissement.longitude}
+          <div class="flex items-center space-x-2 text-sm text-gray-600">
+            <Icon icon="heroicons:map-pin" class="h-5 w-5 text-green-600" />
+            <span>
+              Coordonnées : 
+              <span class="font-mono">{Number(profile.etablissement.latitude).toFixed(6)}</span>, 
+              <span class="font-mono">{Number(profile.etablissement.longitude).toFixed(6)}</span>
+            </span>
+          </div>
+          
+          <!-- Carte avec Leaflet -->
+          <div class="relative w-full h-64 md:h-80 rounded-lg overflow-hidden border border-gray-200">
+            <div 
+              id="map" 
+              class="w-full h-full"
+              data-lat={profile.etablissement.latitude}
+              data-lon={profile.etablissement.longitude}
+            ></div>
+            
+            <div class="absolute bottom-2 right-2 bg-white rounded-md shadow-md px-2 py-1 text-xs text-gray-600 z-10">
+              <a 
+                href="https://www.openstreetmap.org/?mlat={Number(profile.etablissement.latitude)}&mlon={Number(profile.etablissement.longitude)}&zoom=16"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="hover:text-green-600 flex items-center space-x-1"
+              >
+                <Icon icon="heroicons:arrow-top-right-on-square" class="h-3 w-3" />
+                <span>Agrandir</span>
+              </a>
+            </div>
+          </div>
+          
+          <!-- Liens -->
+          <div class="flex flex-wrap items-center gap-3 text-sm">
+            <a 
+              href="https://www.google.com/maps?q={Number(profile.etablissement.latitude)},{Number(profile.etablissement.longitude)}"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-green-600 hover:text-green-700 hover:underline flex items-center space-x-1"
+            >
+              <Icon icon="heroicons:map-pin" class="h-4 w-4" />
+              <span>Voir sur Google Maps</span>
+            </a>
+            <a 
+              href="https://www.openstreetmap.org/?mlat={Number(profile.etablissement.latitude)}&mlon={Number(profile.etablissement.longitude)}&zoom=16"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-green-600 hover:text-green-700 hover:underline flex items-center space-x-1"
+            >
+              <Icon icon="heroicons:globe-alt" class="h-4 w-4" />
+              <span>Voir sur OpenStreetMap</span>
+            </a>
+          </div>
+        {:else}
+          <div class="flex items-center space-x-2 text-sm text-gray-500">
+            <Icon icon="heroicons:map-pin" class="h-5 w-5 text-gray-400" />
+            <span>Aucune coordonnée GPS renseignée</span>
+          </div>
+          {#if !isEditing}
+            <p class="text-xs text-gray-400">
+              Pour ajouter la localisation, modifiez le profil et renseignez les coordonnées GPS
+            </p>
+          {/if}
+        {/if}
+      </div>
+    {/if}
+  </div>
+
   <!-- Contact -->
   <div class="bg-white shadow rounded-lg overflow-hidden mt-6">
     <div class="px-6 py-5 border-b border-gray-200 bg-gray-50">
