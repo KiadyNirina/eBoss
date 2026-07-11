@@ -70,7 +70,19 @@
     leafletJS.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
     leafletJS.onload = () => {
       const L = window.L;
-      const map = L.map(mapContainer).setView([lat, lon], 15);
+      const map = L.map(mapContainer, {
+        center: [lat, lon],
+        zoom: 18,
+        minZoom: 18,
+        maxZoom: 18,
+        zoomControl: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        touchZoom: false,
+        boxZoom: false,
+        keyboard: false,
+        dragging: false
+      });
       
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
