@@ -3,6 +3,7 @@
   import { user } from '$lib/stores';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
+  import { authApi, authStore } from '$lib/api';
   
   export let onToggleSidebar;
 
@@ -26,8 +27,8 @@
   }
   
   function handleLogout() {
+    authStore.clearTokens();
     user.set(null);
-    localStorage.removeItem('token');
     closeLogoutModal();
     goto('/login');
   }
