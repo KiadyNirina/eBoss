@@ -177,6 +177,9 @@
           type: est.type_etablissement,
           phone: est.user?.telephone || 'Non disponible',
           email: est.user?.email || 'Non disponible',
+          profileImage: est.user?.profile_image 
+          ? `${est.user.profile_image}` 
+          : null, 
           _raw: est
         }));
       } else {
@@ -1051,8 +1054,21 @@
             <!-- Liseré de couleur décoratif au survol -->
             <div class="absolute left-0 top-0 bottom-0 w-1 bg-transparent group-hover:bg-[#20784d] transition-colors"></div>
             
-            <div class="flex items-start justify-between">
-              <div class="pr-3">
+            <div class="flex items-start gap-3">
+
+              {#if establishment.profileImage}
+                <img 
+                  src={establishment.profileImage} 
+                  alt={establishment.name}
+                  class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm shrink-0"
+                />
+              {:else}
+                <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                  <Icon icon="heroicons:building-office-2" class="h-5 w-5 text-green-600" />
+                </div>
+              {/if}
+
+              <div class="min-w-0 flex-1">
                 <h3 class="font-bold text-gray-900 group-hover:text-[#20784d] transition-colors line-clamp-1">{establishment.name}</h3>
                 <p class="text-xs text-gray-500 mt-1 flex items-start gap-1">
                   <Icon icon="heroicons:map-pin" class="h-3.5 w-3.5 shrink-0 mt-0.5 text-gray-400" />
