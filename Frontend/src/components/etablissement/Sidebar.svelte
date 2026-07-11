@@ -5,6 +5,8 @@
 
   export let onClose;
 
+  let baseUrl = 'http://localhost:8000';
+
   const navigation = [
     { name: 'Tableau de bord', icon: 'heroicons:home', href: '/etablissement/dashboard' },
     { name: 'Étudiants', icon: 'heroicons:user-group', href: '/etablissement/etudiants' },
@@ -70,7 +72,7 @@
     {#if $user}
       <div class="flex items-center">
         <div class="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center">
-          <Icon icon="heroicons:user-circle" class="h-6 w-6 text-green-600" />
+          <img src="{baseUrl}{$user.profile.user.profile_image}" class="h-10" alt="" />
         </div>
 
         <div class="ml-3">

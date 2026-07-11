@@ -5,6 +5,8 @@
   import { onMount } from 'svelte';
   
   export let onToggleSidebar;
+
+  let baseUrl = 'http://localhost:8000';
   
   let searchQuery = '';
   let showDropdown = false;
@@ -84,17 +86,17 @@
         </button>
         
         <!-- Profil avec dropdown -->
-        <div class="relative ml-3 profile-dropdown">
+        <div class="relative profile-dropdown">
           <div 
             class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center cursor-pointer hover:bg-green-200 transition-colors"
             on:click={toggleDropdown}
           >
-            <Icon icon="heroicons:user-circle" class="h-6 w-6 text-green-600" />
+            <img src="{baseUrl}{$user.profile.user.profile_image}" class="h-8 w-8 rounded-full" alt="Profile" />
           </div>
           
           <!-- Menu déroulant -->
           {#if showDropdown}
-            <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 border border-gray-200 z-50">
+            <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 border border-gray-200 z-500">
               <div class="px-4 py-2 border-b border-gray-100">
                 <p class="text-sm font-medium text-gray-900">
                   {$user.first_name
