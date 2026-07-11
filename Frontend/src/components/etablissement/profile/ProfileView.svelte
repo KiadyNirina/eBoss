@@ -41,9 +41,8 @@
   
   let isEditing = false;
   let formData = {};
-  let logoPreview = null;
-  let logoFile = null;
-  let logoUploading = false;
+  let profileImagePreview = null;
+  let profileImageFile = null;
   
   const typeOptions = [
     { value: 'ecole', label: 'École primaire' },
@@ -129,8 +128,10 @@
         };
         
         // Charger le logo
-        if (profile.etablissement.logo) {
-          logoPreview = profile.etablissement.logo;
+        if (userProfile.profile.user.profile_image) {
+          profileImagePreview = `http://127.0.0.1:8000${userProfile.profile.user.profile_image}`;
+        } else {
+          profileImagePreview = null;
         }
       } else {
         error = 'Aucune donnée d\'établissement trouvée';
@@ -218,32 +219,16 @@
     error = null;
     success = false;
   }
-  
+
   function handleFileChange(event) {
     const file = event.target.files[0];
     if (file) {
-      logoFile = file;
+      profileImageFile = file;
       const reader = new FileReader();
       reader.onload = (e) => {
-        logoPreview = e.target.result;
+        profileImagePreview = e.target.result;
       };
       reader.readAsDataURL(file);
-    }
-  }
-  
-  async function uploadLogo() {
-    if (!logoFile) return null;
-    
-    logoUploading = true;
-    try {
-      const formData = new FormData();
-      formData.append('logo', logoFile);
-      return logoPreview;
-    } catch (err) {
-      console.error('Erreur upload logo:', err);
-      throw err;
-    } finally {
-      logoUploading = false;
     }
   }
   
@@ -251,44 +236,35 @@
     saving = true;
     error = null;
     success = false;
-    
+
     try {
-      let logoUrl = null;
-      if (logoFile) {
-        logoUrl = await uploadLogo();
-      }
-      
       const etabId = profile.etablissement.id;
+
+      const formPayload = new FormData();
       
-      const etabData = {
-        nom: formData.nom,
-        type_etablissement: formData.type_etablissement,
-        adresse: formData.adresse,
-        description: formData.description,
-        site_web: formData.site_web,
-        latitude: formData.latitude ? parseFloat(formData.latitude) : null,
-        longitude: formData.longitude ? parseFloat(formData.longitude) : null
-      };
-      
-      if (logoUrl) {
-        etabData.logo = logoUrl;
+      formPayload.append('nom', formData.nom);
+      formPayload.append('type_etablissement', formData.type_etablissement);
+      formPayload.append('adresse', formData.adresse);
+      formPayload.append('description', formData.description);
+      formPayload.append('site_web', formData.site_web);
+      if (formData.latitude) formPayload.append('latitude', formData.latitude);
+      if (formData.longitude) formPayload.append('longitude', formData.longitude);
+
+      formPayload.append('user.email', formData.email);
+      formPayload.append('user.first_name', formData.nom);
+      formPayload.append('user.last_name', '');
+      formPayload.append('user.telephone', formData.telephone);
+
+      if (profileImageFile) {
+        formPayload.append('user.profile_image', profileImageFile);
       }
-      
-      if (authApi.updateEtablissement) {
-        await authApi.updateEtablissement(etabId, etabData);
-      }
-      
-      await authApi.updateUser(profile.user.id, {
-        email: formData.email,
-        telephone: formData.telephone,
-        first_name: formData.first_name,
-        last_name: formData.last_name
-      });
-      
+
+      await authApi.updateEtablissementProfile(etabId, formPayload);
+
       success = true;
       isEditing = false;
-      
-      // Recharger le profil
+      profileImageFile = null;
+
       setTimeout(() => {
         loadProfile();
       }, 1000);
@@ -403,9 +379,9 @@
         <!-- Logo -->
         <div class="flex-shrink-0">
           <div class="relative">
-            {#if logoPreview}
+            {#if profileImagePreview}
               <div class="h-32 w-32 rounded-lg overflow-hidden border-2 border-gray-200">
-                <img src={logoPreview} alt="Logo de l'établissement" class="h-full w-full object-cover" />
+                <img src={profileImagePreview} alt="Logo de l'établissement" class="h-full w-full object-cover" />
               </div>
             {:else}
               <div class="h-32 w-32 rounded-lg bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center border-2 border-gray-200">
@@ -415,24 +391,23 @@
             
             {#if isEditing}
               <label
-                for="logo-upload"
+                for="profile-image-upload"
                 class="absolute bottom-0 right-0 p-1.5 bg-green-600 rounded-full cursor-pointer hover:bg-green-700 transition-colors shadow-lg"
               >
                 <Icon icon="heroicons:camera" class="h-4 w-4 text-white" />
                 <input
-                  id="logo-upload"
+                  id="profile-image-upload"
                   type="file"
                   accept="image/*"
                   class="hidden"
                   on:change={handleFileChange}
-                  disabled={logoUploading}
                 />
               </label>
             {/if}
           </div>
           
-          {#if isEditing && logoFile}
-            <p class="text-xs text-gray-500 mt-1">{logoFile.name}</p>
+          {#if isEditing && profileImageFile}
+            <p class="text-xs text-gray-500 mt-1">{profileImageFile.name}</p>
           {/if}
         </div>
         

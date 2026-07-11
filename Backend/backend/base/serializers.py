@@ -3,6 +3,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import User, Etablissement, Professeur, Eleve, Parent, AnneeScolaire, Classe, Matiere, Salle, Cours
+from django.utils import timezone
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
