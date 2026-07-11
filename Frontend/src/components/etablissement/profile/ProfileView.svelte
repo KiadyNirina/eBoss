@@ -452,246 +452,199 @@
     </div>
   </div>
   
-  <!-- Description et site web -->
-  <div class="bg-white shadow rounded-lg overflow-hidden mt-6">
-    <div class="px-6 py-5 border-b border-gray-200 bg-gray-50">
-      <h2 class="text-lg font-medium text-gray-900">Présentation</h2>
-    </div>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
     
-    <div class="p-6 space-y-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">
-          Description
-        </label>
-        {#if isEditing}
-          <textarea
-            bind:value={formData.description}
-            rows="4"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-            placeholder="Description de l'établissement"
-          />
-        {:else}
-          <p class="text-gray-900">{profile.etablissement.description || 'Aucune description renseignée'}</p>
-        {/if}
+    <!-- Colonne de gauche : Présentation & Contact -->
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+      <div class="px-6 py-5 border-b border-gray-200 bg-gray-50">
+        <h2 class="text-lg font-medium text-gray-900">Présentation & Contact</h2>
       </div>
       
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">
-          Site web
-        </label>
-        {#if isEditing}
-          <input
-            type="url"
-            bind:value={formData.site_web}
-            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-            placeholder="https://www.etablissement.fr"
-          />
-        {:else}
-          {#if profile.etablissement.site_web}
-            <a href={profile.etablissement.site_web} target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700 hover:underline">
-              {profile.etablissement.site_web}
-            </a>
+      <div class="p-6 space-y-6">
+        <!-- Description -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          {#if isEditing}
+            <textarea
+              bind:value={formData.description}
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              placeholder="Description de l'établissement"
+            />
           {:else}
-            <p class="text-gray-500">Non renseigné</p>
+            <p class="text-gray-900">{profile.etablissement.description || 'Aucune description renseignée'}</p>
           {/if}
-        {/if}
-      </div>
-      
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">
-          Adresse
-        </label>
-        {#if isEditing}
-          <textarea
-            bind:value={formData.adresse}
-            rows="2"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-            placeholder="Adresse complète de l'établissement"
-          />
-        {:else}
-          <p class="text-gray-900">{profile.etablissement.adresse || 'Non renseignée'}</p>
-        {/if}
-      </div>
-    </div>
-  </div>
-  
-  <div class="mt-4">
-    <label class="block text-sm font-medium text-gray-700 mb-1">
-      Localisation
-    </label>
-    
-    {#if isEditing}
-      <div class="space-y-3">
+        </div>
+        
+        <!-- Site web & Téléphone -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs text-gray-500 mb-1">Latitude</label>
-            <input
-              type="number"
-              step="0.000001"
-              bind:value={formData.latitude}
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              placeholder="48.856614"
-            />
-          </div>
-          <div>
-            <label class="block text-xs text-gray-500 mb-1">Longitude</label>
-            <input
-              type="number"
-              step="0.000001"
-              bind:value={formData.longitude}
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              placeholder="2.352222"
-            />
-          </div>
-        </div>
-        <p class="text-xs text-gray-500">
-          <Icon icon="heroicons:information-circle" class="h-4 w-4 inline mr-1" />
-          Vous pouvez obtenir les coordonnées GPS via Google Maps ou un service de géocodage
-        </p>
-      </div>
-    {:else}
-      <div class="space-y-3">
-        {#if profile.etablissement.latitude && profile.etablissement.longitude}
-          <div class="flex items-center space-x-2 text-sm text-gray-600">
-            <Icon icon="heroicons:map-pin" class="h-5 w-5 text-green-600" />
-            <span>
-              Coordonnées : 
-              <span class="font-mono">{Number(profile.etablissement.latitude).toFixed(6)}</span>, 
-              <span class="font-mono">{Number(profile.etablissement.longitude).toFixed(6)}</span>
-            </span>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Site web</label>
+            {#if isEditing}
+              <input
+                type="url"
+                bind:value={formData.site_web}
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                placeholder="https://www.etablissement.fr"
+              />
+            {:else}
+              {#if profile.etablissement.site_web}
+                <a href={profile.etablissement.site_web} target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700 hover:underline">
+                  {profile.etablissement.site_web}
+                </a>
+              {:else}
+                <p class="text-gray-500">Non renseigné</p>
+              {/if}
+            {/if}
           </div>
           
-          <!-- Carte avec Leaflet -->
-          <div class="relative w-full h-64 md:h-80 rounded-lg overflow-hidden border border-gray-200">
-            <div 
-              id="map" 
-              class="w-full h-full"
-              data-lat={profile.etablissement.latitude}
-              data-lon={profile.etablissement.longitude}
-            ></div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+            {#if isEditing}
+              <input
+                type="tel"
+                bind:value={formData.telephone}
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                placeholder="01 23 45 67 89"
+              />
+            {:else}
+              <p class="text-gray-900">{profile.user.telephone || 'Non renseigné'}</p>
+            {/if}
+          </div>
+        </div>
+        
+        <!-- Adresse & Email -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
+            {#if isEditing}
+              <textarea
+                bind:value={formData.adresse}
+                rows="2"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                placeholder="Adresse complète"
+              />
+            {:else}
+              <p class="text-gray-900">{profile.etablissement.adresse || 'Non renseignée'}</p>
+            {/if}
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            {#if isEditing}
+              <input
+                type="email"
+                bind:value={formData.email}
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                placeholder="email@etablissement.fr"
+              />
+            {:else}
+              <p class="text-gray-900">{profile.user.email || 'Non renseigné'}</p>
+            {/if}
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Colonne de droite : Localisation -->
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+      <div class="px-6 py-5 border-b border-gray-200 bg-gray-50">
+        <h2 class="text-lg font-medium text-gray-900">Localisation</h2>
+      </div>
+      
+      <div class="p-6 space-y-4">
+        {#if isEditing}
+          <div class="grid grid-cols-1 gap-3">
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">Latitude</label>
+              <input
+                type="number"
+                step="0.000001"
+                bind:value={formData.latitude}
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                placeholder="48.856614"
+              />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">Longitude</label>
+              <input
+                type="number"
+                step="0.000001"
+                bind:value={formData.longitude}
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                placeholder="2.352222"
+              />
+            </div>
+            <p class="text-xs text-gray-500">
+              <Icon icon="heroicons:information-circle" class="h-4 w-4 inline mr-1" />
+              Coordonnées GPS de l'établissement
+            </p>
+          </div>
+        {:else}
+          {#if profile.etablissement.latitude && profile.etablissement.longitude}
+            <div class="flex items-center space-x-2 text-sm text-gray-600">
+              <Icon icon="heroicons:map-pin" class="h-5 w-5 text-green-600" />
+              <span>
+                <span class="font-mono">{Number(profile.etablissement.latitude).toFixed(6)}</span>, 
+                <span class="font-mono">{Number(profile.etablissement.longitude).toFixed(6)}</span>
+              </span>
+            </div>
             
-            <div class="absolute bottom-2 right-2 bg-white rounded-md shadow-md px-2 py-1 text-xs text-gray-600 z-10">
+            <!-- Carte Leaflet -->
+            <div class="relative w-full h-64 md:h-72 rounded-lg overflow-hidden border border-gray-200">
+              <div 
+                id="map" 
+                class="w-full h-full"
+                data-lat={profile.etablissement.latitude}
+                data-lon={profile.etablissement.longitude}
+              ></div>
+              
+              <div class="absolute bottom-2 right-2 bg-white rounded-md shadow-md px-2 py-1 text-xs text-gray-600 z-10">
+                <a 
+                  href="https://www.openstreetmap.org/?mlat={Number(profile.etablissement.latitude)}&mlon={Number(profile.etablissement.longitude)}&zoom=16"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="hover:text-green-600 flex items-center space-x-1"
+                >
+                  <Icon icon="heroicons:arrow-top-right-on-square" class="h-3 w-3" />
+                  <span>Agrandir</span>
+                </a>
+              </div>
+            </div>
+            
+            <!-- Liens cartes externes -->
+            <div class="flex flex-wrap gap-3 text-sm">
+              <a 
+                href="https://www.google.com/maps?q={Number(profile.etablissement.latitude)},{Number(profile.etablissement.longitude)}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-green-600 hover:text-green-700 hover:underline flex items-center space-x-1"
+              >
+                <Icon icon="heroicons:map-pin" class="h-4 w-4" />
+                <span>Google Maps</span>
+              </a>
               <a 
                 href="https://www.openstreetmap.org/?mlat={Number(profile.etablissement.latitude)}&mlon={Number(profile.etablissement.longitude)}&zoom=16"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="hover:text-green-600 flex items-center space-x-1"
+                class="text-green-600 hover:text-green-700 hover:underline flex items-center space-x-1"
               >
-                <Icon icon="heroicons:arrow-top-right-on-square" class="h-3 w-3" />
-                <span>Agrandir</span>
+                <Icon icon="heroicons:globe-alt" class="h-4 w-4" />
+                <span>OpenStreetMap</span>
               </a>
             </div>
-          </div>
-          
-          <!-- Liens -->
-          <div class="flex flex-wrap items-center gap-3 text-sm">
-            <a 
-              href="https://www.google.com/maps?q={Number(profile.etablissement.latitude)},{Number(profile.etablissement.longitude)}"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-green-600 hover:text-green-700 hover:underline flex items-center space-x-1"
-            >
-              <Icon icon="heroicons:map-pin" class="h-4 w-4" />
-              <span>Voir sur Google Maps</span>
-            </a>
-            <a 
-              href="https://www.openstreetmap.org/?mlat={Number(profile.etablissement.latitude)}&mlon={Number(profile.etablissement.longitude)}&zoom=16"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-green-600 hover:text-green-700 hover:underline flex items-center space-x-1"
-            >
-              <Icon icon="heroicons:globe-alt" class="h-4 w-4" />
-              <span>Voir sur OpenStreetMap</span>
-            </a>
-          </div>
-        {:else}
-          <div class="flex items-center space-x-2 text-sm text-gray-500">
-            <Icon icon="heroicons:map-pin" class="h-5 w-5 text-gray-400" />
-            <span>Aucune coordonnée GPS renseignée</span>
-          </div>
-          {#if !isEditing}
-            <p class="text-xs text-gray-400">
-              Pour ajouter la localisation, modifiez le profil et renseignez les coordonnées GPS
-            </p>
+          {:else}
+            <div class="flex items-center space-x-2 text-sm text-gray-500 py-8">
+              <Icon icon="heroicons:map-pin" class="h-5 w-5 text-gray-400" />
+              <span>Aucune coordonnée GPS renseignée</span>
+            </div>
+            {#if !isEditing}
+              <p class="text-xs text-gray-400">
+                Passez en mode édition pour ajouter la localisation
+              </p>
+            {/if}
           {/if}
         {/if}
-      </div>
-    {/if}
-  </div>
-
-  <!-- Contact -->
-  <div class="bg-white shadow rounded-lg overflow-hidden mt-6">
-    <div class="px-6 py-5 border-b border-gray-200 bg-gray-50">
-      <h2 class="text-lg font-medium text-gray-900">Contact</h2>
-    </div>
-    
-    <div class="p-6 space-y-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Email
-          </label>
-          {#if isEditing}
-            <input
-              type="email"
-              bind:value={formData.email}
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              placeholder="email@etablissement.fr"
-            />
-          {:else}
-            <p class="text-gray-900">{profile.user.email || 'Non renseigné'}</p>
-          {/if}
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Téléphone
-          </label>
-          {#if isEditing}
-            <input
-              type="tel"
-              bind:value={formData.telephone}
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              placeholder="01 23 45 67 89"
-            />
-          {:else}
-            <p class="text-gray-900">{profile.user.telephone || 'Non renseigné'}</p>
-          {/if}
-        </div>
-      </div>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Prénom du contact
-          </label>
-          {#if isEditing}
-            <input
-              type="text"
-              bind:value={formData.first_name}
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              placeholder="Prénom"
-            />
-          {:else}
-            <p class="text-gray-900">{profile.user.first_name || 'Non renseigné'}</p>
-          {/if}
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Nom du contact
-          </label>
-          {#if isEditing}
-            <input
-              type="text"
-              bind:value={formData.last_name}
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              placeholder="Nom"
-            />
-          {:else}
-            <p class="text-gray-900">{profile.user.last_name || 'Non renseigné'}</p>
-          {/if}
-        </div>
       </div>
     </div>
   </div>
