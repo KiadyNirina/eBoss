@@ -773,3 +773,9 @@
   
   {/if}
 </div>
+
+<style>
+  :global(.leaflet-control-attribution) {
+    display: none !important;
+  }
+</style>

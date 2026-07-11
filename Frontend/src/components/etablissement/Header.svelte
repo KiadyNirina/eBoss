@@ -91,7 +91,11 @@
             class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center cursor-pointer hover:bg-green-200 transition-colors"
             on:click={toggleDropdown}
           >
-            <img src="{baseUrl}{$user.profile.user.profile_image}" class="h-8 w-8 rounded-full" alt="Profile" />
+            {#if $user?.profile?.user?.profile_image}
+              <img src="{baseUrl}{$user.profile.user.profile_image}" class="h-8 w-8 rounded-full" alt="Profile Image" />
+            {:else}
+              <Icon icon="heroicons:user-circle" class="h-6 w-6 text-green-600" />
+            {/if}
           </div>
           
           <!-- Menu déroulant -->
