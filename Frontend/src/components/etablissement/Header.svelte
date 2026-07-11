@@ -134,7 +134,7 @@
 
 <!-- Modal de confirmation de déconnexion -->
 {#if showLogoutModal}
-  <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+  <div class="fixed inset-0 z-500 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
     <div class="flex items-center justify-center min-h-screen p-4">
       <!-- Overlay -->
       <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" on:click={closeLogoutModal}></div>
