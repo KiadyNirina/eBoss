@@ -232,6 +232,15 @@
     success = false;
   }
 
+  async function toggleCancel() {
+    setTimeout(() => {
+      initMap();
+    }, 500);
+    isEditing = false;
+    error = null;
+    success = false;
+  }
+
   function handleFileChange(event) {
     const file = event.target.files[0];
     if (file) {
@@ -277,9 +286,10 @@
       isEditing = false;
       profileImageFile = null;
 
+      await loadProfile();
       setTimeout(() => {
-        loadProfile();
-      }, 1000);
+        initMap();
+      }, 500);
       
     } catch (err) {
       console.error('Erreur sauvegarde:', err);
@@ -322,7 +332,7 @@
       <div class="mt-4 sm:mt-0 flex space-x-3">
         {#if isEditing}
           <button
-            on:click={toggleEdit}
+            on:click={toggleCancel}
             class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
             disabled={saving}
           >
