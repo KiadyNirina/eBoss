@@ -3,8 +3,11 @@
   import { user } from '$lib/stores';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
+  import { authApi, authStore } from '$lib/api';
   
   export let onToggleSidebar;
+
+  let baseUrl = 'http://localhost:8000';
   
   let searchQuery = '';
   let showDropdown = false;
@@ -24,8 +27,8 @@
   }
   
   function handleLogout() {
+    authStore.clearTokens();
     user.set(null);
-    localStorage.removeItem('token');
     closeLogoutModal();
     goto('/login');
   }
@@ -84,17 +87,21 @@
         </button>
         
         <!-- Profil avec dropdown -->
-        <div class="relative ml-3 profile-dropdown">
+        <div class="relative profile-dropdown">
           <div 
             class="h-8 w-8 rounded-full bg-green-100 flex items-center justify-center cursor-pointer hover:bg-green-200 transition-colors"
             on:click={toggleDropdown}
           >
-            <Icon icon="heroicons:user-circle" class="h-6 w-6 text-green-600" />
+            {#if $user?.profile?.user?.profile_image}
+              <img src="{baseUrl}{$user.profile.user.profile_image}" class="h-8 w-8 rounded-full" alt="Profile Image" />
+            {:else}
+              <Icon icon="heroicons:user-circle" class="h-6 w-6 text-green-600" />
+            {/if}
           </div>
           
           <!-- Menu déroulant -->
           {#if showDropdown}
-            <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 border border-gray-200 z-50">
+            <div class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 border border-gray-200 z-500">
               <div class="px-4 py-2 border-b border-gray-100">
                 <p class="text-sm font-medium text-gray-900">
                   {$user.first_name
@@ -128,7 +135,7 @@
 
 <!-- Modal de confirmation de déconnexion -->
 {#if showLogoutModal}
-  <div class="fixed inset-0 z-50 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+  <div class="fixed inset-0 z-500 overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
     <div class="flex items-center justify-center min-h-screen p-4">
       <!-- Overlay -->
       <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" on:click={closeLogoutModal}></div>

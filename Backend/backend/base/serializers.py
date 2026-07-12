@@ -3,6 +3,7 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import User, Etablissement, Professeur, Eleve, Parent, AnneeScolaire, Classe, Matiere, Salle, Cours
+from django.utils import timezone
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
@@ -294,36 +295,38 @@ class EtablissementSerializer(serializers.ModelSerializer):
             validated_data['coordinates_updated_at'] = timezone.now()
         
         return Etablissement.objects.create(user=user, **validated_data)
-    
+
     def update(self, instance, validated_data):
-        # Si les coordonnées sont mises à jour
+        user_data = validated_data.pop('user', None)
+        
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
         if 'latitude' in validated_data or 'longitude' in validated_data:
-            validated_data['coordinates_verified'] = True
-            validated_data['coordinates_updated_at'] = timezone.now()
-        
-        return super().update(instance, validated_data)
+            instance.coordinates_verified = True
+            instance.coordinates_updated_at = timezone.now()
     
-    def create(self, validated_data):
-        user_data = validated_data.pop('user')
-        user_data['user_type'] = 'etablissement'
-        
-        user_serializer = UserSerializer(data=user_data)
-        user_serializer.is_valid(raise_exception=True)
-        user = user_serializer.save()
-        
-        return Etablissement.objects.create(user=user, **validated_data)
-    
-    def update(self, instance, validated_data):
-        # Si l'adresse change, on met à jour les coordonnées
         if 'adresse' in validated_data and validated_data['adresse'] != instance.adresse:
-            from .services.geocoding import GeocodingService
-            
-            coords = GeocodingService.geocode_address(validated_data['adresse'])
-            if coords:
-                validated_data['latitude'] = coords['latitude']
-                validated_data['longitude'] = coords['longitude']
+            try:
+                from .services.geocoding import GeocodingService
+                coords = GeocodingService.geocode_address(validated_data['adresse'])
+                if coords:
+                    instance.latitude = coords['latitude']
+                    instance.longitude = coords['longitude']
+                    instance.coordinates_verified = True
+                    instance.coordinates_updated_at = timezone.now()
+            except ImportError:
+                pass 
+
+        instance.save()
         
-        return super().update(instance, validated_data)
+        if user_data:
+            user = instance.user
+            for attr, value in user_data.items():
+                setattr(user, attr, value)
+            user.save()
+        
+        return instance
 
 class ProfesseurSerializer(serializers.ModelSerializer):
     user = UserSerializer(required=True)

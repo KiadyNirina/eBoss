@@ -111,6 +111,53 @@ async function fetchWithAuth(endpoint, options = {}) {
     return response;
 }
 
+async function fetchWithAuthFormData(endpoint, method, formData) {
+  const accessToken = browser ? localStorage.getItem('access_token') : null;
+  const refreshToken = browser ? localStorage.getItem('refresh_token') : null;
+
+  const headers = {};
+  if (accessToken) {
+    headers['Authorization'] = `Bearer ${accessToken}`;
+  }
+
+  const config = {
+    method,
+    headers,
+    body: formData,
+    credentials: 'include',
+  };
+
+  let response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+
+  // Gestion du rafraîchissement de token
+  if (response.status === 401 && refreshToken && browser) {
+    try {
+      const newTokens = await refreshAuthToken(refreshToken);
+      headers['Authorization'] = `Bearer ${newTokens.access}`;
+      config.headers = headers;
+      response = await fetch(`${API_BASE_URL}${endpoint}`, config);
+    } catch (refreshError) {
+      authStore.clearTokens();
+      throw new Error('Session expirée, veuillez vous reconnecter');
+    }
+  }
+
+  if (!response.ok) {
+    let errorMessage = '';
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.detail || formatDjangoError(errorData);
+    } catch (e) {
+      errorMessage = `Erreur ${response.status}: ${response.statusText}`;
+    }
+    const error = new Error(errorMessage);
+    error.response = { status: response.status, data: {} };
+    throw error;
+  }
+
+  return response;
+}
+
 async function refreshAuthToken(refreshToken) {
     const response = await fetch(`${API_BASE_URL}/token/refresh/`, {
         method: 'POST',
@@ -233,6 +280,11 @@ export const authApi = {
         method: 'PUT',
         body: JSON.stringify(data),
     }).then(response => response.json()),
+
+    updateEtablissementProfile: (id, formData) => {
+        return fetchWithAuthFormData(`/api/etablissements/${id}/`, 'PATCH', formData)
+        .then(response => response.json());
+    },
 
     // Supprimer un établissement
     deleteEtablissement: (id) => fetchWithAuth(`/api/etablissements/${id}/`, {

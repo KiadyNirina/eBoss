@@ -41,9 +41,8 @@
   
   let isEditing = false;
   let formData = {};
-  let logoPreview = null;
-  let logoFile = null;
-  let logoUploading = false;
+  let profileImagePreview = null;
+  let profileImageFile = null;
   
   const typeOptions = [
     { value: 'ecole', label: 'École primaire' },
@@ -71,7 +70,19 @@
     leafletJS.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
     leafletJS.onload = () => {
       const L = window.L;
-      const map = L.map(mapContainer).setView([lat, lon], 15);
+      const map = L.map(mapContainer, {
+        center: [lat, lon],
+        zoom: 18,
+        minZoom: 18,
+        maxZoom: 18,
+        zoomControl: false,
+        scrollWheelZoom: false,
+        doubleClickZoom: false,
+        touchZoom: false,
+        boxZoom: false,
+        keyboard: false,
+        dragging: false
+      });
       
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -129,8 +140,10 @@
         };
         
         // Charger le logo
-        if (profile.etablissement.logo) {
-          logoPreview = profile.etablissement.logo;
+        if (userProfile.profile.user.profile_image) {
+          profileImagePreview = `http://127.0.0.1:8000${userProfile.profile.user.profile_image}`;
+        } else {
+          profileImagePreview = null;
         }
       } else {
         error = 'Aucune donnée d\'établissement trouvée';
@@ -218,32 +231,25 @@
     error = null;
     success = false;
   }
-  
+
+  async function toggleCancel() {
+    setTimeout(() => {
+      initMap();
+    }, 500);
+    isEditing = false;
+    error = null;
+    success = false;
+  }
+
   function handleFileChange(event) {
     const file = event.target.files[0];
     if (file) {
-      logoFile = file;
+      profileImageFile = file;
       const reader = new FileReader();
       reader.onload = (e) => {
-        logoPreview = e.target.result;
+        profileImagePreview = e.target.result;
       };
       reader.readAsDataURL(file);
-    }
-  }
-  
-  async function uploadLogo() {
-    if (!logoFile) return null;
-    
-    logoUploading = true;
-    try {
-      const formData = new FormData();
-      formData.append('logo', logoFile);
-      return logoPreview;
-    } catch (err) {
-      console.error('Erreur upload logo:', err);
-      throw err;
-    } finally {
-      logoUploading = false;
     }
   }
   
@@ -251,47 +257,39 @@
     saving = true;
     error = null;
     success = false;
-    
+
     try {
-      let logoUrl = null;
-      if (logoFile) {
-        logoUrl = await uploadLogo();
-      }
-      
       const etabId = profile.etablissement.id;
+
+      const formPayload = new FormData();
       
-      const etabData = {
-        nom: formData.nom,
-        type_etablissement: formData.type_etablissement,
-        adresse: formData.adresse,
-        description: formData.description,
-        site_web: formData.site_web,
-        latitude: formData.latitude ? parseFloat(formData.latitude) : null,
-        longitude: formData.longitude ? parseFloat(formData.longitude) : null
-      };
-      
-      if (logoUrl) {
-        etabData.logo = logoUrl;
+      formPayload.append('nom', formData.nom);
+      formPayload.append('type_etablissement', formData.type_etablissement);
+      formPayload.append('adresse', formData.adresse);
+      formPayload.append('description', formData.description);
+      formPayload.append('site_web', formData.site_web);
+      if (formData.latitude) formPayload.append('latitude', formData.latitude);
+      if (formData.longitude) formPayload.append('longitude', formData.longitude);
+
+      formPayload.append('user.email', formData.email);
+      formPayload.append('user.first_name', formData.nom);
+      formPayload.append('user.last_name', '');
+      formPayload.append('user.telephone', formData.telephone);
+
+      if (profileImageFile) {
+        formPayload.append('user.profile_image', profileImageFile);
       }
-      
-      if (authApi.updateEtablissement) {
-        await authApi.updateEtablissement(etabId, etabData);
-      }
-      
-      await authApi.updateUser(profile.user.id, {
-        email: formData.email,
-        telephone: formData.telephone,
-        first_name: formData.first_name,
-        last_name: formData.last_name
-      });
-      
+
+      await authApi.updateEtablissementProfile(etabId, formPayload);
+
       success = true;
       isEditing = false;
-      
-      // Recharger le profil
+      profileImageFile = null;
+
+      await loadProfile();
       setTimeout(() => {
-        loadProfile();
-      }, 1000);
+        initMap();
+      }, 500);
       
     } catch (err) {
       console.error('Erreur sauvegarde:', err);
@@ -334,7 +332,7 @@
       <div class="mt-4 sm:mt-0 flex space-x-3">
         {#if isEditing}
           <button
-            on:click={toggleEdit}
+            on:click={toggleCancel}
             class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
             disabled={saving}
           >
@@ -403,9 +401,9 @@
         <!-- Logo -->
         <div class="flex-shrink-0">
           <div class="relative">
-            {#if logoPreview}
+            {#if profileImagePreview}
               <div class="h-32 w-32 rounded-lg overflow-hidden border-2 border-gray-200">
-                <img src={logoPreview} alt="Logo de l'établissement" class="h-full w-full object-cover" />
+                <img src={profileImagePreview} alt="Logo de l'établissement" class="h-full w-full object-cover" />
               </div>
             {:else}
               <div class="h-32 w-32 rounded-lg bg-gradient-to-br from-green-100 to-green-200 flex items-center justify-center border-2 border-gray-200">
@@ -415,24 +413,23 @@
             
             {#if isEditing}
               <label
-                for="logo-upload"
+                for="profile-image-upload"
                 class="absolute bottom-0 right-0 p-1.5 bg-green-600 rounded-full cursor-pointer hover:bg-green-700 transition-colors shadow-lg"
               >
                 <Icon icon="heroicons:camera" class="h-4 w-4 text-white" />
                 <input
-                  id="logo-upload"
+                  id="profile-image-upload"
                   type="file"
                   accept="image/*"
                   class="hidden"
                   on:change={handleFileChange}
-                  disabled={logoUploading}
                 />
               </label>
             {/if}
           </div>
           
-          {#if isEditing && logoFile}
-            <p class="text-xs text-gray-500 mt-1">{logoFile.name}</p>
+          {#if isEditing && profileImageFile}
+            <p class="text-xs text-gray-500 mt-1">{profileImageFile.name}</p>
           {/if}
         </div>
         
@@ -477,246 +474,199 @@
     </div>
   </div>
   
-  <!-- Description et site web -->
-  <div class="bg-white shadow rounded-lg overflow-hidden mt-6">
-    <div class="px-6 py-5 border-b border-gray-200 bg-gray-50">
-      <h2 class="text-lg font-medium text-gray-900">Présentation</h2>
-    </div>
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
     
-    <div class="p-6 space-y-4">
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">
-          Description
-        </label>
-        {#if isEditing}
-          <textarea
-            bind:value={formData.description}
-            rows="4"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-            placeholder="Description de l'établissement"
-          />
-        {:else}
-          <p class="text-gray-900">{profile.etablissement.description || 'Aucune description renseignée'}</p>
-        {/if}
+    <!-- Colonne de gauche : Présentation & Contact -->
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+      <div class="px-6 py-5 border-b border-gray-200 bg-gray-50">
+        <h2 class="text-lg font-medium text-gray-900">Présentation & Contact</h2>
       </div>
       
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">
-          Site web
-        </label>
-        {#if isEditing}
-          <input
-            type="url"
-            bind:value={formData.site_web}
-            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-            placeholder="https://www.etablissement.fr"
-          />
-        {:else}
-          {#if profile.etablissement.site_web}
-            <a href={profile.etablissement.site_web} target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700 hover:underline">
-              {profile.etablissement.site_web}
-            </a>
+      <div class="p-6 space-y-6">
+        <!-- Description -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+          {#if isEditing}
+            <textarea
+              bind:value={formData.description}
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              placeholder="Description de l'établissement"
+            />
           {:else}
-            <p class="text-gray-500">Non renseigné</p>
+            <p class="text-gray-900">{profile.etablissement.description || 'Aucune description renseignée'}</p>
           {/if}
-        {/if}
-      </div>
-      
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1">
-          Adresse
-        </label>
-        {#if isEditing}
-          <textarea
-            bind:value={formData.adresse}
-            rows="2"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-            placeholder="Adresse complète de l'établissement"
-          />
-        {:else}
-          <p class="text-gray-900">{profile.etablissement.adresse || 'Non renseignée'}</p>
-        {/if}
-      </div>
-    </div>
-  </div>
-  
-  <div class="mt-4">
-    <label class="block text-sm font-medium text-gray-700 mb-1">
-      Localisation
-    </label>
-    
-    {#if isEditing}
-      <div class="space-y-3">
+        </div>
+        
+        <!-- Site web & Téléphone -->
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label class="block text-xs text-gray-500 mb-1">Latitude</label>
-            <input
-              type="number"
-              step="0.000001"
-              bind:value={formData.latitude}
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              placeholder="48.856614"
-            />
-          </div>
-          <div>
-            <label class="block text-xs text-gray-500 mb-1">Longitude</label>
-            <input
-              type="number"
-              step="0.000001"
-              bind:value={formData.longitude}
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              placeholder="2.352222"
-            />
-          </div>
-        </div>
-        <p class="text-xs text-gray-500">
-          <Icon icon="heroicons:information-circle" class="h-4 w-4 inline mr-1" />
-          Vous pouvez obtenir les coordonnées GPS via Google Maps ou un service de géocodage
-        </p>
-      </div>
-    {:else}
-      <div class="space-y-3">
-        {#if profile.etablissement.latitude && profile.etablissement.longitude}
-          <div class="flex items-center space-x-2 text-sm text-gray-600">
-            <Icon icon="heroicons:map-pin" class="h-5 w-5 text-green-600" />
-            <span>
-              Coordonnées : 
-              <span class="font-mono">{Number(profile.etablissement.latitude).toFixed(6)}</span>, 
-              <span class="font-mono">{Number(profile.etablissement.longitude).toFixed(6)}</span>
-            </span>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Site web</label>
+            {#if isEditing}
+              <input
+                type="url"
+                bind:value={formData.site_web}
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                placeholder="https://www.etablissement.fr"
+              />
+            {:else}
+              {#if profile.etablissement.site_web}
+                <a href={profile.etablissement.site_web} target="_blank" rel="noopener noreferrer" class="text-green-600 hover:text-green-700 hover:underline">
+                  {profile.etablissement.site_web}
+                </a>
+              {:else}
+                <p class="text-gray-500">Non renseigné</p>
+              {/if}
+            {/if}
           </div>
           
-          <!-- Carte avec Leaflet -->
-          <div class="relative w-full h-64 md:h-80 rounded-lg overflow-hidden border border-gray-200">
-            <div 
-              id="map" 
-              class="w-full h-full"
-              data-lat={profile.etablissement.latitude}
-              data-lon={profile.etablissement.longitude}
-            ></div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+            {#if isEditing}
+              <input
+                type="tel"
+                bind:value={formData.telephone}
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                placeholder="01 23 45 67 89"
+              />
+            {:else}
+              <p class="text-gray-900">{profile.user.telephone || 'Non renseigné'}</p>
+            {/if}
+          </div>
+        </div>
+        
+        <!-- Adresse & Email -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
+            {#if isEditing}
+              <textarea
+                bind:value={formData.adresse}
+                rows="2"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                placeholder="Adresse complète"
+              />
+            {:else}
+              <p class="text-gray-900">{profile.etablissement.adresse || 'Non renseignée'}</p>
+            {/if}
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            {#if isEditing}
+              <input
+                type="email"
+                bind:value={formData.email}
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                placeholder="email@etablissement.fr"
+              />
+            {:else}
+              <p class="text-gray-900">{profile.user.email || 'Non renseigné'}</p>
+            {/if}
+          </div>
+        </div>
+      </div>
+    </div>
+  
+    <!-- Colonne de droite : Localisation -->
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+      <div class="px-6 py-5 border-b border-gray-200 bg-gray-50">
+        <h2 class="text-lg font-medium text-gray-900">Localisation</h2>
+      </div>
+      
+      <div class="p-6 space-y-4">
+        {#if isEditing}
+          <div class="grid grid-cols-1 gap-3">
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">Latitude</label>
+              <input
+                type="number"
+                step="0.000001"
+                bind:value={formData.latitude}
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                placeholder="48.856614"
+              />
+            </div>
+            <div>
+              <label class="block text-xs text-gray-500 mb-1">Longitude</label>
+              <input
+                type="number"
+                step="0.000001"
+                bind:value={formData.longitude}
+                class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                placeholder="2.352222"
+              />
+            </div>
+            <p class="text-xs text-gray-500">
+              <Icon icon="heroicons:information-circle" class="h-4 w-4 inline mr-1" />
+              Coordonnées GPS de l'établissement
+            </p>
+          </div>
+        {:else}
+          {#if profile.etablissement.latitude && profile.etablissement.longitude}
+            <div class="flex items-center space-x-2 text-sm text-gray-600">
+              <Icon icon="heroicons:map-pin" class="h-5 w-5 text-green-600" />
+              <span>
+                <span class="font-mono">{Number(profile.etablissement.latitude).toFixed(6)}</span>, 
+                <span class="font-mono">{Number(profile.etablissement.longitude).toFixed(6)}</span>
+              </span>
+            </div>
             
-            <div class="absolute bottom-2 right-2 bg-white rounded-md shadow-md px-2 py-1 text-xs text-gray-600 z-10">
+            <!-- Carte Leaflet -->
+            <div class="relative w-full h-64 md:h-72 rounded-lg overflow-hidden border border-gray-200">
+              <div 
+                id="map" 
+                class="w-full h-full"
+                data-lat={profile.etablissement.latitude}
+                data-lon={profile.etablissement.longitude}
+              ></div>
+              
+              <div class="absolute bottom-2 right-2 bg-white rounded-md shadow-md px-2 py-1 text-xs text-gray-600 z-10">
+                <a 
+                  href="https://www.openstreetmap.org/?mlat={Number(profile.etablissement.latitude)}&mlon={Number(profile.etablissement.longitude)}&zoom=16"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="hover:text-green-600 flex items-center space-x-1"
+                >
+                  <Icon icon="heroicons:arrow-top-right-on-square" class="h-3 w-3" />
+                  <span>Agrandir</span>
+                </a>
+              </div>
+            </div>
+            
+            <!-- Liens cartes externes -->
+            <div class="flex flex-wrap gap-3 text-sm">
+              <a 
+                href="https://www.google.com/maps?q={Number(profile.etablissement.latitude)},{Number(profile.etablissement.longitude)}"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="text-green-600 hover:text-green-700 hover:underline flex items-center space-x-1"
+              >
+                <Icon icon="heroicons:map-pin" class="h-4 w-4" />
+                <span>Google Maps</span>
+              </a>
               <a 
                 href="https://www.openstreetmap.org/?mlat={Number(profile.etablissement.latitude)}&mlon={Number(profile.etablissement.longitude)}&zoom=16"
                 target="_blank"
                 rel="noopener noreferrer"
-                class="hover:text-green-600 flex items-center space-x-1"
+                class="text-green-600 hover:text-green-700 hover:underline flex items-center space-x-1"
               >
-                <Icon icon="heroicons:arrow-top-right-on-square" class="h-3 w-3" />
-                <span>Agrandir</span>
+                <Icon icon="heroicons:globe-alt" class="h-4 w-4" />
+                <span>OpenStreetMap</span>
               </a>
             </div>
-          </div>
-          
-          <!-- Liens -->
-          <div class="flex flex-wrap items-center gap-3 text-sm">
-            <a 
-              href="https://www.google.com/maps?q={Number(profile.etablissement.latitude)},{Number(profile.etablissement.longitude)}"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-green-600 hover:text-green-700 hover:underline flex items-center space-x-1"
-            >
-              <Icon icon="heroicons:map-pin" class="h-4 w-4" />
-              <span>Voir sur Google Maps</span>
-            </a>
-            <a 
-              href="https://www.openstreetmap.org/?mlat={Number(profile.etablissement.latitude)}&mlon={Number(profile.etablissement.longitude)}&zoom=16"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="text-green-600 hover:text-green-700 hover:underline flex items-center space-x-1"
-            >
-              <Icon icon="heroicons:globe-alt" class="h-4 w-4" />
-              <span>Voir sur OpenStreetMap</span>
-            </a>
-          </div>
-        {:else}
-          <div class="flex items-center space-x-2 text-sm text-gray-500">
-            <Icon icon="heroicons:map-pin" class="h-5 w-5 text-gray-400" />
-            <span>Aucune coordonnée GPS renseignée</span>
-          </div>
-          {#if !isEditing}
-            <p class="text-xs text-gray-400">
-              Pour ajouter la localisation, modifiez le profil et renseignez les coordonnées GPS
-            </p>
+          {:else}
+            <div class="flex items-center space-x-2 text-sm text-gray-500 py-8">
+              <Icon icon="heroicons:map-pin" class="h-5 w-5 text-gray-400" />
+              <span>Aucune coordonnée GPS renseignée</span>
+            </div>
+            {#if !isEditing}
+              <p class="text-xs text-gray-400">
+                Passez en mode édition pour ajouter la localisation
+              </p>
+            {/if}
           {/if}
         {/if}
-      </div>
-    {/if}
-  </div>
-
-  <!-- Contact -->
-  <div class="bg-white shadow rounded-lg overflow-hidden mt-6">
-    <div class="px-6 py-5 border-b border-gray-200 bg-gray-50">
-      <h2 class="text-lg font-medium text-gray-900">Contact</h2>
-    </div>
-    
-    <div class="p-6 space-y-6">
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Email
-          </label>
-          {#if isEditing}
-            <input
-              type="email"
-              bind:value={formData.email}
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              placeholder="email@etablissement.fr"
-            />
-          {:else}
-            <p class="text-gray-900">{profile.user.email || 'Non renseigné'}</p>
-          {/if}
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Téléphone
-          </label>
-          {#if isEditing}
-            <input
-              type="tel"
-              bind:value={formData.telephone}
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              placeholder="01 23 45 67 89"
-            />
-          {:else}
-            <p class="text-gray-900">{profile.user.telephone || 'Non renseigné'}</p>
-          {/if}
-        </div>
-      </div>
-      
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Prénom du contact
-          </label>
-          {#if isEditing}
-            <input
-              type="text"
-              bind:value={formData.first_name}
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              placeholder="Prénom"
-            />
-          {:else}
-            <p class="text-gray-900">{profile.user.first_name || 'Non renseigné'}</p>
-          {/if}
-        </div>
-        
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">
-            Nom du contact
-          </label>
-          {#if isEditing}
-            <input
-              type="text"
-              bind:value={formData.last_name}
-              class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              placeholder="Nom"
-            />
-          {:else}
-            <p class="text-gray-900">{profile.user.last_name || 'Non renseigné'}</p>
-          {/if}
-        </div>
       </div>
     </div>
   </div>
@@ -845,3 +795,9 @@
   
   {/if}
 </div>
+
+<style>
+  :global(.leaflet-control-attribution) {
+    display: none !important;
+  }
+</style>
