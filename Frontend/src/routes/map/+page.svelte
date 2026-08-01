@@ -20,60 +20,6 @@
   let userEdgeMarker = null;
   let error = null;
   
-  // Données des établissements
-  const fallbackEstablishmentData = [
-    {
-      id: 1,
-      name: "École Primaire Les Petits Génies",
-      address: "123 Rue de l'Éducation, 75001 Paris",
-      lat: 48.8566,
-      lng: 2.3522,
-      type: "ecole",
-      phone: "01 23 45 67 89",
-      email: "contact@petitsgenies.fr"
-    },
-    {
-      id: 2,
-      name: "Collège Jean Jaurès",
-      address: "45 Avenue de la République, 69002 Lyon",
-      lat: 45.7640,
-      lng: 4.8357,
-      type: "college",
-      phone: "04 56 78 90 12",
-      email: "contact@jeanjaures.fr"
-    },
-    {
-      id: 3,
-      name: "Lycée Victor Hugo",
-      address: "78 Boulevard Saint-Michel, 75005 Paris",
-      lat: 48.8466,
-      lng: 2.3389,
-      type: "lycee",
-      phone: "01 98 76 54 32",
-      email: "contact@victorhugo.fr"
-    },
-    {
-      id: 4,
-      name: "Université de Bordeaux",
-      address: "351 Cours de la Libération, 33405 Talence",
-      lat: 44.8052,
-      lng: -0.6039,
-      type: "universite",
-      phone: "05 56 84 56 84",
-      email: "contact@univ-bordeaux.fr"
-    },
-    {
-      id: 5,
-      name: "École Maternelle Le Jardin d'Enfants",
-      address: "12 Rue des Fleurs, 31000 Toulouse",
-      lat: 43.6047,
-      lng: 1.4442,
-      type: "ecole",
-      phone: "05 61 23 45 67",
-      email: "contact@jardinenfants.fr"
-    }
-  ];
-  
   let searchQuery = '';
   let filterType = 'all';
   let filteredEstablishments = [];
@@ -166,7 +112,7 @@
         establishmentsData = data.results;
       }
       
-      // Transformer les données pour le frontend
+      // Mapper les données si présentes, sinon garder une liste vide
       if (establishmentsData.length > 0) {
         establishments = establishmentsData.map(est => ({
           id: est.id,
@@ -183,9 +129,9 @@
           _raw: est
         }));
       } else {
-        // Utiliser les données de fallback si l'API ne retourne rien
-        console.warn('Aucune donnée de l\'API, utilisation des données de fallback');
-        establishments = fallbackEstablishmentData;
+        // Aucune donnée de l'API, on garde une liste vide – pas de fallback
+        console.warn('Aucun établissement trouvé via l\'API.');
+        establishments = [];
       }
       
       // Calculer les distances si position utilisateur disponible
@@ -211,12 +157,11 @@
       console.error('Erreur de chargement des établissements:', err);
       error = err.message || 'Erreur lors du chargement';
       
-      // Fallback sur données locales en cas d'erreur
-      console.warn('Utilisation des données de fallback');
-      establishments = fallbackEstablishmentData;
-      filteredEstablishments = establishments;
+      // En cas d'erreur, on laisse également la liste vide – pas de données de secours
+      establishments = [];
+      filteredEstablishments = [];
       
-      // Mettre à jour les marqueurs quand même
+      // Mettre à jour les marqueurs (ils seront vides)
       if (mapInitialized) {
         addEstablishmentMarkers();
         updateEdgeMarkers();
