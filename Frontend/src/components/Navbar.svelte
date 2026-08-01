@@ -26,10 +26,11 @@
         <!-- Icône Recherche -->
         <button 
           on:click={() => goto('/map')}
-          class="text-gray-600 hover:text-[#20784d] transition-colors p-2 rounded-full hover:bg-green-50"
+          class="flex items-center gap-2 bg-green-50 text-[#20784d] hover:cursor-pointer px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 shadow-sm border border-green-200 hover:shadow-md"
           title="Rechercher des établissements"
         >
           <Icon icon="heroicons:magnifying-glass" class="h-5 w-5" />
+          <span>Rechercher</span>
         </button>
         
         <a href="/login" class="bg-[#20784d] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700 transition-colors">Connexion</a>
