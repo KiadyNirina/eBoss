@@ -269,9 +269,11 @@ export const authApi = {
         return fetchWithAuth(url).then(response => response.json());
     },
 
+    getPublicEtablissement: (id) => fetchWithAuth(`/api/etablissements/${id}/`).then(response => response.json()),
+
     // Créer un établissement (avec géocodage automatique)
     createEtablissement: (data) => fetchWithAuth('/api/etablissements/', {
-        method: 'POST',
+        method: 'GET',
         body: JSON.stringify(data),
     }).then(response => response.json()),
 
