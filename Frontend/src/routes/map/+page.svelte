@@ -467,6 +467,10 @@
               </p>
             </div>
           `}
+          <button onclick="window.viewProfile(${establishment.id})" 
+                  class="mt-2 w-full bg-white border border-[#20784d] text-[#20784d] px-3 py-2 rounded-lg text-sm font-medium hover:bg-green-50 transition-colors shadow-sm">
+            Voir le profil
+          </button>
           <button onclick="window.selectEstablishment(${establishment.id})" 
                   class="mt-3 w-full bg-[#20784d] text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors shadow-sm">
             Voir détails
@@ -892,6 +896,7 @@
     window.selectEstablishment = selectEstablishment;
     window.goToEstablishment = goToEstablishment;
     window.goToUserLocation = goToUserLocation;
+    window.viewProfile = (id) => { goto('/etablissement/profil/' + id); };
   }
   
   function goBack() {
