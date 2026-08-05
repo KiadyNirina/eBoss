@@ -63,7 +63,7 @@
     <a href="/" class="flex justify-center h-12 mx-auto">
       <img src="/icons/favicon.png" class="h-12" alt="Logo">
     </a>
-    <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+    <h2 class="mt-6 text-center text-3xl font-medium text-gray-900">
       Connectez-vous à votre compte
     </h2>
     <p class="mt-2 text-center text-sm text-gray-600">
@@ -72,14 +72,14 @@
   </div>
 
   <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-    <div class="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+    <div class="bg-white py-8 px-4 border border-gray-200 sm:rounded-[10%] sm:px-10">
       <!-- Sélecteur de type d'utilisateur -->
       <div class="mb-6">
         <div class="flex space-x-0 overflow-x-auto pb-2">
           {#each userTypes as type}
             <button
               on:click={() => activeTab = type.id}
-              class={`px-4 py-2 rounded-md flex items-center space-x-2 whitespace-nowrap ${activeTab === type.id ? 'bg-green-100 text-[#20784d]' : 'text-gray-600 hover:bg-gray-100'}`}
+              class={`px-4 py-2 rounded-full flex items-center space-x-2 whitespace-nowrap ${activeTab === type.id ? 'bg-green-100 text-[#20784d]' : 'text-gray-600 hover:bg-gray-100'}`}
             >
               <Icon icon={type.icon} class="h-5 w-5" />
               <span>{type.label}</span>
@@ -115,7 +115,7 @@
               autocomplete="email"
               bind:value={email}
               required
-              class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#20784d] focus:border-[#20784d] sm:text-sm"
+              class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-full placeholder-gray-400 focus:outline-none focus:ring-[#20784d] focus:border-[#20784d] sm:text-sm"
             />
           </div>
         </div>
@@ -132,7 +132,7 @@
               autocomplete="current-password"
               bind:value={password}
               required
-              class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#20784d] focus:border-[#20784d] sm:text-sm"
+              class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-full placeholder-gray-400 focus:outline-none focus:ring-[#20784d] focus:border-[#20784d] sm:text-sm"
             />
           </div>
         </div>
@@ -162,7 +162,7 @@
           <button
             type="submit"
             disabled={isLoading}
-            class={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#20784d] hover:bg-[#20784d] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#20784d] ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+            class={`w-full flex justify-center py-2 px-4 border border-transparent rounded-full text-sm font-medium text-white bg-[#20784d] hover:bg-[#20784d] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#20784d] ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
           >
             {#if isLoading}
               <Icon icon="heroicons:arrow-path" class="animate-spin h-5 w-5 mr-2" />
@@ -189,7 +189,7 @@
         <div class="mt-6">
           <a
             href="/signup"
-            class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#20784d]"
+            class="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-full text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#20784d]"
           >
             S'inscrire
           </a>
