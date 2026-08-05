@@ -963,13 +963,13 @@
         >
           <Icon icon="heroicons:arrow-left" class="h-5 w-5" />
         </button>
-        <h1 class="text-lg font-bold text-gray-900 leading-tight">Recherche</h1>
+        <h1 class="text-lg font-medium text-gray-900 leading-tight">Recherche</h1>
       </div>
       
       {#if userLocation}
         <button 
           on:click={goToUserLocation}
-          class="flex items-center gap-1.5 text-xs font-medium bg-green-50 text-[#20784d] px-3 py-1.5 rounded-full hover:bg-[#20784d] hover:text-white transition-all shadow-sm border border-green-100"
+          class="flex items-center gap-1.5 text-xs font-medium bg-green-50 text-[#20784d] px-3 py-1.5 rounded-full hover:bg-[#20784d] hover:text-white transition-all border border-green-100"
         >
           <Icon icon="heroicons:map-pin" class="h-4 w-4" />
           Ma position
@@ -988,7 +988,7 @@
           placeholder="Nom, adresse, type..."
           bind:value={searchQuery}
           on:input={filterEstablishments}
-          class="block w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#20784d]/50 focus:border-[#20784d] transition-all shadow-sm"
+          class="block w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-full text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#20784d]/50 focus:border-[#20784d] transition-all"
         />
       </div>
       
@@ -997,7 +997,7 @@
           <select
             bind:value={filterType}
             on:change={filterEstablishments}
-            class="block w-full pl-3 pr-8 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 appearance-none focus:outline-none focus:ring-2 focus:ring-[#20784d]/50 focus:border-[#20784d] transition-all shadow-sm"
+            class="block w-full pl-3 pr-8 py-2 bg-white border border-gray-200 rounded-full text-sm text-gray-700 appearance-none focus:outline-none focus:ring-2 focus:ring-[#20784d]/50 focus:border-[#20784d] transition-all"
           >
             <option value="all">Tous les types</option>
             <option value="ecole">École primaire</option>
@@ -1012,7 +1012,7 @@
         
         <button
           on:click={clearFilters}
-          class="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all shadow-sm flex items-center gap-1"
+          class="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-full hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all flex items-center gap-1"
           title="Réinitialiser"
         >
           <Icon icon="heroicons:arrow-path" class="h-4 w-4" />
@@ -1038,7 +1038,7 @@
         {#each filteredEstablishments as establishment}
           <!-- Carte d'établissement moderne -->
           <div 
-            class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-green-200 cursor-pointer transition-all duration-200 group relative overflow-hidden"
+            class="bg-white p-4 rounded-[2rem] border border-gray-200 hover:border-green-600 cursor-pointer transition-all duration-200 group relative overflow-hidden"
             on:click={() => selectEstablishment(establishment.id)}
           >
             <!-- Liseré de couleur décoratif au survol -->
@@ -1066,12 +1066,12 @@
                 </p>
                 
                 <div class="flex flex-wrap items-center mt-3 gap-2">
-                  <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 bg-gray-100 text-gray-600 rounded-md">
+                  <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
                     {typeLabels[establishment.type] || establishment.type}
                   </span>
                   
                   {#if userLocation}
-                    <span class="text-xs font-medium text-[#20784d] bg-green-50 px-2 py-1 rounded-md flex items-center gap-1">
+                    <span class="text-xs font-medium text-[#20784d] bg-green-50 px-2 py-1 rounded-full flex items-center gap-1">
                        <Icon icon="heroicons:arrows-right-left" class="h-3 w-3" />
                       {formatDistance(getEstablishmentDistance(establishment))}
                     </span>
