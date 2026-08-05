@@ -1118,7 +1118,7 @@
     <div class="w-full md:w-[450px] h-[50vh] md:h-full flex flex-col bg-white shadow-2xl z-20 shrink-0 overflow-hidden">
       <!-- En-tête avec bouton fermer -->
       <div class="p-4 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
-        <h2 class="text-lg font-bold text-gray-900 truncate">
+        <h2 class="text-lg font-medium text-gray-900 truncate">
           {profileData?.nom || 'Profil'}
         </h2>
         <button on:click={closeProfilePanel} class="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors">
@@ -1143,13 +1143,13 @@
           {@const user = profileData.user || {}}
 
           <!-- Logo + Infos principales -->
-          <div class="bg-white shadow rounded-lg overflow-hidden mb-4">
+          <div class="bg-white rounded-[2rem] overflow-hidden mb-4">
             <div class="p-5">
               <div class="flex flex-col sm:flex-row items-center gap-4">
                 <!-- Logo -->
                 <div class="shrink-0">
                   {#if user.profile_image}
-                    <div class="h-28 w-28 rounded-lg overflow-hidden border-2 border-gray-200">
+                    <div class="h-28 w-28 rounded-full overflow-hidden border-2 border-gray-200">
                       <img src={user.profile_image} alt="Logo" class="h-full w-full object-cover" />
                     </div>
                   {:else}
@@ -1160,7 +1160,7 @@
                 </div>
                 
                 <div class="flex-1 text-center sm:text-left">
-                  <h3 class="text-xl font-bold text-gray-900">{etablissement.nom || 'Non renseigné'}</h3>
+                  <h3 class="text-xl font-medium text-gray-900">{etablissement.nom || 'Non renseigné'}</h3>
                   <p class="text-sm text-gray-500 mt-1">
                     {typeLabels[etablissement.type_etablissement] || etablissement.type_etablissement || 'Non renseigné'}
                   </p>
@@ -1170,7 +1170,7 @@
           </div>
 
           <!-- Présentation & Contact -->
-          <div class="bg-white shadow rounded-lg overflow-hidden mb-4">
+          <div class="bg-white rounded-[2rem] overflow-hidden mb-4">
             <div class="px-5 py-4 border-b border-gray-200 bg-gray-50">
               <h2 class="text-sm font-semibold text-gray-700">Présentation & Contact</h2>
             </div>
@@ -1216,19 +1216,19 @@
 
           <!-- Statistiques -->
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-            <div class="bg-white shadow rounded-lg p-4 text-center">
+            <div class="bg-white rounded-[2rem] p-4 text-center">
               <p class="text-xl font-bold text-blue-600">{etablissement.stats?.total_eleves ?? 0}</p>
               <p class="text-xs text-gray-500">Élèves</p>
             </div>
-            <div class="bg-white shadow rounded-lg p-4 text-center">
+            <div class="bg-white rounded-[2rem] p-4 text-center">
               <p class="text-xl font-bold text-green-600">{etablissement.stats?.total_professeurs ?? 0}</p>
               <p class="text-xs text-gray-500">Professeurs</p>
             </div>
-            <div class="bg-white shadow rounded-lg p-4 text-center">
+            <div class="bg-white rounded-[2rem] p-4 text-center">
               <p class="text-xl font-bold text-purple-600">{etablissement.stats?.total_classes ?? 0}</p>
               <p class="text-xs text-gray-500">Classes</p>
             </div>
-            <div class="bg-white shadow rounded-lg p-4 text-center">
+            <div class="bg-white rounded-[2rem] p-4 text-center">
               <p class="text-xl font-bold text-yellow-600">{etablissement.stats?.total_matieres ?? 0}</p>
               <p class="text-xs text-gray-500">Matières</p>
             </div>
@@ -1236,7 +1236,7 @@
 
           <!-- Années scolaires -->
           {#if etablissement.annees_scolaires?.length}
-            <div class="bg-white shadow rounded-lg overflow-hidden mb-4">
+            <div class="bg-white rounded-[2rem] overflow-hidden mb-4">
               <div class="px-5 py-4 border-b border-gray-200 bg-gray-50">
                 <h2 class="text-sm font-semibold text-gray-700">Années scolaires</h2>
               </div>
@@ -1259,7 +1259,7 @@
           <!-- Classes & Matières -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             {#if etablissement.classes?.length}
-              <div class="bg-white shadow rounded-lg overflow-hidden">
+              <div class="bg-white rounded-[2rem] overflow-hidden">
                 <div class="px-5 py-4 border-b border-gray-200 bg-gray-50">
                   <h3 class="text-sm font-semibold text-gray-700">Classes</h3>
                 </div>
@@ -1275,7 +1275,7 @@
             {/if}
             
             {#if etablissement.matieres?.length}
-              <div class="bg-white shadow rounded-lg overflow-hidden">
+              <div class="bg-white rounded-[2rem] overflow-hidden">
                 <div class="px-5 py-4 border-b border-gray-200 bg-gray-50">
                   <h3 class="text-sm font-semibold text-gray-700">Matières</h3>
                 </div>
