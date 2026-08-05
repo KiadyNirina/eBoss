@@ -132,11 +132,10 @@
 
     <div class="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
       {#each features as feature}
-        <div class="relative group bg-white p-8 rounded-2xl shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 hover:border-green-100">
-          <div class="absolute -inset-0.5 bg-gradient-to-r from-green-100 to-emerald-100 rounded-2xl opacity-0 group-hover:opacity-100 blur-sm transition duration-300"></div>
+        <div class="relative group bg-white p-8 rounded-[2rem] transition-all duration-300 border border-gray-200 hover:border-green-600">
           <div class="relative h-full flex flex-col">
             <div class="flex-shrink-0 mb-6">
-              <span class="inline-flex items-center justify-center w-14 h-14 rounded-xl bg-green-50 text-green-600">
+              <span class="inline-flex items-center justify-center w-14 h-14 rounded-xl text-green-600">
                 <Icon icon={feature.icon} class="h-7 w-7" />
               </span>
             </div>
