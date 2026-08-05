@@ -122,7 +122,7 @@
         <Icon icon="mdi:feature-search-outline" class="mr-2" />
         Fonctionnalités Clés
       </span>
-      <h2 class="mt-2 text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
+      <h2 class="unbounded mt-2 text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
         Une suite complète <span class="text-green-600">d'outils intégrés</span>
       </h2>
       <p class="mt-6 max-w-3xl mx-auto text-xl text-gray-600">

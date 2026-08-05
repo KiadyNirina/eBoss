@@ -10,7 +10,7 @@
       <!-- Left: text content -->
       <div class="text-center md:text-left">
 
-        <h1 class="text-5xl font-extrabold tracking-tight text-gray-900 sm:text-6xl md:text-7xl">
+        <h1 class="unbounded text-5xl font-extrabold tracking-tight text-gray-900 sm:text-6xl md:text-7xl">
           <span class="block">Révolutionnez votre</span>
           <span class="block bg-clip-text text-transparent bg-gradient-to-r from-[#20784d] to-emerald-600">gestion scolaire</span>
         </h1>
