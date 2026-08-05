@@ -1019,7 +1019,7 @@
         </button>
       </div>
       
-      <div class="text-xs text-gray-500 pt-1 font-medium">
+      <div class="text-sm text-gray-600 pt-1 font-medium">
         {filteredEstablishments.length} établissement{filteredEstablishments.length > 1 ? 's' : ''} trouvé{filteredEstablishments.length > 1 ? 's' : ''}
       </div>
     </div>
@@ -1059,7 +1059,7 @@
               {/if}
 
               <div class="min-w-0 flex-1">
-                <h3 class="font-bold text-gray-900 group-hover:text-[#20784d] transition-colors line-clamp-1">{establishment.name}</h3>
+                <h3 class="font-medium text-gray-900 group-hover:text-[#20784d] transition-colors line-clamp-1">{establishment.name}</h3>
                 <p class="text-xs text-gray-500 mt-1 flex items-start gap-1">
                   <Icon icon="heroicons:map-pin" class="h-3.5 w-3.5 shrink-0 mt-0.5 text-gray-400" />
                   <span class="line-clamp-2">{establishment.address}</span>
