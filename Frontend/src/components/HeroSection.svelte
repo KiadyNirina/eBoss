@@ -2,7 +2,7 @@
   import Icon from '@iconify/svelte';
 </script>
 
-<section class="relative bg-gradient-to-br from-green-50 to-emerald-50 overflow-hidden h-screen">
+<section class="relative overflow-hidden h-screen">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
     <!-- Two-column layout -->
     <div class="grid md:grid-cols-2 gap-8 items-center w-full">

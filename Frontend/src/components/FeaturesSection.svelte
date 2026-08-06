@@ -115,7 +115,7 @@
   }
 </script>
 
-<section id="features" class="py-20 bg-gradient-to-b from-white to-green-50">
+<section id="features" class="py-20">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="text-center mb-16">
       <span class="inline-flex items-center px-4 py-2 rounded-full text-base font-medium bg-green-100 text-green-800 mb-4">
