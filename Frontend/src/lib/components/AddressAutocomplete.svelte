@@ -166,7 +166,7 @@
           disabled={disabled}
           required={required}
           class={`
-            w-full px-4 py-2.5 border rounded-lg
+            w-full px-4 py-2.5 border rounded-full
             ${isValid ? 'border-green-400 bg-green-50' : 'border-gray-300'}
             ${!isValid && value.length > 0 && !isSearching && hasSearched && suggestions.length === 0 ? 'border-yellow-300 bg-yellow-50' : ''}
             ${!isValid && value.length > 0 && !isSearching && !hasSearched ? 'border-gray-300' : ''}

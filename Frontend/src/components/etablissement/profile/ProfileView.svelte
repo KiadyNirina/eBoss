@@ -3,6 +3,9 @@
   import Icon from '@iconify/svelte';
   import { authApi } from '../../../lib/api';
   
+  export let etablissementId = null;
+  $: isOwnProfile = !etablissementId; 
+
   export let onClose = null;
   
   let loading = true;
@@ -108,45 +111,70 @@
     error = null;
     
     try {
-      const userProfile = await authApi.getProfile();
-      
-      if (userProfile && userProfile.profile) {
+
+      if (etablissementId) {
+        // --- Profil public ---
+        const publicData = await authApi.getPublicEtablissement(etablissementId);
         profile = {
-          ...profile,
-          etablissement: userProfile.profile,
-          user: userProfile
+          etablissement: publicData,
+          stats: publicData.stats || {},
+          classes: publicData.classes || [],
+          professeurs: publicData.professeurs || [],
+          matieres: publicData.matieres || [],
+          annees_scolaires: publicData.annees_scolaires || [],
+          user: publicData.user || {}
         };
-        
-        // Charger les données statistiques
-        await loadStats();
-        await loadAnneeScolaire();
-        await loadClasses();
-        await loadProfesseurs();
-        await loadMatieres();
-        
-        // Initialiser formData
-        formData = {
-          nom: profile.etablissement.nom || '',
-          type_etablissement: profile.etablissement.type_etablissement || '',
-          adresse: profile.etablissement.adresse || '',
-          description: profile.etablissement.description || '',
-          site_web: profile.etablissement.site_web || '',
-          email: profile.user.email || '',
-          telephone: profile.user.telephone || '',
-          first_name: profile.user.first_name || '',
-          last_name: profile.user.last_name || '',
-          latitude: profile.etablissement.latitude || '',
-          longitude: profile.etablissement.longitude || ''
-        };
-        
-        // Charger le logo
-        if (userProfile.profile.user.profile_image) {
-          profileImagePreview = `http://127.0.0.1:8000${userProfile.profile.user.profile_image}`;
+
+        if (publicData.user.profile_image) {
+          profileImagePreview = `${publicData.user.profile_image}`;
         } else {
           profileImagePreview = null;
         }
+
+        formData = { ...profile.etablissement, ...profile.user };
+      
       } else {
-        error = 'Aucune donnée d\'établissement trouvée';
+
+        const userProfile = await authApi.getProfile();
+        
+        if (userProfile && userProfile.profile) {
+          profile = {
+            ...profile,
+            etablissement: userProfile.profile,
+            user: userProfile
+          };
+          
+          // Charger les données statistiques
+          await loadStats();
+          await loadAnneeScolaire();
+          await loadClasses();
+          await loadProfesseurs();
+          await loadMatieres();
+          
+          // Initialiser formData
+          formData = {
+            nom: profile.etablissement.nom || '',
+            type_etablissement: profile.etablissement.type_etablissement || '',
+            adresse: profile.etablissement.adresse || '',
+            description: profile.etablissement.description || '',
+            site_web: profile.etablissement.site_web || '',
+            email: profile.user.email || '',
+            telephone: profile.user.telephone || '',
+            first_name: profile.user.first_name || '',
+            last_name: profile.user.last_name || '',
+            latitude: profile.etablissement.latitude || '',
+            longitude: profile.etablissement.longitude || ''
+          };
+          
+          // Charger le logo
+          if (userProfile.profile.user.profile_image) {
+            profileImagePreview = `http://127.0.0.1:8000${userProfile.profile.user.profile_image}`;
+          } else {
+            profileImagePreview = null;
+          }
+        } else {
+          error = 'Aucune donnée d\'établissement trouvée';
+        }
       }
     } catch (err) {
       console.error('Erreur chargement profil:', err);
@@ -330,7 +358,7 @@
       </div>
       
       <div class="mt-4 sm:mt-0 flex space-x-3">
-        {#if isEditing}
+        {#if isOwnProfile && isEditing}
           <button
             on:click={toggleCancel}
             class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
@@ -411,7 +439,7 @@
               </div>
             {/if}
             
-            {#if isEditing}
+            {#if isOwnProfile && isEditing}
               <label
                 for="profile-image-upload"
                 class="absolute bottom-0 right-0 p-1.5 bg-green-600 rounded-full cursor-pointer hover:bg-green-700 transition-colors shadow-lg"
@@ -428,7 +456,7 @@
             {/if}
           </div>
           
-          {#if isEditing && profileImageFile}
+          {#if isOwnProfile && isEditing && profileImageFile}
             <p class="text-xs text-gray-500 mt-1">{profileImageFile.name}</p>
           {/if}
         </div>
@@ -439,7 +467,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-1">
               Nom de l'établissement
             </label>
-            {#if isEditing}
+            {#if isOwnProfile && isEditing}
               <input
                 type="text"
                 bind:value={formData.nom}
@@ -455,7 +483,7 @@
             <label class="block text-sm font-medium text-gray-700 mb-1">
               Type d'établissement
             </label>
-            {#if isEditing}
+            {#if isOwnProfile && isEditing}
               <select
                 bind:value={formData.type_etablissement}
                 class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 sm:text-sm"
@@ -486,7 +514,7 @@
         <!-- Description -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
-          {#if isEditing}
+          {#if isOwnProfile && isEditing}
             <textarea
               bind:value={formData.description}
               rows="3"
@@ -502,7 +530,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Site web</label>
-            {#if isEditing}
+            {#if isOwnProfile && isEditing}
               <input
                 type="url"
                 bind:value={formData.site_web}
@@ -522,7 +550,7 @@
           
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
-            {#if isEditing}
+            {#if isOwnProfile && isEditing}
               <input
                 type="tel"
                 bind:value={formData.telephone}
@@ -539,7 +567,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Adresse</label>
-            {#if isEditing}
+            {#if isOwnProfile && isEditing}
               <textarea
                 bind:value={formData.adresse}
                 rows="2"
@@ -553,7 +581,7 @@
           
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-            {#if isEditing}
+            {#if isOwnProfile && isEditing}
               <input
                 type="email"
                 bind:value={formData.email}
@@ -575,7 +603,7 @@
       </div>
       
       <div class="p-6 space-y-4">
-        {#if isEditing}
+        {#if isOwnProfile && isEditing}
           <div class="grid grid-cols-1 gap-3">
             <div>
               <label class="block text-xs text-gray-500 mb-1">Latitude</label>
@@ -660,7 +688,7 @@
               <Icon icon="heroicons:map-pin" class="h-5 w-5 text-gray-400" />
               <span>Aucune coordonnée GPS renseignée</span>
             </div>
-            {#if !isEditing}
+            {#if isOwnProfile && !isEditing}
               <p class="text-xs text-gray-400">
                 Passez en mode édition pour ajouter la localisation
               </p>

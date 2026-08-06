@@ -118,11 +118,11 @@
 <section id="features" class="py-20 bg-gradient-to-b from-white to-green-50">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
     <div class="text-center mb-16">
-      <span class="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium bg-green-100 text-green-800 mb-4">
+      <span class="inline-flex items-center px-4 py-2 rounded-full text-base font-medium bg-green-100 text-green-800 mb-4">
         <Icon icon="mdi:feature-search-outline" class="mr-2" />
         Fonctionnalités Clés
       </span>
-      <h2 class="mt-2 text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
+      <h2 class="unbounded mt-2 text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
         Une suite complète <span class="text-green-600">d'outils intégrés</span>
       </h2>
       <p class="mt-6 max-w-3xl mx-auto text-xl text-gray-600">
@@ -140,7 +140,7 @@
                 <Icon icon={feature.icon} class="h-7 w-7" />
               </span>
             </div>
-            <h3 class="text-xl font-semibold text-gray-900 mb-3">
+            <h3 class="unbounded text-xl font-semibold text-gray-900 mb-3">
               {feature.name}
             </h3>
             <p class="flex-grow text-gray-600">
@@ -167,7 +167,7 @@
     <div class="fixed inset-0 flex items-center justify-center p-4">
       <div class="bg-white rounded-2xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
         <div class="sticky top-0 bg-white p-6 border-b border-gray-100 flex justify-between items-center">
-          <h2 class="text-2xl font-bold text-gray-900">Détails de la fonctionnalité</h2>
+          <h2 class="unbounded text-2xl font-bold text-gray-900">Détails de la fonctionnalité</h2>
           <button 
             on:click={closeModal}
             class="text-gray-400 hover:text-gray-500 transition-colors"
@@ -182,7 +182,7 @@
               <Icon icon={activeFeature.icon} class="h-7 w-7" />
             </span>
             <div>
-              <h3 class="text-2xl font-bold text-gray-900">{activeFeature.name}</h3>
+              <h3 class="text-2xl font-medium text-gray-900">{activeFeature.name}</h3>
               <p class="text-gray-500 mt-2">{activeFeature.description}</p>
             </div>
           </div>
@@ -192,7 +192,7 @@
             
             <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
               <div class="bg-green-50 p-6 rounded-xl border border-green-100">
-                <h4 class="font-semibold text-lg text-green-800 flex items-center mb-4">
+                <h4 class="font-medium text-lg text-green-800 flex items-center mb-4">
                   <Icon icon="mdi:check-circle" class="mr-2 text-green-600" />
                   Principaux avantages
                 </h4>
@@ -207,7 +207,7 @@
               </div>
               
               <div class="bg-blue-50 p-6 rounded-xl border border-blue-100">
-                <h4 class="font-semibold text-lg text-blue-800 flex items-center mb-4">
+                <h4 class="font-medium text-lg text-blue-800 flex items-center mb-4">
                   <Icon icon="mdi:lightbulb-on" class="mr-2 text-blue-600" />
                   Intégration
                 </h4>

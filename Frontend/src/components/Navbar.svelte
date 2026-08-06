@@ -17,22 +17,23 @@
       </div>
       
       <div class="hidden md:flex items-center space-x-8">
-        <a href="#features" class="text-gray-700 hover:text-[#20784d] px-3 py-2 text-sm font-medium">Fonctionnalités</a>
-        <!-- <a href="#pricing" class="text-gray-700 hover:text-[#20784d] px-3 py-2 text-sm font-medium">Tarifs</a>
-        <a href="#testimonials" class="text-gray-700 hover:text-[#20784d] px-3 py-2 text-sm font-medium">Témoignages</a> -->
+        <a href="#features" class="text-gray-700 hover:text-[#20784d] px-3 py-2 text-base font-medium">Fonctionnalités</a>
+        <!-- <a href="#pricing" class="text-gray-700 hover:text-[#20784d] px-3 py-2 text-base font-medium">Tarifs</a>
+        <a href="#testimonials" class="text-gray-700 hover:text-[#20784d] px-3 py-2 text-base font-medium">Témoignages</a> -->
       </div>
       
       <div class="hidden md:flex items-center space-x-4">
         <!-- Icône Recherche -->
         <button 
           on:click={() => goto('/map')}
-          class="text-gray-600 hover:text-[#20784d] transition-colors p-2 rounded-full hover:bg-green-50"
+          class="flex items-center gap-2 bg-green-50 text-[#20784d] hover:cursor-pointer px-4 py-2 rounded-full text-base font-medium transition-all duration-200 border border-green-200 hover:border-green-600"
           title="Rechercher des établissements"
         >
           <Icon icon="heroicons:magnifying-glass" class="h-5 w-5" />
+          <span>Rechercher</span>
         </button>
         
-        <a href="/login" class="bg-[#20784d] text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-green-700 transition-colors">Connexion</a>
+        <a href="/login" class="bg-[#20784d] text-white px-4 py-2 rounded-full text-base font-medium hover:bg-green-700 transition-colors">Connexion</a>
       </div>
       
       <div class="md:hidden flex items-center">
