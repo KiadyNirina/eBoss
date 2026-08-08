@@ -29,6 +29,15 @@
     matiere: '',
     periode: ''
   };
+
+  $: classOptions = [...new Set(evaluations.map(e => e.classe))].map(c => ({ value: c, label: c }));
+  $: subjectOptions = [...new Set(evaluations.map(e => e.matiere))].map(m => ({ value: m, label: m }));
+  
+  let periodOptions = [
+    { value: '1', label: '1er Trimestre' },
+    { value: '2', label: '2ème Trimestre' },
+    { value: '3', label: '3ème Trimestre' }
+  ];
   
   function applyFilters(newFilters) {
     filters = newFilters;
@@ -61,7 +70,13 @@
   </div>
   
   <!-- Filtres -->
-  <GradeFilters {filters} on:apply={applyFilters} />
+  <GradeFilters 
+    bind:filters={filters}
+    {classOptions}
+    {subjectOptions}
+    {periodOptions}
+    on:apply={(e) => applyFilters(e.detail)} 
+  />
   
   <!-- Résumé statistique -->
   <GradeSummary {selectedEvaluation} />

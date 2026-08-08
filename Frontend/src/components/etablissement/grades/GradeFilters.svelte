@@ -1,28 +1,23 @@
 <script>
+  import { createEventDispatcher } from 'svelte';
   import Icon from '@iconify/svelte';
-  
-  export let filters;
-  
-  const classOptions = [
-    { value: '', label: 'Toutes les classes' },
-    { value: '3ème A', label: '3ème A' },
-    { value: '4ème B', label: '4ème B' },
-    { value: '5ème C', label: '5ème C' }
-  ];
-  
-  const subjectOptions = [
-    { value: '', label: 'Toutes les matières' },
-    { value: 'Mathématiques', label: 'Mathématiques' },
-    { value: 'Français', label: 'Français' },
-    { value: 'Histoire', label: 'Histoire-Géographie' }
-  ];
-  
-  const periodOptions = [
-    { value: '', label: 'Toutes les périodes' },
-    { value: '1', label: '1er Trimestre' },
-    { value: '2', label: '2ème Trimestre' },
-    { value: '3', label: '3ème Trimestre' }
-  ];
+
+  const dispatch = createEventDispatcher();
+
+  export let filters = {
+    classe: '',
+    matiere: '',
+    periode: ''
+  };
+
+  // Options fournies par le parent
+  export let classOptions = [];
+  export let subjectOptions = [];
+  export let periodOptions = [];
+
+  $: fullClassOptions = [{ value: '', label: 'Toutes les classes' }, ...classOptions];
+  $: fullSubjectOptions = [{ value: '', label: 'Toutes les matières' }, ...subjectOptions];
+  $: fullPeriodOptions = [{ value: '', label: 'Toutes les périodes' }, ...periodOptions];
 </script>
 
 <div class="mt-6 bg-white shadow-sm rounded-lg p-4 border border-gray-200">
@@ -36,7 +31,7 @@
         bind:value={filters.classe}
         class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md"
       >
-        {#each classOptions as option}
+        {#each fullClassOptions as option}
           <option value={option.value}>{option.label}</option>
         {/each}
       </select>
@@ -51,7 +46,7 @@
         bind:value={filters.matiere}
         class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md"
       >
-        {#each subjectOptions as option}
+        {#each fullSubjectOptions as option}
           <option value={option.value}>{option.label}</option>
         {/each}
       </select>
@@ -66,7 +61,7 @@
         bind:value={filters.periode}
         class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm rounded-md"
       >
-        {#each periodOptions as option}
+        {#each fullPeriodOptions as option}
           <option value={option.value}>{option.label}</option>
         {/each}
       </select>
