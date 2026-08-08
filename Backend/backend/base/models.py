@@ -307,19 +307,6 @@ class Evaluation(models.Model):
     def __str__(self):
         return f"{self.nom} - {self.classe.nom} ({self.date})"
 
-class Note(models.Model):
-    evaluation = models.ForeignKey(Evaluation, on_delete=models.CASCADE, related_name='notes')
-    eleve = models.ForeignKey(Eleve, on_delete=models.CASCADE, related_name='notes')
-    note = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)  # ex: 15.5
-    appreciation = models.TextField(blank=True, null=True)
-    absent = models.BooleanField(default=False)
-
-    class Meta:
-        unique_together = ('evaluation', 'eleve')  # un élève n'a qu'une note par évaluation
-
-    def __str__(self):
-        return f"{self.eleve} - {self.evaluation.nom} : {self.note or 'Absent'}"
-
 class Eleve(models.Model):
     STATUS_CHOICES = (
         ('actif', 'Actif'),
@@ -333,6 +320,19 @@ class Eleve(models.Model):
     
     def __str__(self):
         return f"{self.user.get_full_name()} ({self.classe.nom if self.classe else 'Non assigné'})"
+
+class Note(models.Model):
+    evaluation = models.ForeignKey(Evaluation, on_delete=models.CASCADE, related_name='notes')
+    eleve = models.ForeignKey(Eleve, on_delete=models.CASCADE, related_name='notes')
+    note = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)  # ex: 15.5
+    appreciation = models.TextField(blank=True, null=True)
+    absent = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('evaluation', 'eleve')  # un élève n'a qu'une note par évaluation
+
+    def __str__(self):
+        return f"{self.eleve} - {self.evaluation.nom} : {self.note or 'Absent'}"
 
 class Parent(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='parent')
