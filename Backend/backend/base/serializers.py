@@ -4,6 +4,7 @@ from django.contrib.auth.hashers import make_password
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import User, Etablissement, Professeur, Eleve, Parent, AnneeScolaire, Classe, Matiere, Salle, Cours, Periode, Evaluation, Note
 from django.utils import timezone
+from django.db.models import Avg
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
@@ -541,7 +542,7 @@ class EvaluationSerializer(serializers.ModelSerializer):
     def get_moyenne_classe(self, obj):
         notes = obj.notes.filter(absent=False, note__isnull=False)
         if notes.exists():
-            return round(notes.aggregate(models.Avg('note'))['note__avg'], 2)
+            return round(notes.aggregate(Avg('note'))['note__avg'], 2)
         return None
 
 

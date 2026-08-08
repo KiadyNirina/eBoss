@@ -516,6 +516,46 @@ export const authApi = {
     deleteProfesseur: (id) => fetchWithAuth(`/api/professeurs/${id}/`, {
         method: 'DELETE',
     }).then(() => ({ message: 'Professeur supprimé' })),
+
+    
+    getPeriodes: (filters = {}) => {
+        const query = new URLSearchParams(filters).toString();
+        return fetchWithAuth(`/api/periodes/?${query}`).then(res => res.json());
+    },
+
+    getEvaluations: (filters = {}) => {
+        const query = new URLSearchParams(filters).toString();
+        return fetchWithAuth(`/api/evaluations/?${query}`).then(res => res.json());
+    },
+
+    getEvaluationDetail: (id) => fetchWithAuth(`/api/evaluations/${id}/`).then(res => res.json()),
+
+    createEvaluation: (data) => fetchWithAuth('/api/evaluations/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }).then(res => res.json()),
+
+    updateEvaluation: (id, data) => fetchWithAuth(`/api/evaluations/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+    }).then(res => res.json()),
+
+    deleteEvaluation: (id) => fetchWithAuth(`/api/evaluations/${id}/`, {
+        method: 'DELETE',
+    }).then(() => ({ message: 'Évaluation supprimée' })),
+
+    manageNotes: (evaluationId, notes) => fetchWithAuth(`/api/evaluations/${evaluationId}/manage_notes/`, {
+        method: 'POST',
+        body: JSON.stringify({ notes }),
+    }).then(res => res.json()),
+
+    publishEvaluation: (id) => fetchWithAuth(`/api/evaluations/${id}/publier/`, {
+        method: 'POST',
+    }).then(res => res.json()),
+
+    unpublishEvaluation: (id) => fetchWithAuth(`/api/evaluations/${id}/brouillon/`, {
+        method: 'POST',
+    }).then(res => res.json()),
 };
 
 export const authStore = {
