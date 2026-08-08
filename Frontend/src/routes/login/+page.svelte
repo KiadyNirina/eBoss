@@ -30,6 +30,8 @@
       const { access, refresh, user_type } = await authApi.login(email, password);
       
       authStore.setTokens({ access, refresh });
+
+      await authApi.getProfile();
       
       if (rememberMe) {
         document.cookie = `refresh_token=${refresh}; path=/; max-age=${7 * 24 * 60 * 60}`;
