@@ -28,8 +28,16 @@
 
     try {
       const { access, refresh, user_type } = await authApi.login(email, password);
+
+      if (user_type !== activeTab) {
+        throw new Error(
+          `Ce compte est un compte ${user_type}, pas un compte ${activeTab}.`
+        );
+      }
       
       authStore.setTokens({ access, refresh });
+
+      await authApi.getProfile();
       
       if (rememberMe) {
         document.cookie = `refresh_token=${refresh}; path=/; max-age=${7 * 24 * 60 * 60}`;

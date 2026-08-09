@@ -12,6 +12,8 @@ router.register(r'matieres', MatiereViewSet, basename='matiere')
 router.register(r'salles', SalleViewSet, basename='salle')
 router.register(r'cours', CoursViewSet, basename='cours')
 router.register(r'etablissements', EtablissementViewSet, basename='etablissement') 
+router.register(r'periodes', PeriodeViewSet, basename='periode')
+router.register(r'evaluations', EvaluationViewSet, basename='evaluation')
 
 urlpatterns = [
     path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),

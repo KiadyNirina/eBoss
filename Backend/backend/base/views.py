@@ -23,7 +23,11 @@ from .serializers import (
     ClasseSerializer,
     MatiereSerializer,
     SalleSerializer,
-    CoursSerializer
+    CoursSerializer,
+    PeriodeSerializer,
+    EvaluationSerializer,
+    EvaluationDetailSerializer,
+    NoteSerializer,
 )
 from .models import *
 from django.views.decorators.csrf import csrf_exempt
@@ -542,6 +546,158 @@ class CoursViewSet(viewsets.ModelViewSet):
             'jour',
             'heure_debut'
         )
+
+class PeriodeViewSet(viewsets.ModelViewSet):
+    """Liste les périodes pour les filtres (lecture seule)"""
+    serializer_class = PeriodeSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        queryset = Periode.objects.select_related('annee_scolaire')
+
+        # Filtrer par établissement de l'utilisateur connecté
+        if hasattr(self.request.user, 'etablissement'):
+            queryset = queryset.filter(
+                etablissement=self.request.user.etablissement
+            )
+        else:
+            return Periode.objects.none()
+
+        # Filtrer par année scolaire active si demandé
+        annee_active = self.request.query_params.get('annee_active')
+        if annee_active:
+            queryset = queryset.filter(annee_scolaire__est_active=True)
+
+        return queryset.order_by('annee_scolaire', 'ordre')
+    
+    def perform_create(self, serializer):
+        # Force l'établissement à celui de l'utilisateur connecté
+        if hasattr(self.request.user, 'etablissement'):
+            serializer.save(etablissement=self.request.user.etablissement)
+        else:
+            raise PermissionError("Établissement requis")
+
+
+class EvaluationViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+    pagination_class = PageNumberPagination
+
+    def get_serializer_class(self):
+        if self.action == 'retrieve':
+            return EvaluationDetailSerializer
+        return EvaluationSerializer
+
+    def get_queryset(self):
+        queryset = Evaluation.objects.select_related(
+            'matiere', 'classe', 'professeur__user', 'periode', 'etablissement'
+        ).prefetch_related('notes')
+
+        # Filtrer par établissement de l'utilisateur connecté
+        if hasattr(self.request.user, 'etablissement'):
+            queryset = queryset.filter(
+                etablissement=self.request.user.etablissement
+            )
+        else:
+            return Evaluation.objects.none()
+
+        # Filtres additionnels
+        classe = self.request.query_params.get('classe')
+        matiere = self.request.query_params.get('matiere')
+        periode = self.request.query_params.get('periode')
+        professeur = self.request.query_params.get('professeur')
+        annee = self.request.query_params.get('annee')
+        statut = self.request.query_params.get('statut')
+        search = self.request.query_params.get('search')
+
+        if classe:
+            queryset = queryset.filter(classe_id=classe)
+        if matiere:
+            queryset = queryset.filter(matiere_id=matiere)
+        if periode:
+            queryset = queryset.filter(periode_id=periode)
+        if professeur:
+            queryset = queryset.filter(professeur_id=professeur)
+        if annee:
+            queryset = queryset.filter(periode__annee_scolaire_id=annee)
+        if statut:
+            queryset = queryset.filter(statut=statut)
+        if search:
+            queryset = queryset.filter(
+                Q(nom__icontains=search) |
+                Q(matiere__nom__icontains=search) |
+                Q(classe__nom__icontains=search)
+            )
+
+        return queryset.order_by('-date')
+
+    def perform_create(self, serializer):
+        # Récupérer l'établissement de l'utilisateur
+        if hasattr(self.request.user, 'etablissement'):
+            serializer.save(etablissement=self.request.user.etablissement)
+        else:
+            raise PermissionError("Seul un établissement peut créer une évaluation")
+
+    @action(detail=True, methods=['post'])
+    def manage_notes(self, request, pk=None):
+        """
+        Met à jour / crée les notes pour une évaluation.
+        Attendu : { "notes": [ { "eleve": 1, "note": 15.5, "appreciation": "...", "absent": false }, ... ] }
+        """
+        evaluation = self.get_object()
+        notes_data = request.data.get('notes', [])
+
+        results = []
+        for note_data in notes_data:
+            eleve_id = note_data.get('eleve')
+            note_value = note_data.get('note')
+            appreciation = note_data.get('appreciation', '')
+            absent = note_data.get('absent', False)
+
+            if not eleve_id:
+                continue
+
+            # Vérifier que l'élève appartient à la classe de l'évaluation
+            try:
+                eleve = Eleve.objects.get(id=eleve_id, classe=evaluation.classe)
+            except Eleve.DoesNotExist:
+                results.append({'eleve': eleve_id, 'error': 'Élève non trouvé dans la classe'})
+                continue
+
+            note, created = Note.objects.update_or_create(
+                evaluation=evaluation,
+                eleve=eleve,
+                defaults={
+                    'note': note_value,
+                    'appreciation': appreciation,
+                    'absent': absent
+                }
+            )
+            results.append({
+                'eleve': eleve_id,
+                'note': note.note,
+                'created': created,
+                'absent': note.absent
+            })
+
+        evaluation.refresh_from_db()
+        return Response({
+            'status': 'notes sauvegardées',
+            'results': results
+        }, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'])
+    def publier(self, request, pk=None):
+        evaluation = self.get_object()
+        evaluation.statut = 'publie'
+        evaluation.save()
+        return Response({'status': 'évaluation publiée'})
+
+    @action(detail=True, methods=['post'])
+    def brouillon(self, request, pk=None):
+        evaluation = self.get_object()
+        evaluation.statut = 'brouillon'
+        evaluation.save()
+        return Response({'status': 'évaluation remise en brouillon'})
 
 class ProfesseurRegistrationView(generics.CreateAPIView):
     serializer_class = ProfesseurSerializer

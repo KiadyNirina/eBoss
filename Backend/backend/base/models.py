@@ -260,6 +260,53 @@ class Cours(models.Model):
             self.type_cours = 'specifique'
         super().save(*args, **kwargs)
 
+class Periode(models.Model):
+    etablissement = models.ForeignKey(Etablissement, on_delete=models.CASCADE, related_name='periodes')
+    annee_scolaire = models.ForeignKey(AnneeScolaire, on_delete=models.CASCADE, related_name='periodes')
+    nom = models.CharField(max_length=50)  # ex: "1er Trimestre", "Semestre 1"
+    ordre = models.PositiveSmallIntegerField()  # 1, 2, 3...
+    date_debut = models.DateField()
+    date_fin = models.DateField()
+
+    class Meta:
+        unique_together = ('etablissement', 'annee_scolaire', 'nom')
+        ordering = ['annee_scolaire', 'ordre']
+
+    def __str__(self):
+        return f"{self.nom} ({self.annee_scolaire.nom})"
+
+class Evaluation(models.Model):
+    TYPE_CHOICES = (
+        ('controle', 'Contrôle'),
+        ('examen', 'Examen'),
+        ('devoir', 'Devoir maison'),
+        ('projet', 'Projet'),
+        ('autre', 'Autre'),
+    )
+    STATUT_CHOICES = (
+        ('brouillon', 'Brouillon'),
+        ('publie', 'Publié'),
+    )
+
+    etablissement = models.ForeignKey(Etablissement, on_delete=models.CASCADE, related_name='evaluations')
+    matiere = models.ForeignKey(Matiere, on_delete=models.CASCADE, related_name='evaluations')
+    classe = models.ForeignKey(Classe, on_delete=models.CASCADE, related_name='evaluations')
+    professeur = models.ForeignKey(Professeur, on_delete=models.CASCADE, related_name='evaluations')
+    periode = models.ForeignKey(Periode, on_delete=models.SET_NULL, null=True, blank=True, related_name='evaluations')
+    nom = models.CharField(max_length=255)  # ex: "Contrôle de mathématiques n°1"
+    date = models.DateField()
+    coefficient = models.DecimalField(max_digits=3, decimal_places=1, default=1.0)
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='controle')
+    statut = models.CharField(max_length=20, choices=STATUT_CHOICES, default='brouillon')
+    description = models.TextField(blank=True, null=True)
+    bareme = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, help_text="Note maximale possible (ex: 20)")
+
+    class Meta:
+        ordering = ['-date']
+
+    def __str__(self):
+        return f"{self.nom} - {self.classe.nom} ({self.date})"
+
 class Eleve(models.Model):
     STATUS_CHOICES = (
         ('actif', 'Actif'),
@@ -273,6 +320,19 @@ class Eleve(models.Model):
     
     def __str__(self):
         return f"{self.user.get_full_name()} ({self.classe.nom if self.classe else 'Non assigné'})"
+
+class Note(models.Model):
+    evaluation = models.ForeignKey(Evaluation, on_delete=models.CASCADE, related_name='notes')
+    eleve = models.ForeignKey(Eleve, on_delete=models.CASCADE, related_name='notes')
+    note = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)  # ex: 15.5
+    appreciation = models.TextField(blank=True, null=True)
+    absent = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('evaluation', 'eleve')  # un élève n'a qu'une note par évaluation
+
+    def __str__(self):
+        return f"{self.eleve} - {self.evaluation.nom} : {self.note or 'Absent'}"
 
 class Parent(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='parent')

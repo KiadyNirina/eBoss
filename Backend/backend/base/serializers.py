@@ -2,8 +2,9 @@ from rest_framework import serializers
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import make_password
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
-from .models import User, Etablissement, Professeur, Eleve, Parent, AnneeScolaire, Classe, Matiere, Salle, Cours
+from .models import User, Etablissement, Professeur, Eleve, Parent, AnneeScolaire, Classe, Matiere, Salle, Cours, Periode, Evaluation, Note
 from django.utils import timezone
+from django.db.models import Avg
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     def validate(self, attrs):
@@ -493,6 +494,61 @@ class EleveSerializer(serializers.ModelSerializer):
             setattr(instance, attr, value)
         instance.save()
         return instance
+    
+class PeriodeSerializer(serializers.ModelSerializer):
+    annee_scolaire = AnneeScolaireSerializer(read_only=True)
+    annee_scolaire_id = serializers.PrimaryKeyRelatedField(
+        queryset=AnneeScolaire.objects.all(),
+        source='annee_scolaire',
+        write_only=True
+    )
+
+    class Meta:
+        model = Periode
+        fields = ['id', 'nom', 'ordre', 'date_debut', 'date_fin', 'annee_scolaire', 'annee_scolaire_id', 'etablissement']
+        extra_kwargs = {'etablissement': {'read_only': True}}
+
+
+class NoteSerializer(serializers.ModelSerializer):
+    eleve_nom = serializers.CharField(source='eleve.user.get_full_name', read_only=True)
+    eleve_classe = serializers.CharField(source='eleve.classe.nom', read_only=True)
+
+    class Meta:
+        model = Note
+        fields = ['id', 'evaluation', 'eleve', 'eleve_nom', 'eleve_classe', 'note', 'appreciation', 'absent']
+        read_only_fields = ['id', 'evaluation']
+
+
+class EvaluationSerializer(serializers.ModelSerializer):
+    matiere_nom = serializers.CharField(source='matiere.nom', read_only=True)
+    classe_nom = serializers.CharField(source='classe.nom', read_only=True)
+    professeur_nom = serializers.CharField(source='professeur.user.get_full_name', read_only=True)
+    periode_nom = serializers.CharField(source='periode.nom', read_only=True)
+    notes = NoteSerializer(many=True, read_only=True)
+    notes_count = serializers.SerializerMethodField()
+    moyenne_classe = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Evaluation
+        fields = '__all__'
+        extra_kwargs = {
+            'etablissement': {'read_only': True},
+            'statut': {'read_only': False},
+        }
+
+    def get_notes_count(self, obj):
+        return obj.notes.count()
+
+    def get_moyenne_classe(self, obj):
+        notes = obj.notes.filter(absent=False, note__isnull=False)
+        if notes.exists():
+            return round(notes.aggregate(Avg('note'))['note__avg'], 2)
+        return None
+
+
+class EvaluationDetailSerializer(EvaluationSerializer):
+    """Serializer pour le détail avec les notes complètes"""
+    notes = NoteSerializer(many=True, read_only=True)
 
 class ParentSerializer(serializers.ModelSerializer):
     user = UserSerializer(required=True)

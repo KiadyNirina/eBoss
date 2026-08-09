@@ -963,13 +963,13 @@
         >
           <Icon icon="heroicons:arrow-left" class="h-5 w-5" />
         </button>
-        <h1 class="text-lg font-bold text-gray-900 leading-tight">Recherche</h1>
+        <h1 class="text-lg font-medium text-gray-900 leading-tight">Recherche</h1>
       </div>
       
       {#if userLocation}
         <button 
           on:click={goToUserLocation}
-          class="flex items-center gap-1.5 text-xs font-medium bg-green-50 text-[#20784d] px-3 py-1.5 rounded-full hover:bg-[#20784d] hover:text-white transition-all shadow-sm border border-green-100"
+          class="flex items-center gap-1.5 text-xs font-medium bg-green-50 text-[#20784d] px-3 py-1.5 rounded-full hover:bg-[#20784d] hover:text-white transition-all border border-green-100"
         >
           <Icon icon="heroicons:map-pin" class="h-4 w-4" />
           Ma position
@@ -988,7 +988,7 @@
           placeholder="Nom, adresse, type..."
           bind:value={searchQuery}
           on:input={filterEstablishments}
-          class="block w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-xl text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#20784d]/50 focus:border-[#20784d] transition-all shadow-sm"
+          class="block w-full pl-10 pr-4 py-2.5 bg-white border border-gray-200 rounded-full text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#20784d]/50 focus:border-[#20784d] transition-all"
         />
       </div>
       
@@ -997,7 +997,7 @@
           <select
             bind:value={filterType}
             on:change={filterEstablishments}
-            class="block w-full pl-3 pr-8 py-2 bg-white border border-gray-200 rounded-lg text-sm text-gray-700 appearance-none focus:outline-none focus:ring-2 focus:ring-[#20784d]/50 focus:border-[#20784d] transition-all shadow-sm"
+            class="block w-full pl-3 pr-8 py-2 bg-white border border-gray-200 rounded-full text-sm text-gray-700 appearance-none focus:outline-none focus:ring-2 focus:ring-[#20784d]/50 focus:border-[#20784d] transition-all"
           >
             <option value="all">Tous les types</option>
             <option value="ecole">École primaire</option>
@@ -1012,14 +1012,14 @@
         
         <button
           on:click={clearFilters}
-          class="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all shadow-sm flex items-center gap-1"
+          class="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-full hover:bg-gray-50 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-200 transition-all flex items-center gap-1"
           title="Réinitialiser"
         >
           <Icon icon="heroicons:arrow-path" class="h-4 w-4" />
         </button>
       </div>
       
-      <div class="text-xs text-gray-500 pt-1 font-medium">
+      <div class="text-sm text-gray-600 pt-1 font-medium">
         {filteredEstablishments.length} établissement{filteredEstablishments.length > 1 ? 's' : ''} trouvé{filteredEstablishments.length > 1 ? 's' : ''}
       </div>
     </div>
@@ -1038,7 +1038,7 @@
         {#each filteredEstablishments as establishment}
           <!-- Carte d'établissement moderne -->
           <div 
-            class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm hover:shadow-md hover:border-green-200 cursor-pointer transition-all duration-200 group relative overflow-hidden"
+            class="bg-white p-4 rounded-[2rem] border border-gray-200 hover:border-green-600 cursor-pointer transition-all duration-200 group relative overflow-hidden"
             on:click={() => selectEstablishment(establishment.id)}
           >
             <!-- Liseré de couleur décoratif au survol -->
@@ -1059,19 +1059,19 @@
               {/if}
 
               <div class="min-w-0 flex-1">
-                <h3 class="font-bold text-gray-900 group-hover:text-[#20784d] transition-colors line-clamp-1">{establishment.name}</h3>
+                <h3 class="font-medium text-gray-900 group-hover:text-[#20784d] transition-colors line-clamp-1">{establishment.name}</h3>
                 <p class="text-xs text-gray-500 mt-1 flex items-start gap-1">
                   <Icon icon="heroicons:map-pin" class="h-3.5 w-3.5 shrink-0 mt-0.5 text-gray-400" />
                   <span class="line-clamp-2">{establishment.address}</span>
                 </p>
                 
                 <div class="flex flex-wrap items-center mt-3 gap-2">
-                  <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 bg-gray-100 text-gray-600 rounded-md">
+                  <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
                     {typeLabels[establishment.type] || establishment.type}
                   </span>
                   
                   {#if userLocation}
-                    <span class="text-xs font-medium text-[#20784d] bg-green-50 px-2 py-1 rounded-md flex items-center gap-1">
+                    <span class="text-xs font-medium text-[#20784d] bg-green-50 px-2 py-1 rounded-full flex items-center gap-1">
                        <Icon icon="heroicons:arrows-right-left" class="h-3 w-3" />
                       {formatDistance(getEstablishmentDistance(establishment))}
                     </span>
@@ -1118,7 +1118,7 @@
     <div class="w-full md:w-[450px] h-[50vh] md:h-full flex flex-col bg-white shadow-2xl z-20 shrink-0 overflow-hidden">
       <!-- En-tête avec bouton fermer -->
       <div class="p-4 border-b border-gray-100 flex items-center justify-between bg-white shrink-0">
-        <h2 class="text-lg font-bold text-gray-900 truncate">
+        <h2 class="text-lg font-medium text-gray-900 truncate">
           {profileData?.nom || 'Profil'}
         </h2>
         <button on:click={closeProfilePanel} class="p-2 rounded-full hover:bg-gray-100 text-gray-500 transition-colors">
@@ -1143,13 +1143,13 @@
           {@const user = profileData.user || {}}
 
           <!-- Logo + Infos principales -->
-          <div class="bg-white shadow rounded-lg overflow-hidden mb-4">
+          <div class="bg-white rounded-[2rem] overflow-hidden mb-4">
             <div class="p-5">
               <div class="flex flex-col sm:flex-row items-center gap-4">
                 <!-- Logo -->
                 <div class="shrink-0">
                   {#if user.profile_image}
-                    <div class="h-28 w-28 rounded-lg overflow-hidden border-2 border-gray-200">
+                    <div class="h-28 w-28 rounded-full overflow-hidden border-2 border-gray-200">
                       <img src={user.profile_image} alt="Logo" class="h-full w-full object-cover" />
                     </div>
                   {:else}
@@ -1160,7 +1160,7 @@
                 </div>
                 
                 <div class="flex-1 text-center sm:text-left">
-                  <h3 class="text-xl font-bold text-gray-900">{etablissement.nom || 'Non renseigné'}</h3>
+                  <h3 class="text-xl font-medium text-gray-900">{etablissement.nom || 'Non renseigné'}</h3>
                   <p class="text-sm text-gray-500 mt-1">
                     {typeLabels[etablissement.type_etablissement] || etablissement.type_etablissement || 'Non renseigné'}
                   </p>
@@ -1170,7 +1170,7 @@
           </div>
 
           <!-- Présentation & Contact -->
-          <div class="bg-white shadow rounded-lg overflow-hidden mb-4">
+          <div class="bg-white rounded-[2rem] overflow-hidden mb-4">
             <div class="px-5 py-4 border-b border-gray-200 bg-gray-50">
               <h2 class="text-sm font-semibold text-gray-700">Présentation & Contact</h2>
             </div>
@@ -1216,19 +1216,19 @@
 
           <!-- Statistiques -->
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
-            <div class="bg-white shadow rounded-lg p-4 text-center">
+            <div class="bg-white rounded-[2rem] p-4 text-center">
               <p class="text-xl font-bold text-blue-600">{etablissement.stats?.total_eleves ?? 0}</p>
               <p class="text-xs text-gray-500">Élèves</p>
             </div>
-            <div class="bg-white shadow rounded-lg p-4 text-center">
+            <div class="bg-white rounded-[2rem] p-4 text-center">
               <p class="text-xl font-bold text-green-600">{etablissement.stats?.total_professeurs ?? 0}</p>
               <p class="text-xs text-gray-500">Professeurs</p>
             </div>
-            <div class="bg-white shadow rounded-lg p-4 text-center">
+            <div class="bg-white rounded-[2rem] p-4 text-center">
               <p class="text-xl font-bold text-purple-600">{etablissement.stats?.total_classes ?? 0}</p>
               <p class="text-xs text-gray-500">Classes</p>
             </div>
-            <div class="bg-white shadow rounded-lg p-4 text-center">
+            <div class="bg-white rounded-[2rem] p-4 text-center">
               <p class="text-xl font-bold text-yellow-600">{etablissement.stats?.total_matieres ?? 0}</p>
               <p class="text-xs text-gray-500">Matières</p>
             </div>
@@ -1236,7 +1236,7 @@
 
           <!-- Années scolaires -->
           {#if etablissement.annees_scolaires?.length}
-            <div class="bg-white shadow rounded-lg overflow-hidden mb-4">
+            <div class="bg-white rounded-[2rem] overflow-hidden mb-4">
               <div class="px-5 py-4 border-b border-gray-200 bg-gray-50">
                 <h2 class="text-sm font-semibold text-gray-700">Années scolaires</h2>
               </div>
@@ -1259,7 +1259,7 @@
           <!-- Classes & Matières -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             {#if etablissement.classes?.length}
-              <div class="bg-white shadow rounded-lg overflow-hidden">
+              <div class="bg-white rounded-[2rem] overflow-hidden">
                 <div class="px-5 py-4 border-b border-gray-200 bg-gray-50">
                   <h3 class="text-sm font-semibold text-gray-700">Classes</h3>
                 </div>
@@ -1275,7 +1275,7 @@
             {/if}
             
             {#if etablissement.matieres?.length}
-              <div class="bg-white shadow rounded-lg overflow-hidden">
+              <div class="bg-white rounded-[2rem] overflow-hidden">
                 <div class="px-5 py-4 border-b border-gray-200 bg-gray-50">
                   <h3 class="text-sm font-semibold text-gray-700">Matières</h3>
                 </div>

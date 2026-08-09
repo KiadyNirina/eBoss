@@ -2,7 +2,7 @@
   import Icon from '@iconify/svelte';
 </script>
 
-<section class="relative bg-gradient-to-br from-green-50 to-emerald-50 overflow-hidden h-screen">
+<section class="relative overflow-hidden h-screen">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-full flex items-center">
     <!-- Two-column layout -->
     <div class="grid md:grid-cols-2 gap-8 items-center w-full">
@@ -20,10 +20,10 @@
         </p>
         
         <div class="mt-8 flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
-          <a href="/login" class="px-8 py-4 border border-transparent text-lg font-medium rounded-full text-white bg-[#20784d] hover:from-green-700 hover:to-emerald-600 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+          <a href="/login" class="px-8 py-4 border border-transparent text-lg font-medium rounded-full text-white bg-[#20784d] hover:from-green-700 hover:to-emerald-600 transition-all duration-300 transform hover:-translate-y-1">
             Commencer maintenant
           </a>
-          <a href="#features" class="px-8 py-4 border border-gray-300 text-lg font-medium rounded-full bg-white text-gray-700 hover:bg-gray-50 shadow hover:shadow-md transition-all duration-300 flex items-center justify-center">
+          <a href="#features" class="px-8 py-4 border border-gray-300 text-lg font-medium rounded-full bg-white text-gray-700 hover:border-green-600 transition-all duration-300 flex items-center justify-center">
             <Icon icon="mdi:play-circle-outline" class="mr-2" />
             Voir les fonctionnalités
           </a>

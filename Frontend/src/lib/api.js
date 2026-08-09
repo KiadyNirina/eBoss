@@ -220,12 +220,43 @@ async function registerPublic(endpoint, data) {
     return result;
 }
 
+async function login(username, password) {
+    const response = await fetch(`${API_BASE_URL}/token/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+    });
+
+    let data = {};
+
+    try {
+        data = await response.json();
+    } catch {
+        throw new Error(`Erreur ${response.status}: ${response.statusText}`);
+    }
+
+    if (!response.ok) {
+        const error = new Error(
+            data.detail || formatDjangoError(data) || 'Erreur de connexion'
+        );
+
+        error.response = {
+            status: response.status,
+            data,
+            statusText: response.statusText,
+        };
+
+        throw error;
+    }
+
+    return data;
+}
+
 export const authApi = {
     // Authentification
-    login: (username, password) => fetchWithAuth('/token/', {
-        method: 'POST',
-        body: JSON.stringify({ username, password }),
-    }).then(response => response.json()),
+    login: login,
 
     refreshToken: () => {
         const refreshToken = browser ? localStorage.getItem('refresh_token') : null;
@@ -485,6 +516,46 @@ export const authApi = {
     deleteProfesseur: (id) => fetchWithAuth(`/api/professeurs/${id}/`, {
         method: 'DELETE',
     }).then(() => ({ message: 'Professeur supprimé' })),
+
+    
+    getPeriodes: (filters = {}) => {
+        const query = new URLSearchParams(filters).toString();
+        return fetchWithAuth(`/api/periodes/?${query}`).then(res => res.json());
+    },
+
+    getEvaluations: (filters = {}) => {
+        const query = new URLSearchParams(filters).toString();
+        return fetchWithAuth(`/api/evaluations/?${query}`).then(res => res.json());
+    },
+
+    getEvaluationDetail: (id) => fetchWithAuth(`/api/evaluations/${id}/`).then(res => res.json()),
+
+    createEvaluation: (data) => fetchWithAuth('/api/evaluations/', {
+        method: 'POST',
+        body: JSON.stringify(data),
+    }).then(res => res.json()),
+
+    updateEvaluation: (id, data) => fetchWithAuth(`/api/evaluations/${id}/`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+    }).then(res => res.json()),
+
+    deleteEvaluation: (id) => fetchWithAuth(`/api/evaluations/${id}/`, {
+        method: 'DELETE',
+    }).then(() => ({ message: 'Évaluation supprimée' })),
+
+    manageNotes: (evaluationId, notes) => fetchWithAuth(`/api/evaluations/${evaluationId}/manage_notes/`, {
+        method: 'POST',
+        body: JSON.stringify({ notes }),
+    }).then(res => res.json()),
+
+    publishEvaluation: (id) => fetchWithAuth(`/api/evaluations/${id}/publier/`, {
+        method: 'POST',
+    }).then(res => res.json()),
+
+    unpublishEvaluation: (id) => fetchWithAuth(`/api/evaluations/${id}/brouillon/`, {
+        method: 'POST',
+    }).then(res => res.json()),
 };
 
 export const authStore = {
