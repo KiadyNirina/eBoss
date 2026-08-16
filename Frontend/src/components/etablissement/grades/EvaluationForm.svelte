@@ -92,14 +92,14 @@
       <div class="sm:col-span-2">
         <label class="block text-sm font-medium text-gray-700">Nom de l'évaluation *</label>
         <input type="text" bind:value={form.nom} required
-               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm">
+               class="p-2 mt-1 block w-full rounded-md border border-gray-300 focus:border-green-500 focus:ring-green-500 sm:text-sm">
       </div>
 
       <!-- Matière -->
       <div>
         <label class="block text-sm font-medium text-gray-700">Matière *</label>
         <select bind:value={form.matiere} required
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm">
+                class="p-2 mt-1 block w-full rounded-md border border-gray-300 focus:border-green-500 focus:ring-green-500 sm:text-sm">
           <option value="">Sélectionner</option>
           {#each subjectOptions as option}
             <option value={option.value}>{option.label}</option>
@@ -111,7 +111,7 @@
       <div>
         <label class="block text-sm font-medium text-gray-700">Classe *</label>
         <select bind:value={form.classe} required
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm">
+                class="p-2 mt-1 block w-full rounded-md border border-gray-300 focus:border-green-500 focus:ring-green-500 sm:text-sm">
           <option value="">Sélectionner</option>
           {#each classOptions as option}
             <option value={option.value}>{option.label}</option>
@@ -123,7 +123,7 @@
       <div>
         <label class="block text-sm font-medium text-gray-700">Professeur *</label>
         <select bind:value={form.professeur} required
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm">
+                class="p-2 mt-1 block w-full rounded-md border border-gray-300 focus:border-green-500 focus:ring-green-500 sm:text-sm">
           <option value="">Sélectionner</option>
           {#each professeurOptions as option}
             <option value={option.value}>{option.label}</option>
@@ -135,7 +135,7 @@
       <div>
         <label class="block text-sm font-medium text-gray-700">Période</label>
         <select bind:value={form.periode}
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm">
+                class="p-2 mt-1 block w-full rounded-md border border-gray-300 focus:border-green-500 focus:ring-green-500 sm:text-sm">
           <option value="">Aucune</option>
           {#each periodOptions as option}
             <option value={option.value}>{option.label}</option>
@@ -147,21 +147,21 @@
       <div>
         <label class="block text-sm font-medium text-gray-700">Date *</label>
         <input type="date" bind:value={form.date} required
-               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm">
+               class="p-2 mt-1 block w-full rounded-md border border-gray-300 focus:border-green-500 focus:ring-green-500 sm:text-sm">
       </div>
 
       <!-- Coefficient -->
       <div>
         <label class="block text-sm font-medium text-gray-700">Coefficient</label>
         <input type="number" step="0.1" min="0" bind:value={form.coefficient}
-               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm">
+               class="p-2 mt-1 block w-full rounded-md border border-gray-300 focus:border-green-500 focus:ring-green-500 sm:text-sm">
       </div>
 
       <!-- Type -->
       <div>
         <label class="block text-sm font-medium text-gray-700">Type</label>
         <select bind:value={form.type}
-                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm">
+                class="p-2 mt-1 block w-full rounded-md border border-gray-300 focus:border-green-500 focus:ring-green-500 sm:text-sm">
           <option value="controle">Contrôle</option>
           <option value="examen">Examen</option>
           <option value="devoir">Devoir maison</option>
@@ -174,14 +174,14 @@
       <div>
         <label class="block text-sm font-medium text-gray-700">Barème</label>
         <input type="number" step="0.01" min="0" bind:value={form.bareme}
-               class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm">
+               class="p-2 mt-1 block w-full rounded-md border border-gray-300 focus:border-green-500 focus:ring-green-500 sm:text-sm">
       </div>
 
       <!-- Description -->
       <div class="sm:col-span-2">
         <label class="block text-sm font-medium text-gray-700">Description</label>
         <textarea rows="3" bind:value={form.description}
-                  class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"></textarea>
+                  class="p-2 mt-1 block w-full rounded-md border border-gray-300 focus:border-green-500 focus:ring-green-500 sm:text-sm"></textarea>
       </div>
     </div>
   {/if}
