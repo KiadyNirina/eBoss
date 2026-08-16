@@ -7,6 +7,7 @@
   import GradeChart from './GradeChart.svelte';
   import { authApi } from '$lib/api';
   import { createEventDispatcher } from 'svelte';
+  import NoteForm from './NoteForm.svelte';
 
   const dispatch = createEventDispatcher();
   
@@ -15,6 +16,9 @@
   let loading = true;
   let error = null;
   let successMessage = null;
+
+  let editingNote = null;
+  let showNoteForm = false;
 
   // Options pour les filtres (chargées depuis l'API)
   let classOptions = [];
@@ -125,6 +129,35 @@
       await loadEvaluations();
     } catch (err) {
       error = err.message;
+      setTimeout(() => error = null, 5000);
+    }
+  }
+
+  function openNoteForm(note) {
+    editingNote = note;
+    showNoteForm = true;
+  }
+
+  function closeNoteForm() {
+    editingNote = null;
+    showNoteForm = false;
+  }
+
+  async function saveNote(updatedNote) {
+    if (!selectedEvaluation) return;
+    try {
+      await authApi.manageNotes(selectedEvaluation.id, [updatedNote]);
+      successMessage = 'Note mise à jour';
+      setTimeout(() => successMessage = null, 3000);
+      
+      const detail = await authApi.getEvaluationDetail(selectedEvaluation.id);
+      if (selectedEvaluation.id === detail.id) {
+        selectedEvaluation = { ...selectedEvaluation, notes: detail.notes };
+      }
+      
+      closeNoteForm();
+    } catch (err) {
+      error = err.message || 'Erreur lors de la mise à jour de la note';
       setTimeout(() => error = null, 5000);
     }
   }
@@ -240,9 +273,21 @@
   <div class="mt-6">
     {#if selectedEvaluation}
       <h3 class="text-lg font-medium text-gray-900 mb-4">Notes - {selectedEvaluation.nom}</h3>
-      <GradeTable evaluation={selectedEvaluation} />
+      <GradeTable evaluation={selectedEvaluation} on:editNote={(e) => openNoteForm(e.detail)} />
     {:else}
       <p class="text-gray-500">Sélectionnez une évaluation pour voir les notes</p>
     {/if}
   </div>
 </div>
+
+{#if showNoteForm && editingNote}
+  <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-500 bg-opacity-75 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
+      <NoteForm 
+        note={editingNote} 
+        on:save={(e) => saveNote(e.detail)} 
+        on:cancel={closeNoteForm}
+      />
+    </div>
+  </div>
+{/if}
