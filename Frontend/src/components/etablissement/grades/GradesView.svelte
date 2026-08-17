@@ -8,6 +8,7 @@
   import { authApi } from '$lib/api';
   import { createEventDispatcher } from 'svelte';
   import NoteForm from './NoteForm.svelte';
+  import NotesManager from './NotesManager.svelte';
 
   const dispatch = createEventDispatcher();
   
@@ -19,6 +20,7 @@
 
   let editingNote = null;
   let showNoteForm = false;
+  let showNotesManager = false;
 
   // Options pour les filtres (chargées depuis l'API)
   let classOptions = [];
@@ -161,6 +163,29 @@
       setTimeout(() => error = null, 5000);
     }
   }
+
+  function openNotesManager() {
+    if (selectedEvaluation) {
+      showNotesManager = true;
+    }
+  }
+
+  function closeNotesManager() {
+    showNotesManager = false;
+  }
+
+  function handleNotesSaved(result) {
+    successMessage = 'Notes enregistrées avec succès';
+    setTimeout(() => successMessage = null, 3000);
+    closeNotesManager();
+    if (selectedEvaluation) {
+      authApi.getEvaluationDetail(selectedEvaluation.id)
+        .then(detail => {
+          selectedEvaluation = { ...selectedEvaluation, notes: detail.notes };
+        })
+        .catch(err => console.error(err));
+    }
+  }
 </script>
 
 <div>
@@ -272,13 +297,34 @@
   <!-- Tableau des notes -->
   <div class="mt-6">
     {#if selectedEvaluation}
-      <h3 class="text-lg font-medium text-gray-900 mb-4">Notes - {selectedEvaluation.nom}</h3>
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-medium text-gray-900">Notes - {selectedEvaluation.nom}</h3>
+        <button 
+          on:click={openNotesManager}
+          class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
+        >
+          <Icon icon="heroicons:pencil-square" class="-ml-1 mr-2 h-5 w-5" />
+          Saisir / Modifier les notes
+        </button>
+      </div>
       <GradeTable evaluation={selectedEvaluation} on:editNote={(e) => openNoteForm(e.detail)} />
     {:else}
       <p class="text-gray-500">Sélectionnez une évaluation pour voir les notes</p>
     {/if}
   </div>
 </div>
+
+{#if showNotesManager && selectedEvaluation}
+  <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-500 bg-opacity-75 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full p-6">
+      <NotesManager 
+        evaluation={selectedEvaluation}
+        on:saved={handleNotesSaved}
+        on:cancel={closeNotesManager}
+      />
+    </div>
+  </div>
+{/if}
 
 {#if showNoteForm && editingNote}
   <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-500 bg-opacity-75 flex items-center justify-center p-4">
