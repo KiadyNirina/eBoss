@@ -277,14 +277,14 @@
                   <div class="flex items-center space-x-2">
                     <button 
                       on:click|stopPropagation={() => togglePublish(evalu)}
-                      class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                             {evalu.statut === 'publie' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                      class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full cursor-pointer hover:scale-105 transition
+                             {evalu.statut === 'publie' ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'}">
                       {evalu.statut === 'publie' ? 'Publié' : 'Brouillon'}
                     </button>
                     <p class="text-sm text-gray-500">{evalu.date}</p>
                     <button 
                       on:click|stopPropagation={() => deleteEvaluation(evalu.id)}
-                      class="text-red-400 hover:text-red-600">
+                      class="text-red-400 hover:text-red-600 cursor-pointer p-1 rounded-full hover:bg-red-100 transition">
                       <Icon icon="heroicons:trash" class="h-4 w-4" />
                     </button>
                     <Icon icon="heroicons:chevron-right" class="h-5 w-5 text-gray-400" />
