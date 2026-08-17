@@ -8,12 +8,23 @@
   let chartRef;
 
   $: notes = evaluation?.notes || [];
+  $: validNotes = notes.filter(n => !n.absent && n.note != null);
+  $: hasData = validNotes.length > 0;
 
   function updateChart() {
-    if (!chartRef || !notes.length) return;
+    if (!chartRef) return;
+
+    if (!hasData) {
+      if (chart) {
+        chart.destroy();
+        chart = null;
+      }
+      return;
+    }
+
     if (chart) chart.destroy();
 
-    const noteValues = notes.filter(n => !n.absent && n.note != null).map(n => n.note);
+    const noteValues = validNotes.map(n => n.note);
     const noteGroups = {
       '0-5': noteValues.filter(n => n >= 0 && n < 5).length,
       '5-10': noteValues.filter(n => n >= 5 && n < 10).length,
@@ -57,10 +68,21 @@
     return () => { if (chart) chart.destroy(); };
   });
 
-  $: if (evaluation) updateChart();
+  $: if (evaluation || hasData) {
+    updateChart();
+  }
 </script>
 
 <div class="bg-white p-4 shadow-sm border border-gray-200 rounded-lg">
   <h3 class="text-sm font-medium text-gray-900 mb-4">Répartition des notes</h3>
-  <canvas bind:this={chartRef}></canvas>
+
+  <div class:hidden={!hasData}>
+    <canvas bind:this={chartRef}></canvas>
+  </div>
+
+  {#if !hasData}
+    <p class="text-gray-500 text-sm text-center py-8">
+      Aucune note disponible
+    </p>
+  {/if}
 </div>
