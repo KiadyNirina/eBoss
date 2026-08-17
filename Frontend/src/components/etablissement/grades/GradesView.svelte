@@ -33,6 +33,8 @@
     periode: ''
   };
 
+  let evaluationToDelete = null;
+
   // Chargement initial
   onMount(async () => {
     await loadFilterOptions();
@@ -109,9 +111,18 @@
     dispatch('open');
   }
 
-  // Supprimer une évaluation
-  async function deleteEvaluation(id) {
-    if (!confirm('Supprimer cette évaluation ?')) return;
+  function requestDelete(evaluation) {
+    evaluationToDelete = evaluation;
+  }
+
+  function cancelDelete() {
+    evaluationToDelete = null;
+  }
+
+  async function confirmDelete() {
+    if (!evaluationToDelete) return;
+    const id = evaluationToDelete.id;
+    evaluationToDelete = null;
     try {
       await authApi.deleteEvaluation(id);
       successMessage = 'Évaluation supprimée';
@@ -283,7 +294,7 @@
                     </button>
                     <p class="text-sm text-gray-500">{evalu.date}</p>
                     <button 
-                      on:click|stopPropagation={() => deleteEvaluation(evalu.id)}
+                      on:click|stopPropagation={() => requestDelete(evalu)}
                       class="text-red-400 hover:text-red-600 cursor-pointer p-1 rounded-full hover:bg-red-100 transition">
                       <Icon icon="heroicons:trash" class="h-4 w-4" />
                     </button>
@@ -296,6 +307,56 @@
         {/if}
       </div>
     </div>
+
+    {#if evaluationToDelete}
+      <!-- Overlay -->
+      <div
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+        on:click={cancelDelete}
+        role="presentation"
+      >
+        <!-- Panneau de la modale -->
+        <div
+          class="bg-white rounded-lg shadow-xl max-w-md w-full p-6"
+          on:click|stopPropagation
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="modal-title"
+          aria-describedby="modal-description"
+        >
+          <div class="flex items-start">
+            <div class="flex-shrink-0 bg-red-100 rounded-full p-3">
+              <Icon icon="heroicons:exclamation-triangle" class="h-6 w-6 text-red-600" />
+            </div>
+            <div class="ml-4">
+              <h3 id="modal-title" class="text-lg font-medium text-gray-900">
+                Supprimer l'évaluation
+              </h3>
+              <p id="modal-description" class="mt-2 text-sm text-gray-500">
+                Êtes-vous sûr de vouloir supprimer « {evaluationToDelete.nom} » ? Cette action est irréversible.
+              </p>
+            </div>
+          </div>
+          <div class="mt-6 flex justify-end space-x-3">
+            <button
+              type="button"
+              on:click={cancelDelete}
+              class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              on:click={confirmDelete}
+              class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+            >
+              <Icon icon="heroicons:trash" class="-ml-1 mr-2 h-5 w-5" />
+              Supprimer
+            </button>
+          </div>
+        </div>
+      </div>
+    {/if}
   </div>
   
   <!-- Tableau des notes -->
