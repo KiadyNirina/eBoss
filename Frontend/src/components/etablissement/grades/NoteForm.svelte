@@ -60,7 +60,7 @@
       max="20" 
       bind:value={form.note}
       disabled={form.absent}
-      class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm disabled:bg-gray-100"
+      class="p-2 mt-1 block w-full rounded-md border border-gray-300 focus:border-green-500 focus:ring-green-500 sm:text-sm disabled:bg-gray-100"
     >
   </div>
 
@@ -69,7 +69,7 @@
     <textarea 
       rows="3" 
       bind:value={form.appreciation}
-      class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 sm:text-sm"
+      class="p-2 mt-1 block w-full rounded-md border border-gray-300 focus:border-green-500 focus:ring-green-500 sm:text-sm"
     ></textarea>
   </div>
 
