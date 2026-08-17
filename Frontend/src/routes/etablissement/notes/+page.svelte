@@ -3,7 +3,7 @@
   import EvaluationForm from '../../../components/etablissement/grades/EvaluationForm.svelte';
 
   let showForm = false;
-  let refreshKey = 0;
+  let gradesViewInstance;
 
   function handleOpen() {
     showForm = true;
@@ -11,7 +11,7 @@
 
   function handleCreated() {
     showForm = false;
-    refreshKey++;
+    gradesViewInstance?.refresh();
   }
 
   function handleCancel() {
@@ -19,7 +19,7 @@
   }
 </script>
 
-<GradesView key={refreshKey} on:open={handleOpen} />
+<GradesView bind:this={gradesViewInstance} on:open={handleOpen} />
 
 {#if showForm}
   <!-- Modale -->

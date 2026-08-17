@@ -39,6 +39,10 @@
     await loadEvaluations();
   });
 
+  export function refresh() {
+    loadEvaluations();
+  }
+
   async function loadFilterOptions() {
     try {
       // Récupérer les classes, matières et périodes pour l'établissement connecté
