@@ -7,6 +7,8 @@
   import GradeChart from './GradeChart.svelte';
   import { authApi } from '$lib/api';
   import { createEventDispatcher } from 'svelte';
+  import NoteForm from './NoteForm.svelte';
+  import NotesManager from './NotesManager.svelte';
 
   const dispatch = createEventDispatcher();
   
@@ -15,6 +17,10 @@
   let loading = true;
   let error = null;
   let successMessage = null;
+
+  let editingNote = null;
+  let showNoteForm = false;
+  let showNotesManager = false;
 
   // Options pour les filtres (chargées depuis l'API)
   let classOptions = [];
@@ -27,11 +33,17 @@
     periode: ''
   };
 
+  let evaluationToDelete = null;
+
   // Chargement initial
   onMount(async () => {
     await loadFilterOptions();
     await loadEvaluations();
   });
+
+  export function refresh() {
+    loadEvaluations();
+  }
 
   async function loadFilterOptions() {
     try {
@@ -99,9 +111,18 @@
     dispatch('open');
   }
 
-  // Supprimer une évaluation
-  async function deleteEvaluation(id) {
-    if (!confirm('Supprimer cette évaluation ?')) return;
+  function requestDelete(evaluation) {
+    evaluationToDelete = evaluation;
+  }
+
+  function cancelDelete() {
+    evaluationToDelete = null;
+  }
+
+  async function confirmDelete() {
+    if (!evaluationToDelete) return;
+    const id = evaluationToDelete.id;
+    evaluationToDelete = null;
     try {
       await authApi.deleteEvaluation(id);
       successMessage = 'Évaluation supprimée';
@@ -126,6 +147,58 @@
     } catch (err) {
       error = err.message;
       setTimeout(() => error = null, 5000);
+    }
+  }
+
+  function openNoteForm(note) {
+    editingNote = note;
+    showNoteForm = true;
+  }
+
+  function closeNoteForm() {
+    editingNote = null;
+    showNoteForm = false;
+  }
+
+  async function saveNote(updatedNote) {
+    if (!selectedEvaluation) return;
+    try {
+      await authApi.manageNotes(selectedEvaluation.id, [updatedNote]);
+      successMessage = 'Note mise à jour';
+      setTimeout(() => successMessage = null, 3000);
+      
+      const detail = await authApi.getEvaluationDetail(selectedEvaluation.id);
+      if (selectedEvaluation.id === detail.id) {
+        selectedEvaluation = { ...selectedEvaluation, notes: detail.notes };
+      }
+      
+      closeNoteForm();
+    } catch (err) {
+      error = err.message || 'Erreur lors de la mise à jour de la note';
+      setTimeout(() => error = null, 5000);
+    }
+  }
+
+  function openNotesManager() {
+    if (selectedEvaluation) {
+      showNotesManager = true;
+    }
+  }
+
+  function closeNotesManager() {
+    showNotesManager = false;
+  }
+
+  function handleNotesSaved(result) {
+    successMessage = 'Notes enregistrées avec succès';
+    setTimeout(() => successMessage = null, 3000);
+    closeNotesManager();
+    if (selectedEvaluation) {
+      authApi.getEvaluationDetail(selectedEvaluation.id)
+        .then(detail => {
+          selectedEvaluation = { ...selectedEvaluation, notes: detail.notes };
+        })
+        .catch(err => console.error(err));
     }
   }
 </script>
@@ -215,14 +288,14 @@
                   <div class="flex items-center space-x-2">
                     <button 
                       on:click|stopPropagation={() => togglePublish(evalu)}
-                      class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                             {evalu.statut === 'publie' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}">
+                      class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full cursor-pointer hover:scale-105 transition
+                             {evalu.statut === 'publie' ? 'bg-green-100 text-green-800 hover:bg-green-200' : 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'}">
                       {evalu.statut === 'publie' ? 'Publié' : 'Brouillon'}
                     </button>
                     <p class="text-sm text-gray-500">{evalu.date}</p>
                     <button 
-                      on:click|stopPropagation={() => deleteEvaluation(evalu.id)}
-                      class="text-red-400 hover:text-red-600">
+                      on:click|stopPropagation={() => requestDelete(evalu)}
+                      class="text-red-400 hover:text-red-600 cursor-pointer p-1 rounded-full hover:bg-red-100 transition">
                       <Icon icon="heroicons:trash" class="h-4 w-4" />
                     </button>
                     <Icon icon="heroicons:chevron-right" class="h-5 w-5 text-gray-400" />
@@ -234,15 +307,98 @@
         {/if}
       </div>
     </div>
+
+    {#if evaluationToDelete}
+      <!-- Overlay -->
+      <div
+        class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50"
+        on:click={cancelDelete}
+        role="presentation"
+      >
+        <!-- Panneau de la modale -->
+        <div
+          class="bg-white rounded-lg shadow-xl max-w-md w-full p-6"
+          on:click|stopPropagation
+          role="alertdialog"
+          aria-modal="true"
+          aria-labelledby="modal-title"
+          aria-describedby="modal-description"
+        >
+          <div class="flex items-start">
+            <div class="flex-shrink-0 bg-red-100 rounded-full p-3">
+              <Icon icon="heroicons:exclamation-triangle" class="h-6 w-6 text-red-600" />
+            </div>
+            <div class="ml-4">
+              <h3 id="modal-title" class="text-lg font-medium text-gray-900">
+                Supprimer l'évaluation
+              </h3>
+              <p id="modal-description" class="mt-2 text-sm text-gray-500">
+                Êtes-vous sûr de vouloir supprimer « {evaluationToDelete.nom} » ? Cette action est irréversible.
+              </p>
+            </div>
+          </div>
+          <div class="mt-6 flex justify-end space-x-3">
+            <button
+              type="button"
+              on:click={cancelDelete}
+              class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              on:click={confirmDelete}
+              class="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700"
+            >
+              <Icon icon="heroicons:trash" class="-ml-1 mr-2 h-5 w-5" />
+              Supprimer
+            </button>
+          </div>
+        </div>
+      </div>
+    {/if}
   </div>
   
   <!-- Tableau des notes -->
   <div class="mt-6">
     {#if selectedEvaluation}
-      <h3 class="text-lg font-medium text-gray-900 mb-4">Notes - {selectedEvaluation.nom}</h3>
-      <GradeTable evaluation={selectedEvaluation} />
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-lg font-medium text-gray-900">Notes - {selectedEvaluation.nom}</h3>
+        <button 
+          on:click={openNotesManager}
+          class="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700"
+        >
+          <Icon icon="heroicons:pencil-square" class="-ml-1 mr-2 h-5 w-5" />
+          Saisir / Modifier les notes
+        </button>
+      </div>
+      <GradeTable evaluation={selectedEvaluation} on:editNote={(e) => openNoteForm(e.detail)} />
     {:else}
       <p class="text-gray-500">Sélectionnez une évaluation pour voir les notes</p>
     {/if}
   </div>
 </div>
+
+{#if showNotesManager && selectedEvaluation}
+  <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-500 bg-opacity-75 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full p-6">
+      <NotesManager 
+        evaluation={selectedEvaluation}
+        on:saved={handleNotesSaved}
+        on:cancel={closeNotesManager}
+      />
+    </div>
+  </div>
+{/if}
+
+{#if showNoteForm && editingNote}
+  <div class="fixed inset-0 z-50 overflow-y-auto bg-gray-500 bg-opacity-75 flex items-center justify-center p-4">
+    <div class="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
+      <NoteForm 
+        note={editingNote} 
+        on:save={(e) => saveNote(e.detail)} 
+        on:cancel={closeNoteForm}
+      />
+    </div>
+  </div>
+{/if}

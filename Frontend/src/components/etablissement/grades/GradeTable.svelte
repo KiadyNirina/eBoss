@@ -1,5 +1,8 @@
 <script>
   import Icon from '@iconify/svelte';
+  import { createEventDispatcher } from 'svelte';
+  
+  const dispatch = createEventDispatcher();
   
   export let evaluation;
 
@@ -32,6 +35,13 @@
       </tr>
     </thead>
     <tbody class="bg-white divide-y divide-gray-200">
+    {#if notes.length === 0}
+      <tr>
+        <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+          Aucune note disponible pour cette évaluation.
+        </td>
+      </tr>
+    {:else}
       {#each notes as note}
         <tr class="hover:bg-gray-50">
           <td class="px-6 py-4 whitespace-nowrap">
@@ -79,6 +89,7 @@
           </td>
         </tr>
       {/each}
+    {/if}
     </tbody>
   </table>
 </div>
