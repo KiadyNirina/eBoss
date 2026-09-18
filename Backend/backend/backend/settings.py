@@ -12,6 +12,7 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 
 from pathlib import Path
 from datetime import timedelta
+import os
 
 SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(days=7),
@@ -58,9 +59,12 @@ CHANNEL_LAYERS = {
     "default": {
         "BACKEND": "channels_redis.core.RedisChannelLayer",
         "CONFIG": {
-            "hosts": [("127.0.0.1", 6379)],
+            "hosts": [(
+                os.getenv('REDIS_HOST', '127.0.0.1'),
+                int(os.getenv('REDIS_PORT', '6379'))
+            )],
         },
-    },
+    }
 }
 
 MIDDLEWARE = [
@@ -101,14 +105,13 @@ TEMPLATES = [
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-    #     'HOST': '/opt/lampp/var/mysql/mysql.sock',
-        'NAME': 'eboss_nez',
-        'USER': 'root',
-        'PASSWORD': 'root',
-        'HOST': 'localhost',
-        'PORT': 3306,
+        'NAME': os.getenv('DB_NAME', 'eboss_nez'),
+        'USER': os.getenv('DB_USER', 'root'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'root'),
+        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PORT': os.getenv('DB_PORT', '3306'),
         'OPTIONS': {
-            'init_command': "SET foreign_key_checks = 0;",
+            'init_command': 'SET foreign_key_checks = 0;',
         }
     }
     # 'default': {
@@ -174,7 +177,7 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-import os
+
 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 MEDIA_URL = '/media/'
