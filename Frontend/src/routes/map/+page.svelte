@@ -5,6 +5,7 @@
   import { goto } from '$app/navigation';
   import { browser } from '$app/environment';
   import { authApi } from '$lib/api';
+  import { distanceMeters, isDuplicate } from '$lib/utils/schools.js';
 
   import MapView from '../../components/etablissement/map/MapView.svelte';
   import EstablishmentList from '../../components/etablissement/map/EstablishmentList.svelte';
@@ -28,50 +29,105 @@
   let searchQuery = '';
   let filterType = 'all';
 
-  // Fonctions de chargement
-  async function loadEstablishments(filters = {}) {
+  // ---------------------------------------------------------------
+  // 1. Chargement silencieux des écoles INSCRITES (ton API)
+  // ---------------------------------------------------------------
+  async function fetchRegistered(filters = {}) {
+    const apiFilters = {
+      type: filters.type || filterType,
+      search: filters.search || searchQuery,
+    };
+
+    if (userLocation) {
+      apiFilters.lat = userLocation.lat;
+      apiFilters.lng = userLocation.lng;
+      apiFilters.radius = 50;
+      apiFilters.with_coords = true;
+    }
+
+    const data = await authApi.getEtablissements(apiFilters);
+    let list = data.results || data || [];
+    if (data.results) list = data.results;
+
+    return list.map(est => ({
+      id: est.id,
+      name: est.nom,
+      address: est.adresse,
+      lat: parseFloat(est.latitude),
+      lng: parseFloat(est.longitude),
+      type: est.type_etablissement,
+      phone: est.user?.telephone || 'Non disponible',
+      email: est.user?.email || 'Non disponible',
+      profileImage: est.user?.profile_image ? `${est.user.profile_image}` : null,
+      source: 'registered',
+      _raw: est,
+    }));
+  }
+
+  // ---------------------------------------------------------------
+  // 2. Chargement des écoles GOOGLE PLACES (via ton proxy Django)
+  // ---------------------------------------------------------------
+  async function loadGoogleSchools(lat, lng, radius = 3000) {
     try {
-      loading = true;
-      error = null;
+      const base = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const res = await fetch(
+        `${base}/school/api/nearby/?lat=${lat}&lng=${lng}&radius=${radius}`
+      );
+      if (!res.ok) return [];
+      const data = await res.json();
+      return data.results || [];
+    } catch (e) {
+      console.warn('Google Places indisponible:', e);
+      return [];
+    }
+  }
 
-      const apiFilters = {
-        type: filters.type || filterType,
-        search: filters.search || searchQuery,
-      };
+  // ---------------------------------------------------------------
+  // 3. Fusion des deux sources + dédoublonnage
+  // ---------------------------------------------------------------
+  async function loadAllEstablishments(filters = {}) {
+    loading = true;
+    error = null;
+    try {
+      // 3.1 — Écoles inscrites
+      const registered = await fetchRegistered(filters);
 
+      // 3.2 — Écoles Google (uniquement si on a la position)
+      let googleSchools = [];
       if (userLocation) {
-        apiFilters.lat = userLocation.lat;
-        apiFilters.lng = userLocation.lng;
-        apiFilters.radius = 50;
-        apiFilters.with_coords = true;
+        const raw = await loadGoogleSchools(userLocation.lat, userLocation.lng);
+        googleSchools = raw
+          .filter(g => !isDuplicate(g, registered))
+          .map(g => ({
+            ...g,
+            phone: 'Non disponible',
+            email: 'Non disponible',
+            profileImage: null,
+            type: 'school',
+            distance:
+              distanceMeters(userLocation.lat, userLocation.lng, g.lat, g.lng) /
+              1000,
+          }));
       }
 
-      const data = await authApi.getEtablissements(apiFilters);
-      let establishmentsData = data.results || data || [];
-      if (data.results) establishmentsData = data.results;
+      // 3.3 — Fusion + tri par distance
+      const all = [...registered, ...googleSchools];
 
-      establishments = establishmentsData.map(est => ({
-        id: est.id,
-        name: est.nom,
-        address: est.adresse,
-        lat: parseFloat(est.latitude),
-        lng: parseFloat(est.longitude),
-        type: est.type_etablissement,
-        phone: est.user?.telephone || 'Non disponible',
-        email: est.user?.email || 'Non disponible',
-        profileImage: est.user?.profile_image ? `${est.user.profile_image}` : null,
-        _raw: est
-      }));
-
+      // Calcul de distance pour les inscrits s'il manque
       if (userLocation) {
-        establishments = establishments.map(est => ({
-          ...est,
-          distance: calculateDistance(userLocation.lat, userLocation.lng, est.lat, est.lng)
-        }));
-        establishments.sort((a, b) => (a.distance || Infinity) - (b.distance || Infinity));
+        for (const e of all) {
+          if (e.distance == null && e.lat && e.lng) {
+            e.distance =
+              distanceMeters(userLocation.lat, userLocation.lng, e.lat, e.lng) /
+              1000;
+          }
+        }
       }
 
-      filteredEstablishments = establishments;
+      all.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+
+      establishments = all;
+      filteredEstablishments = all;
     } catch (err) {
       console.error('Erreur de chargement des établissements:', err);
       error = err.message || 'Erreur lors du chargement';
@@ -82,6 +138,9 @@
     }
   }
 
+  // ---------------------------------------------------------------
+  // 4. Utilitaires
+  // ---------------------------------------------------------------
   function calculateDistance(lat1, lng1, lat2, lng2) {
     if (!lat1 || !lng1 || !lat2 || !lng2) return null;
     const R = 6371;
@@ -97,6 +156,9 @@
     return R * c;
   }
 
+  // ---------------------------------------------------------------
+  // 5. Panneau profil (uniquement pour les inscrits)
+  // ---------------------------------------------------------------
   async function openProfilePanel(id) {
     selectedProfileId = id;
     showProfilePanel = true;
@@ -124,21 +186,23 @@
     goto('/');
   }
 
-  // Handlers pour les événements des composants enfants
+  // ---------------------------------------------------------------
+  // 6. Handlers
+  // ---------------------------------------------------------------
   function handleSearch(e) {
     searchQuery = e.detail;
-    filterEstablishments();
+    loadAllEstablishments({ type: filterType, search: searchQuery });
   }
 
   function handleFilter(e) {
     filterType = e.detail;
-    filterEstablishments();
+    loadAllEstablishments({ type: filterType, search: searchQuery });
   }
 
   function handleClear() {
     searchQuery = '';
     filterType = 'all';
-    loadEstablishments();
+    loadAllEstablishments();
   }
 
   function handleSelectFromList(e) {
@@ -150,10 +214,12 @@
   }
 
   function filterEstablishments() {
-    loadEstablishments({ type: filterType, search: searchQuery });
+    loadAllEstablishments({ type: filterType, search: searchQuery });
   }
 
-  // Attribution des fonctions globales pour les popups Leaflet
+  // ---------------------------------------------------------------
+  // 7. Fonctions globales pour les popups Leaflet
+  // ---------------------------------------------------------------
   if (browser) {
     window.openProfilePanel = openProfilePanel;
     window.selectEstablishment = (id) => mapView?.selectEstablishment(id);
@@ -161,37 +227,29 @@
     window.goToUserLocation = () => mapView?.goToUserLocation();
   }
 
-  // Initialisation
+  // ---------------------------------------------------------------
+  // 8. Initialisation
+  // ---------------------------------------------------------------
   onMount(async () => {
-    await loadEstablishments();
+    await loadAllEstablishments();
     await tick();
 
-    if (browser) {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (position) => {
-            userLocation = {
-              lat: position.coords.latitude,
-              lng: position.coords.longitude
-            };
-            locationFound = true;
-            setTimeout(() => {
-              loadEstablishments({
-                lat: userLocation.lat,
-                lng: userLocation.lng,
-                radius: 50
-              });
-            }, 200);
-          },
-          () => {
-            console.log('Géolocalisation non disponible ou refusée');
-            loadEstablishments();
-          },
-          { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-        );
-      } else {
-        loadEstablishments();
-      }
+    if (browser && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          userLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          };
+          locationFound = true;
+          setTimeout(() => loadAllEstablishments(), 200);
+        },
+        () => {
+          console.log('Géolocalisation non disponible ou refusée');
+          loadAllEstablishments();
+        },
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
     }
   });
 </script>
