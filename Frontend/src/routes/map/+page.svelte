@@ -31,6 +31,10 @@
   let sourceFilter = 'all';
   let selectedId = null;
 
+  const GOOGLE_CACHE_KEY = 'eboss_google_schools_cache';
+  const GOOGLE_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 heures
+  const GOOGLE_CACHE_RADIUS = 3000; // rayon utilisé pour la clé de cache
+
   // ---------------------------------------------------------------
   // 1. Chargement silencieux des écoles INSCRITES (ton API)
   // ---------------------------------------------------------------
@@ -67,9 +71,82 @@
   }
 
   // ---------------------------------------------------------------
+  // Cache local pour les résultats Google Places (24h)
+  // ---------------------------------------------------------------
+  function getCacheKey(lat, lng, radius) {
+    // Arrondi ~500m pour regrouper les positions proches
+    const roundedLat = Math.round(lat * 200) / 200;
+    const roundedLng = Math.round(lng * 200) / 200;
+    return `${roundedLat.toFixed(3)}_${roundedLng.toFixed(3)}_${radius}`;
+  }
+
+  function readGoogleCache(lat, lng, radius) {
+    if (!browser) return null;
+    try {
+      const raw = localStorage.getItem(GOOGLE_CACHE_KEY);
+      if (!raw) return null;
+      const store = JSON.parse(raw);
+      const key = getCacheKey(lat, lng, radius);
+      const entry = store[key];
+      if (!entry) return null;
+      if (Date.now() - entry.timestamp > GOOGLE_CACHE_TTL_MS) {
+        // Expiré → on nettoie
+        delete store[key];
+        localStorage.setItem(GOOGLE_CACHE_KEY, JSON.stringify(store));
+        return null;
+      }
+      return entry.data;
+    } catch (e) {
+      console.warn('Erreur lecture cache Google:', e);
+      return null;
+    }
+  }
+
+  function writeGoogleCache(lat, lng, radius, data) {
+    if (!browser) return;
+    try {
+      const raw = localStorage.getItem(GOOGLE_CACHE_KEY);
+      const store = raw ? JSON.parse(raw) : {};
+      const key = getCacheKey(lat, lng, radius);
+      store[key] = {
+        timestamp: Date.now(),
+        data,
+      };
+
+      // Nettoyage : on supprime les entrées expirées
+      const now = Date.now();
+      for (const k in store) {
+        if (now - store[k].timestamp > GOOGLE_CACHE_TTL_MS) {
+          delete store[k];
+        }
+      }
+
+      // Limite à 20 entrées max (FIFO)
+      const keys = Object.keys(store);
+      if (keys.length > 20) {
+        keys.sort((a, b) => store[a].timestamp - store[b].timestamp);
+        const toDelete = keys.slice(0, keys.length - 20);
+        for (const k of toDelete) delete store[k];
+      }
+
+      localStorage.setItem(GOOGLE_CACHE_KEY, JSON.stringify(store));
+    } catch (e) {
+      console.warn('Erreur écriture cache Google:', e);
+    }
+  }
+
+  // ---------------------------------------------------------------
   // 2. Chargement des écoles GOOGLE PLACES (via ton proxy Django)
   // ---------------------------------------------------------------
-  async function loadGoogleSchools(lat, lng, radius = 3000) {
+  async function loadGoogleSchools(lat, lng, radius = GOOGLE_CACHE_RADIUS) {
+    // 1. Vérifier le cache d'abord
+    const cached = readGoogleCache(lat, lng, radius);
+    if (cached) {
+      console.log('✅ Google Places : résultats depuis le cache');
+      return cached;
+    }
+
+    // 2. Sinon, appel API
     try {
       const base = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const res = await fetch(
@@ -77,11 +154,26 @@
       );
       if (!res.ok) return [];
       const data = await res.json();
-      return data.results || [];
+      const results = data.results || [];
+
+      // 3. Sauvegarder dans le cache
+      writeGoogleCache(lat, lng, radius, results);
+      console.log(`🌐 Google Places : ${results.length} résultats (depuis l'API)`);
+
+      return results;
     } catch (e) {
       console.warn('Google Places indisponible:', e);
-      return [];
+      // En cas d'erreur, on retombe sur un éventuel cache même expiré
+      return readGoogleCache(lat, lng, radius) || [];
     }
+  }
+
+  function clearGoogleCache() {
+    if (!browser) return;
+    try {
+      localStorage.removeItem(GOOGLE_CACHE_KEY);
+      console.log('🗑️ Cache Google vidé');
+    } catch (e) {}
   }
 
   // ---------------------------------------------------------------
@@ -240,6 +332,7 @@
   // 7. Fonctions globales pour les popups Leaflet
   // ---------------------------------------------------------------
   if (browser) {
+    window.clearGoogleCache = clearGoogleCache;
     window.openProfilePanel = openProfilePanel;
     window.selectEstablishment = (id) => mapView?.selectEstablishment(id);
     window.goToEstablishment = (id) => mapView?.goToEstablishment(id);
