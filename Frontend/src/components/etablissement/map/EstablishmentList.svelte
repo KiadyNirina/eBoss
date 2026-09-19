@@ -10,6 +10,8 @@
   export let filterType = 'all';
   export let loading = false;
 
+  export let selectedId = null;
+
   const dispatch = createEventDispatcher();
   const typeLabels = {
     ecole: 'École primaire',
@@ -30,8 +32,9 @@
     dispatch('clear');
   }
 
-  function handleSelect(id) {
-    dispatch('select', id);
+  function handleSelect(establishment) {
+    console.log('handleSelect appelé pour:', establishment.id);
+    dispatch('select', establishment.id);
   }
 
   function getEstablishmentDistance(establishment) {
@@ -42,6 +45,8 @@
     if (!lat || !lng) return null;
     return calculateDistance(userLocation.lat, userLocation.lng, lat, lng);
   }
+
+  $: console.log('selectedId reçu:', selectedId);
 </script>
 
 <div class="w-full h-full flex flex-col bg-white shadow-2xl">
@@ -112,6 +117,9 @@
 
     <div class="text-sm text-gray-600 pt-1 font-medium">
       {establishments.length} établissement{establishments.length > 1 ? 's' : ''} trouvé{establishments.length > 1 ? 's' : ''}
+      <span class="text-xs text-gray-400 font-normal block mt-0.5">
+        🟢 Inscrits · ⚪ Google
+      </span>
     </div>
   </div>
 
@@ -132,11 +140,10 @@
     {:else}
       {#each establishments as establishment}
         <div
-          class="bg-white p-4 rounded-[2rem] border border-gray-200 hover:border-green-600 cursor-pointer transition-all duration-200 group relative overflow-hidden"
-          on:click={() => handleSelect(establishment.id)}
+          class="p-4 rounded-[2rem] border cursor-pointer transition-all duration-200 group relative overflow-hidden {selectedId != null && String(establishment.id) === String(selectedId) ? 'bg-green-50 border-[#20784d] shadow-md ring-2 ring-[#20784d]/20' : 'bg-white border-gray-200 hover:border-green-600'}"
+          on:click={() => handleSelect(establishment)}
         >
-          <div class="absolute left-0 top-0 bottom-0 w-1 bg-transparent group-hover:bg-[#20784d] transition-colors"></div>
-
+          <div class="absolute left-0 top-0 bottom-0 w-1 transition-colors {selectedId != null && String(establishment.id) === String(selectedId) ? 'bg-[#20784d]' : 'bg-transparent group-hover:bg-[#20784d]'}"></div>
           <div class="flex items-start gap-3">
             {#if establishment.profileImage}
               <img
@@ -144,6 +151,10 @@
                 alt={establishment.name}
                 class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm shrink-0"
               />
+            {:else if establishment.source === 'google'}
+              <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                <Icon icon="heroicons:globe-alt" class="h-5 w-5 text-gray-500" />
+              </div>
             {:else}
               <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
                 <Icon icon="heroicons:building-office-2" class="h-5 w-5 text-green-600" />
@@ -151,17 +162,36 @@
             {/if}
 
             <div class="min-w-0 flex-1">
-              <h3 class="font-medium text-gray-900 group-hover:text-[#20784d] transition-colors line-clamp-1">{establishment.name}</h3>
+              <h3 class="font-medium transition-colors line-clamp-1 {selectedId != null && String(establishment.id) === String(selectedId) ? 'text-[#20784d]' : 'text-gray-900 group-hover:text-[#20784d]'}">
+                {establishment.name}
+              </h3>
               <p class="text-xs text-gray-500 mt-1 flex items-start gap-1">
                 <Icon icon="heroicons:map-pin" class="h-3.5 w-3.5 shrink-0 mt-0.5 text-gray-400" />
                 <span class="line-clamp-2">{establishment.address}</span>
               </p>
 
               <div class="flex flex-wrap items-center mt-3 gap-2">
-                <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
-                  {typeLabels[establishment.type] || establishment.type}
-                </span>
+                <!-- Badge source -->
+                {#if establishment.source === 'google'}
+                  <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 bg-gray-100 text-gray-600 rounded-full flex items-center gap-1">
+                    <Icon icon="heroicons:globe-alt" class="h-3 w-3" />
+                    Google
+                  </span>
+                {:else}
+                  <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 bg-[#20784d]/10 text-[#20784d] rounded-full flex items-center gap-1">
+                    <Icon icon="heroicons:check-badge" class="h-3 w-3" />
+                    Inscrit
+                  </span>
+                {/if}
 
+                <!-- Type (seulement pour les inscrits) -->
+                {#if establishment.source !== 'google'}
+                  <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
+                    {typeLabels[establishment.type] || establishment.type}
+                  </span>
+                {/if}
+
+                <!-- Distance -->
                 {#if userLocation}
                   <span class="text-xs font-medium text-[#20784d] bg-green-50 px-2 py-1 rounded-full flex items-center gap-1">
                     <Icon icon="heroicons:arrows-right-left" class="h-3 w-3" />
@@ -173,11 +203,8 @@
 
             <div class="shrink-0">
               <button
-                class="h-8 w-8 rounded-full bg-gray-50 flex items-center justify-center text-gray-400 group-hover:bg-[#20784d] group-hover:text-white transition-all shadow-sm"
-                on:click={(e) => {
-                  e.stopPropagation();
-                  handleSelect(establishment.id);
-                }}
+                class="h-8 w-8 rounded-full flex items-center justify-center transition-all shadow-sm {selectedId != null && String(establishment.id) === String(selectedId) ? 'bg-[#20784d] text-white' : 'bg-gray-50 text-gray-400 group-hover:bg-[#20784d] group-hover:text-white'}"
+                on:click={(e) => { e.stopPropagation(); handleSelect(establishment); }}
                 title="Voir sur la carte"
               >
                 <Icon icon="heroicons:chevron-right" class="h-4 w-4" />

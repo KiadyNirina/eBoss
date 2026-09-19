@@ -2,6 +2,10 @@
 <script>
   import { onMount, tick } from 'svelte';
   import { calculateDistance, formatDistance } from './mapUtils';
+  import { browser } from '$app/environment';
+  import { createEventDispatcher } from 'svelte';
+
+  const dispatch = createEventDispatcher();
 
   export let establishments = [];
   export let userLocation = null;
@@ -31,12 +35,20 @@
   // Expose les méthodes au parent via bind:this
   export function selectEstablishment(id) {
     if (!mapInitialized || !L) return;
-    const establishment = establishments.find(e => e.id === id);
+    const establishment = establishments.find(e => String(e.id) === String(id));
     if (!establishment || !establishment.lat || !establishment.lng) return;
-    map.setView([establishment.lat, establishment.lng], 16);
+
+    map.setView([establishment.lat, establishment.lng], 16, {
+      animate: true,
+      duration: 0.8
+    });
+
     markers.forEach(marker => {
       const latLng = marker.getLatLng();
-      if (latLng.lat === establishment.lat && latLng.lng === establishment.lng) {
+      if (
+        Math.abs(latLng.lat - establishment.lat) < 0.00001 &&
+        Math.abs(latLng.lng - establishment.lng) < 0.00001
+      ) {
         marker.openPopup();
       }
     });
@@ -44,12 +56,20 @@
 
   export function goToEstablishment(id) {
     if (!mapInitialized || !L) return;
-    const establishment = establishments.find(e => e.id === id);
+    const establishment = establishments.find(e => String(e.id) === String(id));
     if (!establishment || !establishment.lat || !establishment.lng) return;
-    map.setView([establishment.lat, establishment.lng], 15, { animate: true, duration: 1 });
+
+    map.setView([establishment.lat, establishment.lng], 15, {
+      animate: true,
+      duration: 1
+    });
+
     markers.forEach(marker => {
       const latLng = marker.getLatLng();
-      if (latLng.lat === establishment.lat && latLng.lng === establishment.lng) {
+      if (
+        Math.abs(latLng.lat - establishment.lat) < 0.00001 &&
+        Math.abs(latLng.lng - establishment.lng) < 0.00001
+      ) {
         setTimeout(() => marker.openPopup(), 500);
       }
     });
@@ -78,6 +98,10 @@
         map.invalidateSize();
         updateEdgeMarkers(establishments, userLocation);
       }, 300);
+    }
+    if (browser) {
+      window.addEventListener('map-deselect', () => {
+      });
     }
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -205,6 +229,10 @@
         icon: customIcon,
         riseOnHover: true
       }).addTo(map);
+
+      marker.on('click', () => {
+        lastMarkerClickTime = Date.now();
+      });
 
       marker.bindTooltip(tooltipContent, {
         permanent: false,
@@ -608,10 +636,17 @@
     legend.addTo(map);
   }
 
+  let lastMarkerClickTime = 0;
+
   function setupMapEvents() {
     if (!mapInitialized) return;
     map.on('moveend', () => updateEdgeMarkers(establishments, userLocation));
     map.on('zoomend', () => updateEdgeMarkers(establishments, userLocation));
+    map.on('click', () => {
+      // Si un marqueur a été cliqué récemment (popup ouvert), on ignore le clic sur la carte
+      if (Date.now() - lastMarkerClickTime < 200) return;
+      dispatch('deselect');
+    });
   }
 </script>
 

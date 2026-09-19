@@ -28,6 +28,7 @@
 
   let searchQuery = '';
   let filterType = 'all';
+  let selectedId = null;
 
   // ---------------------------------------------------------------
   // 1. Chargement silencieux des écoles INSCRITES (ton API)
@@ -206,6 +207,7 @@
   }
 
   function handleSelectFromList(e) {
+    selectedId = e.detail;
     mapView?.selectEstablishment(e.detail);
   }
 
@@ -264,6 +266,7 @@
     <EstablishmentList
       establishments={filteredEstablishments}
       userLocation={userLocation}
+      selectedId={selectedId}
       searchQuery={searchQuery}
       filterType={filterType}
       loading={loading}
@@ -282,6 +285,7 @@
       bind:this={mapView}
       establishments={filteredEstablishments}
       userLocation={userLocation}
+      on:deselect={() => { selectedId = null; }}
     />
 
     {#if loading}
