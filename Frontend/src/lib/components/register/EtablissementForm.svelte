@@ -58,6 +58,27 @@
 
   let lastTypeEtab = '';
 
+  // Année scolaire complète ?
+  $: anneeScolaireComplete = !!(
+    etablissementData.anneeScolaire.nom &&
+    etablissementData.anneeScolaire.date_debut &&
+    etablissementData.anneeScolaire.date_fin
+  );
+
+  // Étapes visibles : masque "Classes" si l'année scolaire n'est pas complète
+  $: visibleSteps = anneeScolaireComplete
+    ? steps
+    : steps.filter((s) => s.id !== 4);
+
+  // Si on est sur l'étape 4 et qu'elle devient invisible, on revient à l'étape 3
+  $: if (currentStep === 4 && !anneeScolaireComplete) {
+    currentStep = 3;
+  }
+
+  function getStepIndex(stepId) {
+    return visibleSteps.findIndex((s) => s.id === stepId);
+  }
+
   function setDefaultClasses(type) {
     switch (type) {
       case 'ecole':
@@ -109,17 +130,19 @@
   // Navigation entre étapes
   function nextStep() {
     errorMessage = '';
-    if (validateCurrentStep()) {
-      if (currentStep < steps.length) {
-        currentStep += 1;
-      }
+    if (!validateCurrentStep()) return;
+
+    const idx = getStepIndex(currentStep);
+    if (idx < visibleSteps.length - 1) {
+      currentStep = visibleSteps[idx + 1].id;
     }
   }
 
   function prevStep() {
     errorMessage = '';
-    if (currentStep > 1) {
-      currentStep -= 1;
+    const idx = getStepIndex(currentStep);
+    if (idx > 0) {
+      currentStep = visibleSteps[idx - 1].id;
     }
   }
 
@@ -160,38 +183,35 @@
         }
         return true;
 
-      case 3:
-        // Année scolaire optionnelle - si partiellement remplie, exiger tout
-        {
-          const hasAnnee =
-            etablissementData.anneeScolaire.nom ||
-            etablissementData.anneeScolaire.date_debut ||
-            etablissementData.anneeScolaire.date_fin;
-          if (hasAnnee) {
-            if (
-              !etablissementData.anneeScolaire.nom ||
-              !etablissementData.anneeScolaire.date_debut ||
-              !etablissementData.anneeScolaire.date_fin
-            ) {
-              errorMessage = 'Veuillez remplir tous les champs de l\'année scolaire ou laisser vide';
-              return false;
-            }
-          }
-        }
-        return true;
+      case 3: {
+        const hasAnnee =
+          etablissementData.anneeScolaire.nom ||
+          etablissementData.anneeScolaire.date_debut ||
+          etablissementData.anneeScolaire.date_fin;
 
-      case 4:
-        // Classes optionnelles - si une ligne est partiellement remplie, exiger nom + niveau
-        {
-          const hasIncomplete = etablissementData.classes.some(
-            (c) => (c.nom && !c.niveau) || (!c.nom && c.niveau)
-          );
-          if (hasIncomplete) {
-            errorMessage = 'Chaque classe doit avoir un nom et un niveau (ou être vide)';
+        if (hasAnnee) {
+          if (
+            !etablissementData.anneeScolaire.nom ||
+            !etablissementData.anneeScolaire.date_debut ||
+            !etablissementData.anneeScolaire.date_fin
+          ) {
+            errorMessage = 'Veuillez remplir tous les champs de l\'année scolaire ou laisser vide';
             return false;
           }
         }
         return true;
+      }
+
+      case 4: {
+        const hasIncomplete = etablissementData.classes.some(
+          (c) => (c.nom && !c.niveau) || (!c.nom && c.niveau)
+        );
+        if (hasIncomplete) {
+          errorMessage = 'Chaque classe doit avoir un nom et un niveau (ou être vide)';
+          return false;
+        }
+        return true;
+      }
 
       case 5:
         if (!etablissementData.password) {
@@ -369,10 +389,10 @@
     successMessage = '';
     geocodingStatus = '';
 
-    // Valider toutes les étapes avant soumission
+    // Valider toutes les étapes visibles avant soumission
     const savedStep = currentStep;
-    for (let i = 1; i <= steps.length; i++) {
-      currentStep = i;
+    for (const step of visibleSteps) {
+      currentStep = step.id;
       if (!validateCurrentStep()) {
         currentStep = savedStep;
         return;
@@ -437,13 +457,9 @@
         geocodingStatus = '⚠️ Établissement enregistré mais coordonnées non disponibles.';
       }
 
-      // Année scolaire : OPTIONNEL
-      const hasAnneeScolaire =
-        etablissementData.anneeScolaire.nom ||
-        etablissementData.anneeScolaire.date_debut ||
-        etablissementData.anneeScolaire.date_fin;
-
-      if (hasAnneeScolaire) {
+      // Année scolaire : OPTIONNEL (mais obligatoire pour créer des classes)
+      // On considère l'année complète uniquement si les 3 champs sont remplis
+      if (anneeScolaireComplete) {
         const anneeScolaire = await authApi.createAnneeScolaire({
           ...etablissementData.anneeScolaire,
           etablissement: etablissement.etablissement.id
@@ -482,7 +498,7 @@
 <!-- Indicateur de progression -->
 <div class="mb-8">
   <div class="flex items-center justify-between">
-    {#each steps as step, index}
+    {#each visibleSteps as step, index}
       <div class="flex items-center flex-1">
         <button
           type="button"
@@ -515,7 +531,7 @@
             {step.label}
           </span>
         </button>
-        {#if index < steps.length - 1}
+        {#if index < visibleSteps.length - 1}
           <div class={`flex-1 h-0.5 mx-2 transition-colors duration-300 ${
             currentStep > step.id ? 'bg-green-500' : 'bg-gray-200'
           }`}></div>
@@ -772,6 +788,13 @@
       <p class="text-sm text-gray-500">
         Vous pourrez configurer l'année scolaire plus tard depuis votre tableau de bord.
       </p>
+
+      {#if !anneeScolaireComplete && (etablissementData.anneeScolaire.nom || etablissementData.anneeScolaire.date_debut || etablissementData.anneeScolaire.date_fin)}
+        <div class="p-3 bg-blue-50 border border-blue-200 rounded-2xl text-xs text-blue-700">
+          💡 Complétez tous les champs de l'année scolaire pour pouvoir ajouter des classes à l'étape suivante.
+        </div>
+      {/if}
+
       <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
         <div>
           <label for="annee-nom" class="block text-sm font-medium text-gray-700">Nom (ex: 2023-2024)</label>
@@ -804,8 +827,8 @@
     </div>
   {/if}
 
-  <!-- ÉTAPE 4 : Classes (OPTIONNEL) -->
-  {#if currentStep === 4}
+  <!-- ÉTAPE 4 : Classes (OPTIONNEL, visible seulement si l'année scolaire est complète) -->
+  {#if currentStep === 4 && anneeScolaireComplete}
     <div class="space-y-6 animate-fadeIn">
       <div class="flex justify-between items-center mb-2">
         <div class="flex items-center gap-3">
@@ -921,7 +944,7 @@
 
   <!-- Navigation Suivant / Précédent -->
   <div class="mt-8 flex justify-between items-center gap-3">
-    {#if currentStep > 1}
+    {#if getStepIndex(currentStep) > 0}
       <button
         type="button"
         on:click={prevStep}
@@ -935,7 +958,7 @@
       <div></div>
     {/if}
 
-    {#if currentStep < steps.length}
+    {#if getStepIndex(currentStep) < visibleSteps.length - 1}
       <button
         type="button"
         on:click={nextStep}
