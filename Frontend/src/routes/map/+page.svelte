@@ -28,6 +28,7 @@
 
   let searchQuery = '';
   let filterType = 'all';
+  let sourceFilter = 'all';
   let selectedId = null;
 
   // ---------------------------------------------------------------
@@ -128,7 +129,7 @@
       all.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
 
       establishments = all;
-      filteredEstablishments = all;
+      applySourceFilter();
     } catch (err) {
       console.error('Erreur de chargement des établissements:', err);
       error = err.message || 'Erreur lors du chargement';
@@ -200,9 +201,25 @@
     loadAllEstablishments({ type: filterType, search: searchQuery });
   }
 
+  function handleFilterSource(e) {
+    sourceFilter = e.detail;
+    applySourceFilter();
+  }
+
+  function applySourceFilter() {
+    if (sourceFilter === 'all') {
+      filteredEstablishments = establishments;
+    } else {
+      filteredEstablishments = establishments.filter(
+        e => e.source === sourceFilter
+      );
+    }
+  }
+
   function handleClear() {
     searchQuery = '';
     filterType = 'all';
+    sourceFilter = 'all';
     loadAllEstablishments();
   }
 
@@ -269,9 +286,11 @@
       selectedId={selectedId}
       searchQuery={searchQuery}
       filterType={filterType}
+      sourceFilter={sourceFilter}  
       loading={loading}
       on:search={handleSearch}
       on:filter={handleFilter}
+      on:filterSource={handleFilterSource}
       on:clear={handleClear}
       on:select={handleSelectFromList}
       on:goToUserLocation={handleGoToUserLocation}

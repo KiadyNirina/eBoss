@@ -11,6 +11,11 @@
   export let loading = false;
 
   export let selectedId = null;
+  export let sourceFilter = 'all';
+
+  function handleSourceFilter(e) {
+    dispatch('filterSource', e.target.value);
+  }
 
   const dispatch = createEventDispatcher();
   const typeLabels = {
@@ -112,6 +117,33 @@
         title="Réinitialiser"
       >
         <Icon icon="heroicons:arrow-path" class="h-4 w-4" />
+      </button>
+    </div>
+
+    <!-- Filtre source -->
+    <div class="flex items-center gap-1 p-1 bg-white border border-gray-200 rounded-full">
+      <button
+        on:click={() => dispatch('filterSource', 'all')}
+        class="flex-1 text-xs font-medium px-3 py-1.5 rounded-full transition-all
+              {sourceFilter === 'all' ? 'bg-[#20784d] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}"
+      >
+        Tout
+      </button>
+      <button
+        on:click={() => dispatch('filterSource', 'registered')}
+        class="flex-1 text-xs font-medium px-3 py-1.5 rounded-full transition-all flex items-center justify-center gap-1
+              {sourceFilter === 'registered' ? 'bg-[#20784d] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}"
+      >
+        <span class="w-2 h-2 rounded-full bg-[#20784d]"></span>
+        Inscrits
+      </button>
+      <button
+        on:click={() => dispatch('filterSource', 'google')}
+        class="flex-1 text-xs font-medium px-3 py-1.5 rounded-full transition-all flex items-center justify-center gap-1
+              {sourceFilter === 'google' ? 'bg-[#20784d] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}"
+      >
+        <span class="w-2 h-2 rounded-full bg-gray-400"></span>
+        Google
       </button>
     </div>
 
