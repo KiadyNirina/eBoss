@@ -58,7 +58,22 @@
           break;
       }
     } catch (err) {
-      errorMessage = err.message || 'Erreur de connexion';
+      if (err?.response?.data) {
+        const data = err.response.data;
+
+        if (data.non_field_errors) {
+          errorMessage = Array.isArray(data.non_field_errors)
+            ? data.non_field_errors[0]
+            : data.non_field_errors;
+        } else if (data.detail) {
+          errorMessage = data.detail;
+        } else {
+          errorMessage = 'Erreur de connexion';
+        }
+      } else {
+        errorMessage = err?.message || 'Erreur de connexion';
+      }
+
       authStore.clearTokens();
     } finally {
       isLoading = false;
