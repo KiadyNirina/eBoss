@@ -1,4 +1,4 @@
-<!-- src/routes/signup/+page.svelte -->
+<!-- src/routes/register/+page.svelte -->
 <script>
   import Icon from '@iconify/svelte';
   import UserTypeSelector from '$lib/components/register/UserTypeSelector.svelte';
@@ -8,10 +8,10 @@
   import ParentForm from '$lib/components/register/ParentForm.svelte';
 
   const userTypes = [
-    { id: 'etablissement', label: 'Établissement', icon: 'heroicons:building-office-2', description: 'Créez et gérez votre établissement scolaire' },
-    { id: 'professeur', label: 'Professeur', icon: 'heroicons:academic-cap', description: 'Enseignez et gérez vos classes' },
-    { id: 'eleve', label: 'Élève', icon: 'heroicons:user', description: 'Accédez à vos cours et devoirs' },
-    { id: 'parent', label: 'Parent', icon: 'heroicons:users', description: 'Suivez la scolarité de vos enfants' }
+    { id: 'etablissement', label: 'Établissement', icon: 'heroicons:building-office-2', description: 'Créez et gérez votre établissement scolaire', available: true },
+    { id: 'professeur', label: 'Professeur', icon: 'heroicons:academic-cap', description: 'Enseignez et gérez vos classes', available: false },
+    { id: 'eleve', label: 'Élève', icon: 'heroicons:user', description: 'Accédez à vos cours et devoirs', available: false },
+    { id: 'parent', label: 'Parent', icon: 'heroicons:users', description: 'Suivez la scolarité de vos enfants', available: false }
   ];
 
   let selectedType = null;
@@ -31,6 +31,7 @@
 
   function goBack() {
     showForm = false;
+    selectedType = null;
   }
 
   function handleSuccess() {
@@ -92,7 +93,37 @@
           {:else if activeTab === 'eleve'}
             <EleveForm on:success={handleSuccess} />
           {:else}
-            <ParentForm on:success={handleSuccess} />
+            <!-- Message "pas encore disponible" pour les autres types -->
+            <div class="animate-fadeIn py-12">
+              <div class="flex flex-col items-center text-center">
+                <div class="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center mb-6">
+                  <Icon icon="heroicons:clock" class="h-10 w-10 text-green-600" />
+                </div>
+                <h3 class="text-xl font-medium text-gray-900 mb-3">
+                  Bientôt disponible
+                </h3>
+                <p class="text-sm text-gray-600 max-w-md">
+                  L'inscription pour le profil
+                  <span class="font-medium text-green-700">
+                    {userTypes.find((t) => t.id === activeTab)?.label}
+                  </span>
+                  n'est pas encore disponible. Nous travaillons activement pour vous l'offrir très prochainement.
+                </p>
+                <div class="mt-8 p-4 bg-gray-50 rounded-2xl border border-gray-200 max-w-md">
+                  <p class="text-xs text-gray-500">
+                    En attendant, vous pouvez créer un compte en tant qu'établissement.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  on:click={goBack}
+                  class="mt-6 inline-flex items-center px-6 py-2 bg-green-600 text-white rounded-full text-sm font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+                >
+                  <Icon icon="heroicons:arrow-left" class="h-4 w-4 mr-2" />
+                  Choisir un autre profil
+                </button>
+              </div>
+            </div>
           {/if}
         </div>
       {/if}
@@ -134,7 +165,22 @@
     }
   }
 
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
   .animate-slideIn {
     animation: slideIn 0.3s ease-out;
+  }
+
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-out;
   }
 </style>

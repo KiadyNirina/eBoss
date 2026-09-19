@@ -8,8 +8,10 @@
 
   const dispatch = createEventDispatcher();
 
-  function selectType(typeId) {
-    dispatch('select', typeId);
+  function selectType(type) {
+    // Ne rien faire si indisponible
+    if (type.available === false) return;
+    dispatch('select', type.id);
   }
 
   function goToForm() {
@@ -24,30 +26,42 @@
     {#each userTypes as type}
       <button
         type="button"
-        on:click={() => selectType(type.id)}
-        class={`p-6 rounded-[2rem] border-2 text-left transition-all duration-300 transform hover:scale-[1.02] ${
-          selectedType === type.id
-            ? 'border-green-500 bg-green-50'
-            : 'border-gray-200 hover:border-green-300 hover:bg-gray-50'
+        on:click={() => selectType(type)}
+        disabled={type.available === false}
+        class={`p-6 rounded-[2rem] border-2 text-left transition-all duration-300 ${
+          type.available === false
+            ? 'border-gray-200 bg-gray-50 opacity-70 cursor-not-allowed'
+            : selectedType === type.id
+              ? 'border-green-500 bg-green-50 transform hover:scale-[1.02]'
+              : 'border-gray-200 hover:border-green-300 hover:bg-gray-50 transform hover:scale-[1.02]'
         }`}
       >
         <div class="flex items-start gap-4">
           <div class={`p-3 rounded-full ${
-            selectedType === type.id
+            selectedType === type.id && type.available !== false
               ? 'bg-green-100 text-green-600'
               : 'bg-gray-100 text-gray-600'
           }`}>
             <Icon icon={type.icon} class="h-6 w-6" />
           </div>
           <div class="flex-1">
-            <h4 class={`font-medium ${
-              selectedType === type.id ? 'text-green-700' : 'text-gray-900'
-            }`}>
-              {type.label}
-            </h4>
+            <div class="flex items-center gap-2 flex-wrap">
+              <h4 class={`font-medium ${
+                selectedType === type.id && type.available !== false
+                  ? 'text-green-700'
+                  : 'text-gray-900'
+              }`}>
+                {type.label}
+              </h4>
+              {#if type.available === false}
+                <span class="text-xs text-gray-500 bg-gray-200 px-2 py-0.5 rounded-full">
+                  Bientôt
+                </span>
+              {/if}
+            </div>
             <p class="text-sm text-gray-500 mt-1">{type.description}</p>
           </div>
-          {#if selectedType === type.id}
+          {#if selectedType === type.id && type.available !== false}
             <div class="flex-shrink-0">
               <Icon icon="heroicons:check-circle-solid" class="h-6 w-6 text-green-500" />
             </div>
