@@ -29,4 +29,5 @@ urlpatterns = [
     path('api/', include(router.urls)),
     path('api/geocode/', geocode_proxy, name='geocode-proxy'),
     path('api/reverse-geocode/', reverse_geocode_proxy, name='reverse-geocode-proxy'),
+    path('api/nearby/', nearby_schools_proxy, name='nearby-schools'),
 ]

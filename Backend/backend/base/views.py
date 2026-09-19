@@ -33,6 +33,15 @@ from .models import *
 from django.views.decorators.csrf import csrf_exempt
 import requests
 import json
+import time
+from django.conf import settings
+import socket
+import urllib3.util.connection as urllib3_cn
+
+def _allowed_gai_family():
+    return socket.AF_INET
+
+urllib3_cn.allowed_gai_family = _allowed_gai_family
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer
@@ -121,6 +130,85 @@ def reverse_geocode_proxy(request):
     
     return JsonResponse({'error': 'Method not allowed'}, status=405)
 
+@csrf_exempt
+def nearby_schools_proxy(request):
+    """
+    Proxy Google Places Nearby Search (New API).
+    """
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+    lat = request.GET.get('lat')
+    lng = request.GET.get('lng')
+    radius = request.GET.get('radius', 2000)
+
+    if not lat or not lng:
+        return JsonResponse({'error': 'lat et lng requis'}, status=400)
+
+    api_key = getattr(settings, 'GOOGLE_MAPS_API_KEY', None)
+    if not api_key:
+        return JsonResponse({'error': 'Clé Google Maps non configurée'}, status=500)
+
+    try:
+        url = 'https://places.googleapis.com/v1/places:searchNearby'
+
+        payload = {
+            "includedTypes": ["school"],
+            "locationRestriction": {
+                "circle": {
+                    "center": {
+                        "latitude": float(lat),
+                        "longitude": float(lng)
+                    },
+                    "radius": float(radius)
+                }
+            },
+            "maxResultCount": 20,
+            "languageCode": "fr"
+        }
+
+        headers = {
+            'Content-Type': 'application/json',
+            'X-Goog-Api-Key': api_key,
+            'X-Goog-FieldMask': (
+                'places.id,places.displayName,places.formattedAddress,'
+                'places.location,places.rating,places.userRatingCount'
+            )
+        }
+
+        response = requests.post(url, json=payload, headers=headers, timeout=10)
+        data = response.json()
+
+        if 'error' in data:
+            return JsonResponse({
+                'error': data['error'].get('message', 'Erreur Google Places'),
+                'code': data['error'].get('code')
+            }, status=502)
+
+        schools = []
+        for place in data.get('places', []):
+            location = place.get('location', {})
+            schools.append({
+                'id': place.get('id'),
+                'name': place.get('displayName', {}).get('text', 'Sans nom'),
+                'address': place.get('formattedAddress', ''),
+                'lat': location.get('latitude'),
+                'lng': location.get('longitude'),
+                'rating': place.get('rating'),
+                'user_ratings_total': place.get('userRatingCount'),
+                'source': 'google',
+            })
+
+        return JsonResponse({
+            'count': len(schools),
+            'results': schools,
+            'center': {'lat': float(lat), 'lng': float(lng)},
+            'radius': float(radius),
+        })
+
+    except requests.exceptions.RequestException as e:
+        return JsonResponse({'error': str(e)}, status=500)
+    
 class EtablissementViewSet(viewsets.ModelViewSet):
     """
     ViewSet pour gérer les établissements avec géolocalisation
