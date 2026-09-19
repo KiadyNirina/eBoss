@@ -132,8 +132,9 @@
     establishmentsList.forEach((establishment, index) => {
       if (!establishment.lat || !establishment.lng) return;
 
-      const color = typeColors[establishment.type] || '#6b7280';
-      const typeLabel = typeLabels[establishment.type] || establishment.type;
+      const isGoogle = establishment.source === 'google';
+      const color = isGoogle ? '#9ca3af' : (typeColors[establishment.type] || '#6b7280');
+      const typeLabel = isGoogle ? 'École (Google)' : (typeLabels[establishment.type] || establishment.type);
       const delay = index * 0.2;
       const distance = establishment.distance || getEstablishmentDistance(establishment, userLocation);
       const distanceText = distance !== null ? formatDistance(distance) : 'Distance non disponible';
@@ -183,18 +184,20 @@
 
       const tooltipContent = `
         <div class="distance-tooltip">
-          <div class="font-bold text-[#20784d]">${establishment.name}</div>
+          <div class="font-bold ${isGoogle ? 'text-gray-700' : 'text-[#20784d]'}">${establishment.name}</div>
           <div class="text-sm text-gray-600">📍 ${establishment.address}</div>
           ${distance !== null ? `
             <div class="flex items-center gap-1 mt-1 text-sm">
               <span class="text-gray-500">📏 Distance:</span>
-              <span class="font-semibold text-[#20784d]">${distanceText}</span>
+              <span class="font-semibold ${isGoogle ? 'text-gray-700' : 'text-[#20784d]'}">${distanceText}</span>
               <span class="text-gray-400 text-xs">de vous</span>
             </div>
           ` : `
             <div class="text-xs text-gray-400 mt-1">📍 Localisez-vous pour voir la distance</div>
           `}
-          <div class="text-xs text-gray-400 mt-1">🏫 ${typeLabel}</div>
+          <div class="text-xs ${isGoogle ? 'text-gray-400' : 'text-gray-400'} mt-1">
+            ${isGoogle ? '🌐 Source : Google' : '🏫 ' + typeLabel}
+          </div>
         </div>
       `;
 
@@ -212,32 +215,63 @@
         interactive: true
       });
 
-      marker.bindPopup(`
-        <div class="p-2 max-w-xs">
-          <h3 class="font-bold text-[#20784d] text-lg">${establishment.name}</h3>
-          <p class="text-sm text-gray-600 mt-1">📍 ${establishment.address}</p>
-          <p class="text-sm text-gray-600">🏫 ${typeLabel}</p>
-          <p class="text-sm text-gray-600">📞 ${establishment.phone}</p>
-          <p class="text-sm text-gray-600">✉️ ${establishment.email}</p>
-          ${distance !== null ? `
-            <div class="mt-2 p-2 bg-green-50 rounded-md border border-green-200">
-              <p class="text-sm font-medium text-[#20784d]">📏 Distance: ${distanceText}</p>
+      if (isGoogle) {
+        // École Google → popup simplifiée + lien Google Maps
+        marker.bindPopup(`
+          <div class="p-3 max-w-xs">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">Google</span>
             </div>
-          ` : `
-            <div class="mt-2 p-2 bg-gray-50 rounded-md border border-gray-200">
-              <p class="text-sm text-gray-500">📏 Activez la géolocalisation pour voir la distance</p>
+            <h3 class="font-bold text-gray-800 text-base">${establishment.name}</h3>
+            <p class="text-sm text-gray-600 mt-1">📍 ${establishment.address}</p>
+            ${establishment.rating ? `
+              <p class="text-sm text-gray-600 mt-1">⭐ ${establishment.rating} (${establishment.user_ratings_total || 0} avis)</p>
+            ` : ''}
+            ${distance !== null ? `
+              <div class="mt-2 p-2 bg-gray-50 rounded-md border border-gray-200">
+                <p class="text-sm font-medium text-gray-700">📏 Distance: ${distanceText}</p>
+              </div>
+            ` : ''}
+            <a href="https://www.google.com/maps/place/?q=place_id:${establishment.id}"
+              target="_blank"
+              rel="noopener"
+              class="mt-3 block w-full text-center bg-white border border-gray-300 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors shadow-sm">
+              Voir sur Google Maps →
+            </a>
+          </div>
+        `);
+      } else {
+        // Établissement inscrit → popup complète
+        marker.bindPopup(`
+          <div class="p-2 max-w-xs">
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-[10px] bg-[#20784d]/10 text-[#20784d] px-2 py-0.5 rounded-full font-medium">Inscrit</span>
             </div>
-          `}
-          <button onclick="window.openProfilePanel(${establishment.id})"
-                  class="mt-2 w-full bg-white border border-[#20784d] text-[#20784d] px-3 py-2 rounded-lg text-sm font-medium hover:bg-green-50 transition-colors shadow-sm">
-            Voir le profil
-          </button>
-          <button onclick="window.selectEstablishment(${establishment.id})"
-                  class="mt-3 w-full bg-[#20784d] text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors shadow-sm">
-            Voir détails
-          </button>
-        </div>
-      `);
+            <h3 class="font-bold text-[#20784d] text-lg">${establishment.name}</h3>
+            <p class="text-sm text-gray-600 mt-1">📍 ${establishment.address}</p>
+            <p class="text-sm text-gray-600">🏫 ${typeLabel}</p>
+            <p class="text-sm text-gray-600">📞 ${establishment.phone}</p>
+            <p class="text-sm text-gray-600">✉️ ${establishment.email}</p>
+            ${distance !== null ? `
+              <div class="mt-2 p-2 bg-green-50 rounded-md border border-green-200">
+                <p class="text-sm font-medium text-[#20784d]">📏 Distance: ${distanceText}</p>
+              </div>
+            ` : `
+              <div class="mt-2 p-2 bg-gray-50 rounded-md border border-gray-200">
+                <p class="text-sm text-gray-500">📏 Activez la géolocalisation pour voir la distance</p>
+              </div>
+            `}
+            <button onclick="window.openProfilePanel(${establishment.id})"
+                    class="mt-2 w-full bg-white border border-[#20784d] text-[#20784d] px-3 py-2 rounded-lg text-sm font-medium hover:bg-green-50 transition-colors shadow-sm">
+              Voir le profil
+            </button>
+            <button onclick="window.selectEstablishment(${establishment.id})"
+                    class="mt-3 w-full bg-[#20784d] text-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors shadow-sm">
+              Voir détails
+            </button>
+          </div>
+        `);
+      }
 
       markers.push(marker);
     });
@@ -545,6 +579,16 @@
           <div class="flex items-center"><span class="inline-block w-3 h-3 rounded-full bg-orange-500 mr-3 shadow-sm"></span><span class="text-gray-600">Collège</span></div>
           <div class="flex items-center"><span class="inline-block w-3 h-3 rounded-full bg-red-500 mr-3 shadow-sm"></span><span class="text-gray-600">Lycée</span></div>
           <div class="flex items-center"><span class="inline-block w-3 h-3 rounded-full bg-purple-500 mr-3 shadow-sm"></span><span class="text-gray-600">Université</span></div>
+        </div>
+        <div class="mt-3 pt-3 border-t border-gray-100 space-y-2">
+          <div class="flex items-center">
+            <span class="inline-block w-3 h-3 rounded-full bg-[#20784d] mr-3 shadow-sm"></span>
+            <span class="text-xs text-gray-600">Inscrit sur la plateforme</span>
+          </div>
+          <div class="flex items-center">
+            <span class="inline-block w-3 h-3 rounded-full bg-gray-400 mr-3 shadow-sm"></span>
+            <span class="text-xs text-gray-600">Trouvé via Google</span>
+          </div>
         </div>
         <div class="mt-3 pt-3 border-t border-gray-100 space-y-2">
           <div class="flex items-center justify-between group">
