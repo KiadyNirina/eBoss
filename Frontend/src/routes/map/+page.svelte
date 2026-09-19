@@ -31,6 +31,8 @@
   let sourceFilter = 'all';
   let selectedId = null;
 
+  let loadingGoogle = false;
+
   const GOOGLE_CACHE_KEY = 'eboss_google_schools_cache';
   const GOOGLE_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 heures
   const GOOGLE_CACHE_RADIUS = 3000; // rayon utilisé pour la clé de cache
@@ -181,14 +183,20 @@
   // ---------------------------------------------------------------
   async function loadAllEstablishments(filters = {}) {
     loading = true;
+    loadingGoogle = false;
     error = null;
     try {
       // 3.1 — Écoles inscrites
       const registered = await fetchRegistered(filters);
+      // Dès que les inscrites sont là, on peut arrêter le "loading" global
+      establishments = registered;
+      filteredEstablishments = registered;
+      loading = false;
 
       // 3.2 — Écoles Google (uniquement si on a la position)
       let googleSchools = [];
       if (userLocation) {
+        loadingGoogle = true;
         const raw = await loadGoogleSchools(userLocation.lat, userLocation.lng);
         googleSchools = raw
           .filter(g => !isDuplicate(g, registered))
@@ -202,6 +210,7 @@
               distanceMeters(userLocation.lat, userLocation.lng, g.lat, g.lng) /
               1000,
           }));
+        loadingGoogle = false;
       }
 
       // 3.3 — Fusion + tri par distance
@@ -229,6 +238,7 @@
       filteredEstablishments = [];
     } finally {
       loading = false;
+      loadingGoogle = false;
     }
   }
 
@@ -381,6 +391,7 @@
       filterType={filterType}
       sourceFilter={sourceFilter}  
       loading={loading}
+      loadingGoogle={loadingGoogle}
       on:search={handleSearch}
       on:filter={handleFilter}
       on:filterSource={handleFilterSource}
@@ -400,7 +411,7 @@
       on:deselect={() => { selectedId = null; }}
     />
 
-    {#if loading}
+    {#if loading && filteredEstablishments.length === 0}
       <div class="absolute inset-0 flex flex-col items-center justify-center bg-white/90 backdrop-blur-sm z-10">
         <div class="relative">
           <div class="animate-spin rounded-full h-14 w-14 border-4 border-gray-100 border-t-[#20784d]"></div>

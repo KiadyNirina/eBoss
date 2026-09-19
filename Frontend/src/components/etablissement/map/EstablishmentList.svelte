@@ -10,6 +10,8 @@
   export let filterType = 'all';
   export let loading = false;
 
+  export let loadingGoogle = false;
+
   export let selectedId = null;
   export let sourceFilter = 'all';
 
@@ -158,8 +160,25 @@
   <!-- Liste des résultats -->
   <div class="flex-1 overflow-y-auto p-4 sm:p-5 bg-gray-50 space-y-3">
     {#if loading}
-      <div class="flex justify-center py-8">
-        <div class="animate-spin rounded-full h-8 w-8 border-4 border-gray-200 border-t-[#20784d]"></div>
+      <!-- Skeleton : 5 cartes fantômes -->
+      <div class="space-y-3">
+        {#each Array(5) as _}
+          <div class="bg-white p-4 rounded-[2rem] border border-gray-200 animate-pulse">
+            <div class="flex items-start gap-3">
+              <div class="w-10 h-10 rounded-full bg-gray-200 shrink-0"></div>
+              <div class="min-w-0 flex-1 space-y-2">
+                <div class="h-4 bg-gray-200 rounded-full w-3/4"></div>
+                <div class="h-3 bg-gray-100 rounded-full w-full"></div>
+                <div class="h-3 bg-gray-100 rounded-full w-2/3"></div>
+                <div class="flex gap-2 mt-3">
+                  <div class="h-5 bg-gray-100 rounded-full w-16"></div>
+                  <div class="h-5 bg-gray-100 rounded-full w-20"></div>
+                </div>
+              </div>
+              <div class="w-8 h-8 rounded-full bg-gray-100 shrink-0"></div>
+            </div>
+          </div>
+        {/each}
       </div>
     {:else if establishments.length === 0}
       <div class="flex flex-col items-center justify-center h-full text-center p-6 text-gray-500">
@@ -170,6 +189,12 @@
         <p class="text-sm mt-1 text-gray-400">Essayez de modifier vos filtres de recherche.</p>
       </div>
     {:else}
+      {#if loadingGoogle}
+        <div class="flex items-center gap-3 p-3 bg-gray-100 border border-gray-200 rounded-2xl text-sm text-gray-600 animate-pulse">
+          <div class="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-gray-600 shrink-0"></div>
+          <span>Recherche d'écoles autour de vous…</span>
+        </div>
+      {/if}
       {#each establishments as establishment}
         <div
           class="p-4 rounded-[2rem] border cursor-pointer transition-all duration-200 group relative overflow-hidden {selectedId != null && String(establishment.id) === String(selectedId) ? 'bg-green-50 border-[#20784d] shadow-md ring-2 ring-[#20784d]/20' : 'bg-white border-gray-200 hover:border-green-600'}"
