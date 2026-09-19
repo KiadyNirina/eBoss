@@ -144,7 +144,6 @@
     // 1. Vérifier le cache d'abord
     const cached = readGoogleCache(lat, lng, radius);
     if (cached) {
-      console.log('✅ Google Places : résultats depuis le cache');
       return cached;
     }
 
@@ -160,7 +159,6 @@
 
       // 3. Sauvegarder dans le cache
       writeGoogleCache(lat, lng, radius, results);
-      console.log(`🌐 Google Places : ${results.length} résultats (depuis l'API)`);
 
       return results;
     } catch (e) {

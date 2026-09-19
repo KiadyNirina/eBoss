@@ -40,7 +40,6 @@
   }
 
   function handleSelect(establishment) {
-    console.log('handleSelect appelé pour:', establishment.id);
     dispatch('select', establishment.id);
   }
 
@@ -52,8 +51,6 @@
     if (!lat || !lng) return null;
     return calculateDistance(userLocation.lat, userLocation.lng, lat, lng);
   }
-
-  $: console.log('selectedId reçu:', selectedId);
 </script>
 
 <div class="w-full h-full flex flex-col bg-white shadow-2xl">
