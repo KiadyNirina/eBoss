@@ -16,6 +16,16 @@
 
   const dispatch = createEventDispatcher();
 
+  // Étapes du formulaire
+  const steps = [
+    { id: 1, label: 'Informations', icon: 'heroicons:building-office-2' },
+    { id: 2, label: 'Adresse', icon: 'heroicons:map-pin' },
+    { id: 3, label: 'Année scolaire', icon: 'heroicons:calendar-days' },
+    { id: 4, label: 'Classes', icon: 'heroicons:academic-cap' },
+    { id: 5, label: 'Mot de passe', icon: 'heroicons:lock-closed' }
+  ];
+
+  let currentStep = 1;
   let isLoading = false;
   let errorMessage = '';
   let successMessage = '';
@@ -94,6 +104,109 @@
   ) {
     lastTypeEtab = etablissementData.typeEtablissement;
     setDefaultClasses(etablissementData.typeEtablissement);
+  }
+
+  // Navigation entre étapes
+  function nextStep() {
+    errorMessage = '';
+    if (validateCurrentStep()) {
+      if (currentStep < steps.length) {
+        currentStep += 1;
+      }
+    }
+  }
+
+  function prevStep() {
+    errorMessage = '';
+    if (currentStep > 1) {
+      currentStep -= 1;
+    }
+  }
+
+  function goToStep(stepId) {
+    // Autorise uniquement le retour en arrière ou l'étape actuelle
+    if (stepId < currentStep) {
+      errorMessage = '';
+      currentStep = stepId;
+    }
+  }
+
+  // Validation par étape
+  function validateCurrentStep() {
+    switch (currentStep) {
+      case 1:
+        if (!etablissementData.nom) {
+          errorMessage = 'Veuillez saisir le nom de l\'établissement';
+          return false;
+        }
+        if (!etablissementData.typeEtablissement) {
+          errorMessage = 'Veuillez sélectionner le type d\'établissement';
+          return false;
+        }
+        if (!etablissementData.email) {
+          errorMessage = 'Veuillez saisir l\'email';
+          return false;
+        }
+        if (!etablissementData.telephone) {
+          errorMessage = 'Veuillez saisir le téléphone';
+          return false;
+        }
+        return true;
+
+      case 2:
+        if (!etablissementData.adresse) {
+          errorMessage = 'Veuillez saisir l\'adresse de l\'établissement';
+          return false;
+        }
+        return true;
+
+      case 3:
+        // Année scolaire optionnelle - si partiellement remplie, exiger tout
+        {
+          const hasAnnee =
+            etablissementData.anneeScolaire.nom ||
+            etablissementData.anneeScolaire.date_debut ||
+            etablissementData.anneeScolaire.date_fin;
+          if (hasAnnee) {
+            if (
+              !etablissementData.anneeScolaire.nom ||
+              !etablissementData.anneeScolaire.date_debut ||
+              !etablissementData.anneeScolaire.date_fin
+            ) {
+              errorMessage = 'Veuillez remplir tous les champs de l\'année scolaire ou laisser vide';
+              return false;
+            }
+          }
+        }
+        return true;
+
+      case 4:
+        // Classes optionnelles - si une ligne est partiellement remplie, exiger nom + niveau
+        {
+          const hasIncomplete = etablissementData.classes.some(
+            (c) => (c.nom && !c.niveau) || (!c.nom && c.niveau)
+          );
+          if (hasIncomplete) {
+            errorMessage = 'Chaque classe doit avoir un nom et un niveau (ou être vide)';
+            return false;
+          }
+        }
+        return true;
+
+      case 5:
+        if (!etablissementData.password) {
+          errorMessage = 'Veuillez saisir un mot de passe';
+          return false;
+        }
+        if (etablissementData.password !== etablissementData.confirmPassword) {
+          errorMessage = 'Les mots de passe ne correspondent pas';
+          return false;
+        }
+        return true;
+
+      default:
+        return true;
+    }
   }
 
   function addClasse() {
@@ -252,16 +365,24 @@
   }
 
   async function handleSubmit() {
-    isLoading = true;
     errorMessage = '';
     successMessage = '';
     geocodingStatus = '';
 
-    try {
-      if (etablissementData.password !== etablissementData.confirmPassword) {
-        throw new Error('Les mots de passe ne correspondent pas');
+    // Valider toutes les étapes avant soumission
+    const savedStep = currentStep;
+    for (let i = 1; i <= steps.length; i++) {
+      currentStep = i;
+      if (!validateCurrentStep()) {
+        currentStep = savedStep;
+        return;
       }
+    }
+    currentStep = savedStep;
 
+    isLoading = true;
+
+    try {
       if (etablissementData.latitude !== null && etablissementData.longitude !== null) {
         const result = validateAndFormatCoordinates(
           etablissementData.latitude,
@@ -323,14 +444,6 @@
         etablissementData.anneeScolaire.date_fin;
 
       if (hasAnneeScolaire) {
-        if (
-          !etablissementData.anneeScolaire.nom ||
-          !etablissementData.anneeScolaire.date_debut ||
-          !etablissementData.anneeScolaire.date_fin
-        ) {
-          throw new Error('Veuillez remplir tous les champs de l\'année scolaire ou laisser vide');
-        }
-
         const anneeScolaire = await authApi.createAnneeScolaire({
           ...etablissementData.anneeScolaire,
           etablissement: etablissement.etablissement.id
@@ -366,6 +479,52 @@
   }
 </script>
 
+<!-- Indicateur de progression -->
+<div class="mb-8">
+  <div class="flex items-center justify-between">
+    {#each steps as step, index}
+      <div class="flex items-center flex-1">
+        <button
+          type="button"
+          on:click={() => goToStep(step.id)}
+          disabled={step.id > currentStep}
+          class={`flex flex-col items-center gap-2 flex-shrink-0 ${
+            step.id <= currentStep ? 'cursor-pointer' : 'cursor-not-allowed'
+          }`}
+        >
+          <div class={`w-10 h-10 rounded-full flex items-center justify-center transition-all duration-300 ${
+            currentStep === step.id
+              ? 'bg-green-600 text-white scale-110'
+              : currentStep > step.id
+                ? 'bg-green-100 text-green-600'
+                : 'bg-gray-100 text-gray-400'
+          }`}>
+            {#if currentStep > step.id}
+              <Icon icon="heroicons:check" class="h-5 w-5" />
+            {:else}
+              <Icon icon={step.icon} class="h-5 w-5" />
+            {/if}
+          </div>
+          <span class={`text-xs font-medium hidden sm:block ${
+            currentStep === step.id
+              ? 'text-green-700'
+              : currentStep > step.id
+                ? 'text-green-600'
+                : 'text-gray-400'
+          }`}>
+            {step.label}
+          </span>
+        </button>
+        {#if index < steps.length - 1}
+          <div class={`flex-1 h-0.5 mx-2 transition-colors duration-300 ${
+            currentStep > step.id ? 'bg-green-500' : 'bg-gray-200'
+          }`}></div>
+        {/if}
+      </div>
+    {/each}
+  </div>
+</div>
+
 {#if errorMessage}
   <div class="mb-4 bg-red-50 border-l-4 border-red-400 p-4">
     <div class="flex">
@@ -379,58 +538,62 @@
   </div>
 {/if}
 
-<form class="space-y-6" on:submit|preventDefault={handleSubmit}>
-  <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-    <div>
-      <label for="etab-nom" class="block text-sm font-medium text-gray-700">Nom de l'établissement</label>
-      <input
-        id="etab-nom"
-        type="text"
-        bind:value={etablissementData.nom}
-        required
-        class="mt-1 block w-full border border-gray-300 rounded-full py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-      />
-    </div>
+<form on:submit|preventDefault={handleSubmit}>
+  <!-- ÉTAPE 1 : Informations -->
+  {#if currentStep === 1}
+    <div class="space-y-6 animate-fadeIn">
+      <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div>
+          <label for="etab-nom" class="block text-sm font-medium text-gray-700">Nom de l'établissement</label>
+          <input
+            id="etab-nom"
+            type="text"
+            bind:value={etablissementData.nom}
+            class="mt-1 block w-full border border-gray-300 rounded-full py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+          />
+        </div>
 
-    <div>
-      <label for="etab-type" class="block text-sm font-medium text-gray-700">Type d'établissement</label>
-      <select
-        id="etab-type"
-        bind:value={etablissementData.typeEtablissement}
-        required
-        class="mt-1 block w-full border border-gray-300 rounded-full py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-      >
-        <option value="">Sélectionnez...</option>
-        <option value="ecole">École primaire</option>
-        <option value="college">Collège</option>
-        <option value="lycee">Lycée</option>
-        <option value="universite">Université</option>
-      </select>
-    </div>
+        <div>
+          <label for="etab-type" class="block text-sm font-medium text-gray-700">Type d'établissement</label>
+          <select
+            id="etab-type"
+            bind:value={etablissementData.typeEtablissement}
+            class="mt-1 block w-full border border-gray-300 rounded-full py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+          >
+            <option value="">Sélectionnez...</option>
+            <option value="ecole">École primaire</option>
+            <option value="college">Collège</option>
+            <option value="lycee">Lycée</option>
+            <option value="universite">Université</option>
+          </select>
+        </div>
 
-    <div>
-      <label for="etab-email" class="block text-sm font-medium text-gray-700">Email</label>
-      <input
-        id="etab-email"
-        type="email"
-        bind:value={etablissementData.email}
-        required
-        class="mt-1 block w-full border border-gray-300 rounded-full py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-      />
-    </div>
+        <div>
+          <label for="etab-email" class="block text-sm font-medium text-gray-700">Email</label>
+          <input
+            id="etab-email"
+            type="email"
+            bind:value={etablissementData.email}
+            class="mt-1 block w-full border border-gray-300 rounded-full py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+          />
+        </div>
 
-    <div>
-      <label for="etab-telephone" class="block text-sm font-medium text-gray-700">Téléphone</label>
-      <input
-        id="etab-telephone"
-        type="tel"
-        bind:value={etablissementData.telephone}
-        required
-        class="mt-1 block w-full border border-gray-300 rounded-full py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-      />
+        <div>
+          <label for="etab-telephone" class="block text-sm font-medium text-gray-700">Téléphone</label>
+          <input
+            id="etab-telephone"
+            type="tel"
+            bind:value={etablissementData.telephone}
+            class="mt-1 block w-full border border-gray-300 rounded-full py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+          />
+        </div>
+      </div>
     </div>
+  {/if}
 
-    <div class="sm:col-span-2">
+  <!-- ÉTAPE 2 : Adresse -->
+  {#if currentStep === 2}
+    <div class="space-y-6 animate-fadeIn">
       <div class="flex gap-1 items-start">
         <div class="flex-1">
           <AddressAutocomplete
@@ -461,7 +624,7 @@
       </div>
 
       {#if geocodingCoordinates}
-        <div class="mt-2 p-2 bg-green-50 border border-green-200 rounded-3xl">
+        <div class="p-2 bg-green-50 border border-green-200 rounded-3xl">
           <div class="flex items-center justify-between">
             <div>
               <span class="text-sm font-medium text-green-700">📍 Coordonnées trouvées</span>
@@ -491,7 +654,7 @@
       {/if}
 
       {#if geocodingStatus}
-        <div class="mt-2 p-2 rounded-md text-sm">
+        <div class="p-2 rounded-md text-sm">
           <span class={`
             ${geocodingStatus.includes('✅') ? 'text-green-700' : ''}
             ${geocodingStatus.includes('⚠️') ? 'text-yellow-700' : ''}
@@ -504,7 +667,7 @@
         </div>
       {/if}
 
-      <div class="mt-2 flex flex-wrap gap-2">
+      <div class="flex flex-wrap gap-2">
         <button
           type="button"
           on:click={geocodeAddressManually}
@@ -524,7 +687,7 @@
       </div>
 
       {#if showManualGeocode}
-        <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-4xl">
+        <div class="p-4 bg-blue-50 border border-blue-200 rounded-4xl">
           <div class="flex items-start justify-between mb-3">
             <div>
               <h4 class="font-medium text-blue-800 flex items-center gap-2">
@@ -597,142 +760,149 @@
         </div>
       {/if}
     </div>
-  </div>
+  {/if}
 
-  <!-- Section Année scolaire (OPTIONNEL) -->
-  <div class="border-t border-gray-200 pt-6">
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="text-lg font-medium text-gray-900">Année scolaire</h3>
-      <span class="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">Optionnel</span>
-    </div>
-    <p class="text-sm text-gray-500 mb-4">
-      Vous pourrez configurer l'année scolaire plus tard depuis votre tableau de bord.
-    </p>
-    <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
-      <div>
-        <label for="annee-nom" class="block text-sm font-medium text-gray-700">Nom (ex: 2023-2024)</label>
-        <input
-          id="annee-nom"
-          type="text"
-          bind:value={etablissementData.anneeScolaire.nom}
-          class="mt-1 block w-full border border-gray-300 rounded-full py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-        />
-      </div>
-      <div>
-        <label for="annee-debut" class="block text-sm font-medium text-gray-700">Date de début</label>
-        <input
-          id="annee-debut"
-          type="date"
-          bind:value={etablissementData.anneeScolaire.date_debut}
-          class="mt-1 block w-full border border-gray-300 rounded-full py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-        />
-      </div>
-      <div>
-        <label for="annee-fin" class="block text-sm font-medium text-gray-700">Date de fin</label>
-        <input
-          id="annee-fin"
-          type="date"
-          bind:value={etablissementData.anneeScolaire.date_fin}
-          class="mt-1 block w-full border border-gray-300 rounded-full py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-        />
-      </div>
-    </div>
-  </div>
-
-  <!-- Section Classes (OPTIONNEL) -->
-  <div class="border-t border-gray-200 pt-6">
-    <div class="flex justify-between items-center mb-4">
-      <div class="flex items-center gap-3">
-        <h3 class="text-lg font-medium text-gray-900">Classes</h3>
+  <!-- ÉTAPE 3 : Année scolaire (OPTIONNEL) -->
+  {#if currentStep === 3}
+    <div class="space-y-6 animate-fadeIn">
+      <div class="flex items-center justify-between mb-2">
+        <h3 class="text-lg font-medium text-gray-900">Année scolaire</h3>
         <span class="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">Optionnel</span>
       </div>
-      <button
-        type="button"
-        on:click={addClasse}
-        class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-full text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-      >
-        <Icon icon="heroicons:plus" class="h-4 w-4 mr-1" />
-        Ajouter une classe
-      </button>
-    </div>
-    <p class="text-sm text-gray-500 mb-4">
-      Vous pourrez ajouter des classes plus tard depuis votre tableau de bord.
-    </p>
-
-    {#each etablissementData.classes as classe, index (index)}
-      <div class="grid grid-cols-1 gap-6 sm:grid-cols-3 mb-4 p-4 bg-gray-50 rounded-2xl">
+      <p class="text-sm text-gray-500">
+        Vous pourrez configurer l'année scolaire plus tard depuis votre tableau de bord.
+      </p>
+      <div class="grid grid-cols-1 gap-6 sm:grid-cols-3">
         <div>
-          <label for="classe-nom-{index}" class="block text-sm font-medium text-gray-700">Nom de la classe</label>
+          <label for="annee-nom" class="block text-sm font-medium text-gray-700">Nom (ex: 2023-2024)</label>
           <input
-            id="classe-nom-{index}"
+            id="annee-nom"
             type="text"
-            bind:value={classe.nom}
+            bind:value={etablissementData.anneeScolaire.nom}
             class="mt-1 block w-full border border-gray-300 rounded-full py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-            placeholder="Ex: CE1 A"
           />
         </div>
         <div>
-          <label for="classe-niveau-{index}" class="block text-sm font-medium text-gray-700">Niveau</label>
+          <label for="annee-debut" class="block text-sm font-medium text-gray-700">Date de début</label>
           <input
-            id="classe-niveau-{index}"
-            type="text"
-            bind:value={classe.niveau}
+            id="annee-debut"
+            type="date"
+            bind:value={etablissementData.anneeScolaire.date_debut}
             class="mt-1 block w-full border border-gray-300 rounded-full py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-            placeholder="Ex: CE1, 6ème, Terminale"
           />
         </div>
-        <div class="flex items-end space-x-2">
-          <div class="flex-1">
-            <label for="classe-section-{index}" class="block text-sm font-medium text-gray-700">Section (optionnel)</label>
-            <input
-              id="classe-section-{index}"
-              type="text"
-              bind:value={classe.section}
-              class="mt-1 block w-full border border-gray-300 rounded-full py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-              placeholder="Ex: A, B, S, ES"
-            />
-          </div>
-          {#if etablissementData.classes.length > 1}
-            <button
-              type="button"
-              on:click={() => removeClasse(index)}
-              class="mb-1 p-1 text-red-500 hover:text-red-700 focus:outline-none"
-              title="Supprimer cette classe"
-            >
-              <Icon icon="heroicons:trash" class="h-5 w-5" />
-            </button>
-          {/if}
+        <div>
+          <label for="annee-fin" class="block text-sm font-medium text-gray-700">Date de fin</label>
+          <input
+            id="annee-fin"
+            type="date"
+            bind:value={etablissementData.anneeScolaire.date_fin}
+            class="mt-1 block w-full border border-gray-300 rounded-full py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+          />
         </div>
       </div>
-    {/each}
-  </div>
+    </div>
+  {/if}
 
-  <!-- Mot de passe -->
-  <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-    <div>
-      <label for="etab-password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
-      <input
-        id="etab-password"
-        type="password"
-        bind:value={etablissementData.password}
-        required
-        class="mt-1 block w-full border border-gray-300 rounded-full py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-      />
+  <!-- ÉTAPE 4 : Classes (OPTIONNEL) -->
+  {#if currentStep === 4}
+    <div class="space-y-6 animate-fadeIn">
+      <div class="flex justify-between items-center mb-2">
+        <div class="flex items-center gap-3">
+          <h3 class="text-lg font-medium text-gray-900">Classes</h3>
+          <span class="text-xs text-gray-500 bg-gray-100 px-3 py-1 rounded-full">Optionnel</span>
+        </div>
+        <button
+          type="button"
+          on:click={addClasse}
+          class="inline-flex items-center px-3 py-1 border border-transparent text-sm leading-4 font-medium rounded-full text-green-700 bg-green-100 hover:bg-green-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+        >
+          <Icon icon="heroicons:plus" class="h-4 w-4 mr-1" />
+          Ajouter une classe
+        </button>
+      </div>
+      <p class="text-sm text-gray-500">
+        Vous pourrez ajouter des classes plus tard depuis votre tableau de bord.
+      </p>
+
+      {#each etablissementData.classes as classe, index (index)}
+        <div class="grid grid-cols-1 gap-6 sm:grid-cols-3 p-4 bg-gray-50 rounded-2xl">
+          <div>
+            <label for="classe-nom-{index}" class="block text-sm font-medium text-gray-700">Nom de la classe</label>
+            <input
+              id="classe-nom-{index}"
+              type="text"
+              bind:value={classe.nom}
+              class="mt-1 block w-full border border-gray-300 rounded-full py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              placeholder="Ex: CE1 A"
+            />
+          </div>
+          <div>
+            <label for="classe-niveau-{index}" class="block text-sm font-medium text-gray-700">Niveau</label>
+            <input
+              id="classe-niveau-{index}"
+              type="text"
+              bind:value={classe.niveau}
+              class="mt-1 block w-full border border-gray-300 rounded-full py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+              placeholder="Ex: CE1, 6ème, Terminale"
+            />
+          </div>
+          <div class="flex items-end space-x-2">
+            <div class="flex-1">
+              <label for="classe-section-{index}" class="block text-sm font-medium text-gray-700">Section (optionnel)</label>
+              <input
+                id="classe-section-{index}"
+                type="text"
+                bind:value={classe.section}
+                class="mt-1 block w-full border border-gray-300 rounded-full py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+                placeholder="Ex: A, B, S, ES"
+              />
+            </div>
+            {#if etablissementData.classes.length > 1}
+              <button
+                type="button"
+                on:click={() => removeClasse(index)}
+                class="mb-1 p-1 text-red-500 hover:text-red-700 focus:outline-none"
+                title="Supprimer cette classe"
+              >
+                <Icon icon="heroicons:trash" class="h-5 w-5" />
+              </button>
+            {/if}
+          </div>
+        </div>
+      {/each}
     </div>
-    <div>
-      <label for="etab-confirm-password" class="block text-sm font-medium text-gray-700">Confirmer le mot de passe</label>
-      <input
-        id="etab-confirm-password"
-        type="password"
-        bind:value={etablissementData.confirmPassword}
-        required
-        class="mt-1 block w-full border border-gray-300 rounded-full py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
-      />
+  {/if}
+
+  <!-- ÉTAPE 5 : Mot de passe -->
+  {#if currentStep === 5}
+    <div class="space-y-6 animate-fadeIn">
+      <h3 class="text-lg font-medium text-gray-900">Sécurisez votre compte</h3>
+      <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div>
+          <label for="etab-password" class="block text-sm font-medium text-gray-700">Mot de passe</label>
+          <input
+            id="etab-password"
+            type="password"
+            bind:value={etablissementData.password}
+            class="mt-1 block w-full border border-gray-300 rounded-full py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+          />
+        </div>
+        <div>
+          <label for="etab-confirm-password" class="block text-sm font-medium text-gray-700">Confirmer le mot de passe</label>
+          <input
+            id="etab-confirm-password"
+            type="password"
+            bind:value={etablissementData.confirmPassword}
+            class="mt-1 block w-full border border-gray-300 rounded-full py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm"
+          />
+        </div>
+      </div>
     </div>
-  </div>
+  {/if}
 
   {#if successMessage}
-    <div class="bg-green-50 border-l-4 border-green-400 p-4">
+    <div class="mt-6 bg-green-50 border-l-4 border-green-400 p-4">
       <div class="flex">
         <div class="flex-shrink-0">
           <Icon icon="heroicons:check-circle" class="h-5 w-5 text-green-400" />
@@ -749,20 +919,64 @@
     </div>
   {/if}
 
-  <div>
-    <button
-      type="submit"
-      disabled={isLoading}
-      class={`w-full flex justify-center py-2 px-4 border border-transparent rounded-full text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
-    >
-      {#if isLoading}
-        <Icon icon="heroicons:arrow-path" class="animate-spin h-5 w-5 mr-2" />
-        Création en cours...
-      {:else}
-        Créer l'établissement
-      {/if}
-    </button>
+  <!-- Navigation Suivant / Précédent -->
+  <div class="mt-8 flex justify-between items-center gap-3">
+    {#if currentStep > 1}
+      <button
+        type="button"
+        on:click={prevStep}
+        disabled={isLoading}
+        class="inline-flex items-center px-6 py-2 border border-gray-300 rounded-full text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+      >
+        <Icon icon="heroicons:arrow-left" class="h-4 w-4 mr-2" />
+        Précédent
+      </button>
+    {:else}
+      <div></div>
+    {/if}
+
+    {#if currentStep < steps.length}
+      <button
+        type="button"
+        on:click={nextStep}
+        class="inline-flex items-center px-6 py-2 bg-green-600 text-white rounded-full text-sm font-medium hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors"
+      >
+        Suivant
+        <Icon icon="heroicons:arrow-right" class="h-4 w-4 ml-2" />
+      </button>
+    {:else}
+      <button
+        type="submit"
+        disabled={isLoading}
+        class={`inline-flex items-center px-6 py-2 border border-transparent rounded-full text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`}
+      >
+        {#if isLoading}
+          <Icon icon="heroicons:arrow-path" class="animate-spin h-5 w-5 mr-2" />
+          Création en cours...
+        {:else}
+          <Icon icon="heroicons:check" class="h-4 w-4 mr-2" />
+          Créer l'établissement
+        {/if}
+      </button>
+    {/if}
   </div>
 </form>
 
 <GoogleMapsGuidePopup bind:show={showGoogleMapsPopup} />
+
+<style>
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .animate-fadeIn {
+    animation: fadeIn 0.3s ease-out;
+  }
+</style>
