@@ -192,7 +192,7 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
             z-index: 10; pointer-events: none;
             border: 1px solid rgba(255,255,255,0.2);
-          ">📏 ${distanceText}</div>
+          ">📍 ${distanceText} de vous</div>
         `;
       }
 
@@ -212,12 +212,12 @@
           <div class="text-sm text-gray-600">📍 ${establishment.address}</div>
           ${distance !== null ? `
             <div class="flex items-center gap-1 mt-1 text-sm">
-              <span class="text-gray-500">📏 Distance:</span>
+              <span class="text-gray-500">📍 À</span>
               <span class="font-semibold ${isGoogle ? 'text-gray-700' : 'text-[#20784d]'}">${distanceText}</span>
-              <span class="text-gray-400 text-xs">de vous</span>
+              <span class="text-gray-500">de votre position</span>
             </div>
           ` : `
-            <div class="text-xs text-gray-400 mt-1">📍 Localisez-vous pour voir la distance</div>
+            <div class="text-xs text-gray-400 mt-1">📍 Activez la géolocalisation pour voir la distance</div>
           `}
           <div class="text-xs ${isGoogle ? 'text-gray-400' : 'text-gray-400'} mt-1">
             ${isGoogle ? '🌐 Source : Google' : '🏫 ' + typeLabel}
@@ -257,7 +257,7 @@
             ` : ''}
             ${distance !== null ? `
               <div class="mt-2 p-2 bg-gray-50 rounded-md border border-gray-200">
-                <p class="text-sm font-medium text-gray-700">📏 Distance: ${distanceText}</p>
+                <p class="text-sm font-medium text-gray-700">📍 À ${distanceText} de votre position</p>
               </div>
             ` : ''}
             <a href="https://www.google.com/maps/place/?q=place_id:${establishment.id}"
@@ -282,11 +282,11 @@
             <p class="text-sm text-gray-600">✉️ ${establishment.email}</p>
             ${distance !== null ? `
               <div class="mt-2 p-2 bg-green-50 rounded-md border border-green-200">
-                <p class="text-sm font-medium text-[#20784d]">📏 Distance: ${distanceText}</p>
+                <p class="text-sm font-medium text-[#20784d]">📍 À ${distanceText} de votre position</p>
               </div>
             ` : `
               <div class="mt-2 p-2 bg-gray-50 rounded-md border border-gray-200">
-                <p class="text-sm text-gray-500">📏 Activez la géolocalisation pour voir la distance</p>
+                <p class="text-sm text-gray-500">📍 Activez la géolocalisation pour voir la distance</p>
               </div>
             `}
             <button onclick="window.openProfilePanel(${establishment.id})"
@@ -361,12 +361,12 @@
             <div class="font-bold text-[#20784d]">${establishmentName}</div>
             ${distance !== null ? `
               <div class="flex items-center gap-1 mt-1 text-sm">
-                <span class="text-gray-500">📏 Distance:</span>
+                <span class="text-gray-500">📍 À</span>
                 <span class="font-semibold text-[#20784d]">${distanceText}</span>
-                <span class="text-gray-400 text-xs">de vous</span>
+                <span class="text-gray-500">de votre position</span>
               </div>
             ` : `
-              <div class="text-xs text-gray-400 mt-1">📍 Localisez-vous pour voir la distance</div>
+              <div class="text-xs text-gray-400 mt-1">📍 Activez la géolocalisation pour voir la distance</div>
             `}
             <div class="text-xs text-gray-400 mt-1">#${index + 1} - Cliquez pour voir</div>
           </div>
@@ -404,7 +404,7 @@
               box-shadow: 0 2px 4px rgba(0,0,0,0.2);
               z-index: 10; pointer-events: none;
               border: 1px solid rgba(255,255,255,0.2);
-            ">📏 ${distanceText}</div>
+            ">📍 ${distanceText}</div>
           `;
         }
 

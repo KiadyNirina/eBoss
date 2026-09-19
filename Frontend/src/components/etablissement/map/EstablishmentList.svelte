@@ -224,12 +224,20 @@
                 {/if}
 
                 <!-- Distance -->
-                {#if userLocation}
-                  <span class="text-xs font-medium text-[#20784d] bg-green-50 px-2 py-1 rounded-full flex items-center gap-1">
-                    <Icon icon="heroicons:arrows-right-left" class="h-3 w-3" />
-                    {formatDistance(getEstablishmentDistance(establishment))}
-                  </span>
-                {/if}
+                 {#if userLocation}
+                    <span
+                      class="text-xs font-medium text-[#20784d] bg-green-50 px-2 py-1 rounded-full flex items-center gap-1"
+                      title="Distance entre votre position et cet établissement"
+                    >
+                      <Icon icon="heroicons:map-pin" class="h-3 w-3" />
+                      À {formatDistance(getEstablishmentDistance(establishment))} de vous
+                    </span>
+                  {:else}
+                    <span class="text-xs font-medium text-gray-500 bg-gray-50 px-2 py-1 rounded-full flex items-center gap-1">
+                      <Icon icon="heroicons:map-pin" class="h-3 w-3" />
+                      Activez la géolocalisation
+                    </span>
+                  {/if}
               </div>
             </div>
 
