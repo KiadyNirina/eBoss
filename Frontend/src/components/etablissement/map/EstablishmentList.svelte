@@ -15,8 +15,14 @@
   export let selectedId = null;
   export let sourceFilter = 'all';
 
+  export let distanceFilter = 0;
+
   function handleSourceFilter(e) {
     dispatch('filterSource', e.target.value);
+  }
+
+  function handleDistanceFilter(e) {
+    dispatch('filterDistance', e.target.value);
   }
 
   const dispatch = createEventDispatcher();
@@ -146,11 +152,48 @@
       </button>
     </div>
 
-    <div class="text-sm text-gray-600 pt-1 font-medium">
-      {establishments.length} établissement{establishments.length > 1 ? 's' : ''} trouvé{establishments.length > 1 ? 's' : ''}
-      <span class="text-xs text-gray-400 font-normal block mt-0.5">
-        🟢 Inscrits · ⚪ Google
+    <!-- Filtre distance -->
+    {#if userLocation}
+      <div class="flex items-center gap-2">
+        <div class="relative flex-1">
+          <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Icon icon="heroicons:map-pin" class="h-4 w-4 text-gray-400" />
+          </div>
+          <select
+            value={distanceFilter}
+            on:change={handleDistanceFilter}
+            class="block w-full pl-9 pr-8 py-2 bg-white border border-gray-200 rounded-full text-sm text-gray-700 appearance-none focus:outline-none focus:ring-2 focus:ring-[#20784d]/50 focus:border-[#20784d] transition-all"
+          >
+            <option value={0}>Toutes distances</option>
+            <option value={500}>Moins de 500 m</option>
+            <option value={1000}>Moins de 1 km</option>
+            <option value={2000}>Moins de 2 km</option>
+            <option value={5000}>Moins de 5 km</option>
+            <option value={10000}>Moins de 10 km</option>
+          </select>
+          <div class="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
+            <Icon icon="heroicons:chevron-down" class="h-4 w-4 text-gray-400" />
+          </div>
+        </div>
+      </div>
+    {/if}
+
+    <div class="text-sm text-gray-600 pt-1 font-medium flex items-center justify-between">
+      <span>
+        {establishments.length} établissement{establishments.length > 1 ? 's' : ''} trouvé{establishments.length > 1 ? 's' : ''}
       </span>
+      {#if distanceFilter > 0 || sourceFilter !== 'all'}
+        <button
+          on:click={handleClear}
+          class="text-xs text-[#20784d] hover:underline font-normal flex items-center gap-1"
+        >
+          <Icon icon="heroicons:x-mark" class="h-3 w-3" />
+          Effacer filtres
+        </button>
+      {/if}
+    </div>
+    <div class="text-xs text-gray-400 font-normal mt-0.5">
+      🟢 Inscrits · ⚪ Google
     </div>
   </div>
 

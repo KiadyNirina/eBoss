@@ -30,6 +30,7 @@
   let filterType = 'all';
   let sourceFilter = 'all';
   let selectedId = null;
+  let distanceFilter = 0;
 
   let loadingGoogle = false;
 
@@ -306,20 +307,36 @@
     applySourceFilter();
   }
 
+  function handleFilterDistance(e) {
+    distanceFilter = Number(e.detail) || 0;
+    applySourceFilter();
+  }
+
   function applySourceFilter() {
-    if (sourceFilter === 'all') {
-      filteredEstablishments = establishments;
-    } else {
-      filteredEstablishments = establishments.filter(
-        e => e.source === sourceFilter
-      );
+    let result = establishments;
+
+    // 1. Filtre par source
+    if (sourceFilter !== 'all') {
+      result = result.filter(e => e.source === sourceFilter);
     }
+
+    // 2. Filtre par distance
+    if (distanceFilter > 0) {
+      result = result.filter(e => {
+        // distance est en km dans ton code, on compare en km
+        const maxKm = distanceFilter / 1000;
+        return e.distance != null && e.distance <= maxKm;
+      });
+    }
+
+    filteredEstablishments = result;
   }
 
   function handleClear() {
     searchQuery = '';
     filterType = 'all';
     sourceFilter = 'all';
+    distanceFilter = 0;
     loadAllEstablishments();
   }
 
@@ -388,11 +405,13 @@
       searchQuery={searchQuery}
       filterType={filterType}
       sourceFilter={sourceFilter}  
+      distanceFilter={distanceFilter}
       loading={loading}
       loadingGoogle={loadingGoogle}
       on:search={handleSearch}
       on:filter={handleFilter}
       on:filterSource={handleFilterSource}
+      on:filterDistance={handleFilterDistance}
       on:clear={handleClear}
       on:select={handleSelectFromList}
       on:goToUserLocation={handleGoToUserLocation}
