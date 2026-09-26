@@ -192,7 +192,7 @@
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
             z-index: 10; pointer-events: none;
             border: 1px solid rgba(255,255,255,0.2);
-          ">📍 ${distanceText} de vous</div>
+          ">${distanceText} de vous</div>
         `;
       }
 
@@ -718,7 +718,7 @@
     width: 50px;
     height: 50px;
     border-radius: 50%;
-    background: rgba(32, 120, 77, 0.15);
+    background: rgba(59, 130, 246, 0.15);
     animation: pulseRing 2s ease-in-out infinite;
   }
 
@@ -730,7 +730,7 @@
     width: 35px;
     height: 35px;
     border-radius: 50%;
-    background: rgba(32, 120, 77, 0.25);
+    background: rgba(59, 130, 246, 0.25);
     animation: pulseRing 2s ease-in-out 0.6s infinite;
   }
 
@@ -741,10 +741,10 @@
     transform: translate(-50%, -50%);
     width: 26px;
     height: 26px;
-    background: #20784d;
+    background: #3b82f6;
     border-radius: 50%;
     border: 3px solid white;
-    box-shadow: 0 0 0 3px rgba(32, 120, 77, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3), 0 4px 12px rgba(0, 0, 0, 0.2);
     animation: popIn 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
     z-index: 2;
   }
@@ -766,9 +766,10 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    font-size: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     color: white;
-    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
     pointer-events: none;
     z-index: 3;
     animation: popIn 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55);
