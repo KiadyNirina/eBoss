@@ -133,7 +133,8 @@ def reverse_geocode_proxy(request):
 @csrf_exempt
 def nearby_schools_proxy(request):
     """
-    Proxy Google Places Nearby Search (New API).
+    Retourne les écoles OSM depuis la BDD locale (filtrage par distance).
+    Si la BDD est vide, on peut optionnellement fallback sur Overpass.
     """
     if request.method != 'GET':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
@@ -145,69 +146,59 @@ def nearby_schools_proxy(request):
     if not lat or not lng:
         return JsonResponse({'error': 'lat et lng requis'}, status=400)
 
-    api_key = getattr(settings, 'GOOGLE_MAPS_API_KEY', None)
-    if not api_key:
-        return JsonResponse({'error': 'Clé Google Maps non configurée'}, status=500)
-
     try:
-        url = 'https://places.googleapis.com/v1/places:searchNearby'
+        lat = float(lat)
+        lng = float(lng)
+        radius = float(radius)
+    except ValueError:
+        return JsonResponse({'error': 'lat/lng/radius doivent être des nombres'}, status=400)
 
-        payload = {
-            "includedTypes": ["school"],
-            "locationRestriction": {
-                "circle": {
-                    "center": {
-                        "latitude": float(lat),
-                        "longitude": float(lng)
-                    },
-                    "radius": float(radius)
-                }
-            },
-            "maxResultCount": 20,
-            "languageCode": "fr"
-        }
+    # Filtrage par distance via Haversine en SQL
+    from django.db.models import F, Value, ExpressionWrapper, FloatField
+    from django.db.models.functions import ACos, Cos, Radians, Sin
 
-        headers = {
-            'Content-Type': 'application/json',
-            'X-Goog-Api-Key': api_key,
-            'X-Goog-FieldMask': (
-                'places.id,places.displayName,places.formattedAddress,'
-                'places.location,places.rating,places.userRatingCount'
-            )
-        }
+    rad_lat = Radians(Value(lat))
+    rad_lng = Radians(Value(lng))
+    rad_est_lat = Radians(F('latitude'))
+    rad_est_lng = Radians(F('longitude'))
 
-        response = requests.post(url, json=payload, headers=headers, timeout=10)
-        data = response.json()
+    distance_expr = ExpressionWrapper(
+        6371000 * ACos(
+            Cos(rad_lat) * Cos(rad_est_lat) *
+            Cos(rad_est_lng - rad_lng) +
+            Sin(rad_lat) * Sin(rad_est_lat)
+        ),
+        output_field=FloatField()
+    )
 
-        if 'error' in data:
-            return JsonResponse({
-                'error': data['error'].get('message', 'Erreur Google Places'),
-                'code': data['error'].get('code')
-            }, status=502)
+    radius_meters = radius
 
-        schools = []
-        for place in data.get('places', []):
-            location = place.get('location', {})
-            schools.append({
-                'id': place.get('id'),
-                'name': place.get('displayName', {}).get('text', 'Sans nom'),
-                'address': place.get('formattedAddress', ''),
-                'lat': location.get('latitude'),
-                'lng': location.get('longitude'),
-                'rating': place.get('rating'),
-                'user_ratings_total': place.get('userRatingCount'),
-                'source': 'google',
-            })
+    qs = (
+        EcoleOSM.objects
+        .annotate(distance=distance_expr)
+        .filter(distance__lte=radius_meters)
+        .order_by('distance')[:100]
+    )
 
-        return JsonResponse({
-            'count': len(schools),
-            'results': schools,
-            'center': {'lat': float(lat), 'lng': float(lng)},
-            'radius': float(radius),
+    schools = []
+    for e in qs:
+        schools.append({
+            'id': e.osm_id,
+            'name': e.nom or 'École sans nom',
+            'address': e.adresse or '',
+            'lat': e.latitude,
+            'lng': e.longitude,
+            'type': e.type_ecole,
+            'distance': e.distance / 1000,  # en km
+            'source': 'osm',
         })
 
-    except requests.exceptions.RequestException as e:
-        return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({
+        'count': len(schools),
+        'results': schools,
+        'center': {'lat': lat, 'lng': lng},
+        'radius': radius,
+    })
     
 class EtablissementViewSet(viewsets.ModelViewSet):
     """

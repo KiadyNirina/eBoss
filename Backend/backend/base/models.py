@@ -340,3 +340,30 @@ class Parent(models.Model):
     
     def __str__(self):
         return self.user.get_full_name()
+    
+class EcoleOSM(models.Model):
+    """
+    Écoles importées depuis OpenStreetMap (Overpass API).
+    Licence ODbL — crédit OpenStreetMap obligatoire.
+    """
+    osm_id = models.CharField(max_length=50, unique=True, db_index=True)
+    nom = models.CharField(max_length=255, blank=True)
+    adresse = models.CharField(max_length=500, blank=True)
+    latitude = models.FloatField(db_index=True)
+    longitude = models.FloatField(db_index=True)
+    type_ecole = models.CharField(max_length=50, blank=True)  # school, college, university
+    source = models.CharField(max_length=20, default='osm')
+
+    # Métadonnées
+    imported_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "École OSM"
+        verbose_name_plural = "Écoles OSM"
+        indexes = [
+            models.Index(fields=['latitude', 'longitude']),
+        ]
+
+    def __str__(self):
+        return self.nom or f"École OSM #{self.osm_id}"
