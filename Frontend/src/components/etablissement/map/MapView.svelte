@@ -156,7 +156,7 @@
     establishmentsList.forEach((establishment, index) => {
       if (!establishment.lat || !establishment.lng) return;
 
-      const isGoogle = establishment.source === 'google';
+      const isGoogle = establishment.source === 'osm';
       const color = isGoogle ? '#9ca3af' : (typeColors[establishment.type] || '#6b7280');
       const typeLabel = isGoogle ? 'École (Google)' : (typeLabels[establishment.type] || establishment.type);
       const delay = index * 0.2;
@@ -209,7 +209,9 @@
       const tooltipContent = `
         <div class="distance-tooltip">
           <div class="font-bold ${isGoogle ? 'text-gray-700' : 'text-[#20784d]'}">${establishment.name}</div>
-          <div class="text-sm text-gray-600">📍 ${establishment.address}</div>
+          <div class="text-sm ${establishment.address ? 'text-gray-600' : 'text-gray-400 italic'}">
+          📍 ${establishment.address || 'Adresse non renseignée'}
+        </div>
           ${distance !== null ? `
             <div class="flex items-center gap-1 mt-1 text-sm">
               <span class="text-gray-500">📍 À</span>
@@ -251,7 +253,9 @@
               <span class="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">Google</span>
             </div>
             <h3 class="font-bold text-gray-800 text-base">${establishment.name}</h3>
-            <p class="text-sm text-gray-600 mt-1">📍 ${establishment.address}</p>
+            <p class="text-sm mt-1 ${establishment.address ? 'text-gray-600' : 'text-gray-400 italic'}">
+              📍 ${establishment.address || 'Adresse non renseignée'}
+            </p>
             ${establishment.rating ? `
               <p class="text-sm text-gray-600 mt-1">⭐ ${establishment.rating} (${establishment.user_ratings_total || 0} avis)</p>
             ` : ''}
@@ -276,7 +280,9 @@
               <span class="text-[10px] bg-[#20784d]/10 text-[#20784d] px-2 py-0.5 rounded-full font-medium">Inscrit</span>
             </div>
             <h3 class="font-bold text-[#20784d] text-lg">${establishment.name}</h3>
-            <p class="text-sm text-gray-600 mt-1">📍 ${establishment.address}</p>
+            <p class="text-sm mt-1 ${establishment.address ? 'text-gray-600' : 'text-gray-400 italic'}">
+              📍 ${establishment.address || 'Adresse non renseignée'}
+            </p>
             <p class="text-sm text-gray-600">🏫 ${typeLabel}</p>
             <p class="text-sm text-gray-600">📞 ${establishment.phone}</p>
             <p class="text-sm text-gray-600">✉️ ${establishment.email}</p>

@@ -185,7 +185,7 @@ def nearby_schools_proxy(request):
         schools.append({
             'id': e.osm_id,
             'name': e.nom or 'École sans nom',
-            'address': e.adresse or '',
+            'address': e.adresse or None,
             'lat': e.latitude,
             'lng': e.longitude,
             'type': e.type_ecole,

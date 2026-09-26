@@ -143,9 +143,9 @@
         Inscrits
       </button>
       <button
-        on:click={() => dispatch('filterSource', 'google')}
+        on:click={() => dispatch('filterSource', 'osm')}
         class="flex-1 text-xs font-medium px-3 py-1.5 rounded-full transition-all flex items-center justify-center gap-1
-              {sourceFilter === 'google' ? 'bg-[#20784d] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}"
+              {sourceFilter === 'osm' ? 'bg-[#20784d] text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'}"
       >
         <span class="w-2 h-2 rounded-full bg-gray-400"></span>
         Google
@@ -248,7 +248,7 @@
                 alt={establishment.name}
                 class="w-10 h-10 rounded-full object-cover border-2 border-white shadow-sm shrink-0"
               />
-            {:else if establishment.source === 'google'}
+            {:else if establishment.source === 'osm'}
               <div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
                 <Icon icon="heroicons:globe-alt" class="h-5 w-5 text-gray-500" />
               </div>
@@ -262,14 +262,16 @@
               <h3 class="font-medium transition-colors line-clamp-1 {selectedId != null && String(establishment.id) === String(selectedId) ? 'text-[#20784d]' : 'text-gray-900 group-hover:text-[#20784d]'}">
                 {establishment.name}
               </h3>
-              <p class="text-xs text-gray-500 mt-1 flex items-start gap-1">
-                <Icon icon="heroicons:map-pin" class="h-3.5 w-3.5 shrink-0 mt-0.5 text-gray-400" />
-                <span class="line-clamp-2">{establishment.address}</span>
+              <p class="text-xs mt-1 flex items-start gap-1 {establishment.address ? 'text-gray-500' : 'text-gray-400 italic'}">
+                <Icon icon="heroicons:map-pin" class="h-3.5 w-3.5 shrink-0 mt-0.5 {establishment.address ? 'text-gray-400' : 'text-gray-300'}" />
+                <span class="line-clamp-2">
+                  {establishment.address || 'Adresse non renseignée'}
+                </span>
               </p>
 
               <div class="flex flex-wrap items-center mt-3 gap-2">
                 <!-- Badge source -->
-                {#if establishment.source === 'google'}
+                {#if establishment.source === 'osm'}
                   <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 bg-gray-100 text-gray-600 rounded-full flex items-center gap-1">
                     <Icon icon="heroicons:globe-alt" class="h-3 w-3" />
                     Google
@@ -282,7 +284,7 @@
                 {/if}
 
                 <!-- Type (seulement pour les inscrits) -->
-                {#if establishment.source !== 'google'}
+                {#if establishment.source !== 'osm'}
                   <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-1 bg-gray-100 text-gray-600 rounded-full">
                     {typeLabels[establishment.type] || establishment.type}
                   </span>
