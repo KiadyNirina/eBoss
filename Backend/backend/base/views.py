@@ -133,53 +133,12 @@ def reverse_geocode_proxy(request):
 @csrf_exempt
 def nearby_schools_proxy(request):
     """
-    Retourne les écoles OSM depuis la BDD locale (filtrage par distance).
-    Si la BDD est vide, on peut optionnellement fallback sur Overpass.
+    Retourne TOUTES les écoles OSM depuis la BDD locale.
+    Le filtrage par distance est fait côté frontend (si besoin).
     """
     if request.method != 'GET':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
 
-    lat = request.GET.get('lat')
-    lng = request.GET.get('lng')
-    radius = request.GET.get('radius', 2000)
-
-    if not lat or not lng:
-        return JsonResponse({'error': 'lat et lng requis'}, status=400)
-
-    try:
-        lat = float(lat)
-        lng = float(lng)
-        radius = float(radius)
-    except ValueError:
-        return JsonResponse({'error': 'lat/lng/radius doivent être des nombres'}, status=400)
-
-    # Filtrage par distance via Haversine en SQL
-    from django.db.models import F, Value, ExpressionWrapper, FloatField
-    from django.db.models.functions import ACos, Cos, Radians, Sin
-
-    rad_lat = Radians(Value(lat))
-    rad_lng = Radians(Value(lng))
-    rad_est_lat = Radians(F('latitude'))
-    rad_est_lng = Radians(F('longitude'))
-
-    distance_expr = ExpressionWrapper(
-        6371000 * ACos(
-            Cos(rad_lat) * Cos(rad_est_lat) *
-            Cos(rad_est_lng - rad_lng) +
-            Sin(rad_lat) * Sin(rad_est_lat)
-        ),
-        output_field=FloatField()
-    )
-
-    radius_meters = radius
-
-    qs = (
-        EcoleOSM.objects
-        .annotate(distance=distance_expr)
-        .filter(distance__lte=radius_meters)
-        .order_by('distance')[:100]
-    )
-    
     TYPE_MAPPING = {
         'school': 'ecole',
         'college': 'college',
@@ -187,6 +146,8 @@ def nearby_schools_proxy(request):
         'university': 'universite',
         'kindergarten': 'ecole',
     }
+
+    qs = EcoleOSM.objects.all().order_by('nom')
 
     schools = []
     for e in qs:
@@ -197,15 +158,12 @@ def nearby_schools_proxy(request):
             'lat': e.latitude,
             'lng': e.longitude,
             'type': TYPE_MAPPING.get(e.type_ecole, 'ecole'),
-            'distance': e.distance / 1000,  # en km
             'source': 'osm',
         })
 
     return JsonResponse({
         'count': len(schools),
         'results': schools,
-        'center': {'lat': lat, 'lng': lng},
-        'radius': radius,
     })
     
 class EtablissementViewSet(viewsets.ModelViewSet):

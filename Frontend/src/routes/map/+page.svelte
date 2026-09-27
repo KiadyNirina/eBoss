@@ -141,31 +141,16 @@
   // ---------------------------------------------------------------
   // 2. Chargement des écoles GOOGLE PLACES (via ton proxy Django)
   // ---------------------------------------------------------------
-  async function loadGoogleSchools(lat, lng, radius = GOOGLE_CACHE_RADIUS) {
-    // 1. Vérifier le cache d'abord
-    const cached = readGoogleCache(lat, lng, radius);
-    if (cached) {
-      return cached;
-    }
-
-    // 2. Sinon, appel API
+  async function loadGoogleSchools() {
     try {
       const base = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-      const res = await fetch(
-        `${base}/school/api/nearby/?lat=${lat}&lng=${lng}&radius=${radius}`
-      );
+      const res = await fetch(`${base}/school/api/nearby/`);
       if (!res.ok) return [];
       const data = await res.json();
-      const results = data.results || [];
-
-      // 3. Sauvegarder dans le cache
-      writeGoogleCache(lat, lng, radius, results);
-
-      return results;
+      return data.results || [];
     } catch (e) {
-      console.warn('Google Places indisponible:', e);
-      // En cas d'erreur, on retombe sur un éventuel cache même expiré
-      return readGoogleCache(lat, lng, radius) || [];
+      console.warn('OSM indisponible:', e);
+      return [];
     }
   }
 
@@ -194,9 +179,9 @@
 
       // 3.2 — Écoles Google (uniquement si on a la position)
       let googleSchools = [];
+      loadingGoogle = true;
+      const raw = await loadGoogleSchools();
       if (userLocation) {
-        loadingGoogle = true;
-        const raw = await loadGoogleSchools(userLocation.lat, userLocation.lng);
         googleSchools = raw
           .filter(g => !isDuplicate(g, registered))
           .map(g => ({
@@ -209,8 +194,8 @@
               distanceMeters(userLocation.lat, userLocation.lng, g.lat, g.lng) /
               1000,
           }));
-        loadingGoogle = false;
       }
+      loadingGoogle = false;
 
       // 3.3 — Fusion + tri par distance
       const all = [...registered, ...googleSchools];

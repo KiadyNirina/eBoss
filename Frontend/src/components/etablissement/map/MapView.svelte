@@ -4,11 +4,15 @@
   import { calculateDistance, formatDistance } from './mapUtils';
   import { browser } from '$app/environment';
   import { createEventDispatcher } from 'svelte';
+  import 'leaflet.markercluster/dist/MarkerCluster.css';
+  import 'leaflet.markercluster/dist/MarkerCluster.Default.css';
 
   const dispatch = createEventDispatcher();
 
   export let establishments = [];
   export let userLocation = null;
+
+  let markerClusterGroup = null;
 
   let map = null;
   let L = null;
@@ -34,28 +38,38 @@
 
   // Expose les méthodes au parent via bind:this
   export function selectEstablishment(id) {
-    if (!mapInitialized || !L) return;
+    if (!mapInitialized || !L || !map) return;
+
     const establishment = establishments.find(e => String(e.id) === String(id));
     if (!establishment || !establishment.lat || !establishment.lng) return;
 
+    // 1. Zoom sur l'école
     map.setView([establishment.lat, establishment.lng], 16, {
       animate: true,
       duration: 0.8
     });
 
-    markers.forEach(marker => {
-      const latLng = marker.getLatLng();
-      if (
-        Math.abs(latLng.lat - establishment.lat) < 0.00001 &&
-        Math.abs(latLng.lng - establishment.lng) < 0.00001
-      ) {
-        marker.openPopup();
+    // 2. Chercher le marker par id (au lieu de comparer les coordonnées)
+    const target = markers.find(m => m.ebossId === String(id));
+    if (!target) return;
+
+    // 3. Attendre que la carte finisse de zoomer, puis casser le cluster + ouvrir
+    setTimeout(() => {
+      if (!map) return;
+
+      // Sortir le marqueur de son cluster (si besoin) en zoomant sur lui
+      if (markerClusterGroup && markerClusterGroup.hasLayer(target)) {
+        markerClusterGroup.zoomToShowLayer(target, () => {
+          target.openPopup();
+        });
+      } else {
+        target.openPopup();
       }
-    });
+    }, 900); // après l'animation de zoom (duration: 0.8s = 800ms)
   }
 
   export function goToEstablishment(id) {
-    if (!mapInitialized || !L) return;
+    if (!mapInitialized || !L || !map) return;
     const establishment = establishments.find(e => String(e.id) === String(id));
     if (!establishment || !establishment.lat || !establishment.lng) return;
 
@@ -64,15 +78,18 @@
       duration: 1
     });
 
-    markers.forEach(marker => {
-      const latLng = marker.getLatLng();
-      if (
-        Math.abs(latLng.lat - establishment.lat) < 0.00001 &&
-        Math.abs(latLng.lng - establishment.lng) < 0.00001
-      ) {
-        setTimeout(() => marker.openPopup(), 500);
+    const target = markers.find(m => m.ebossId === String(id));
+    if (!target) return;
+
+    setTimeout(() => {
+      if (markerClusterGroup && markerClusterGroup.hasLayer(target)) {
+        markerClusterGroup.zoomToShowLayer(target, () => {
+          target.openPopup();
+        });
+      } else {
+        target.openPopup();
       }
-    });
+    }, 1000);
   }
 
   export function goToUserLocation() {
@@ -84,11 +101,32 @@
   }
 
   // Met à jour les marqueurs quand les données ou la position changent
-  $: if (mapInitialized) {
-    void establishments;
-    void userLocation;
-    addEstablishmentMarkers(establishments, userLocation);
-    updateEdgeMarkers(establishments, userLocation);
+  // Suivi manuel — pas de boucle réactive
+  let prevEstablishmentsRef = null;
+  let prevUserLocationRef = null;
+  let updateScheduled = false;
+
+  $: {
+    if (mapInitialized) {
+      const estChanged = establishments !== prevEstablishmentsRef;
+      const locChanged =
+        (userLocation?.lat !== prevUserLocationRef?.lat) ||
+        (userLocation?.lng !== prevUserLocationRef?.lng);
+
+      if ((estChanged || locChanged) && !updateScheduled) {
+        prevEstablishmentsRef = establishments;
+        prevUserLocationRef = userLocation;
+        updateScheduled = true;
+
+        // Sortir du cycle réactif pour éviter la boucle
+        Promise.resolve().then(() => {
+          updateScheduled = false;
+          if (!mapInitialized) return;
+          addEstablishmentMarkers(establishments, userLocation);
+          updateEdgeMarkers(establishments, userLocation);
+        });
+      }
+    }
   }
 
   onMount(async () => {
@@ -110,16 +148,27 @@
   function handleResize() {
     if (map) {
       map.invalidateSize();
-      updateEdgeMarkers();
       updateEdgeMarkers(establishments, userLocation);
     }
   }
 
   async function initMap() {
     if (mapInitialized) return;
+    
     const leaflet = await import('leaflet');
     L = leaflet.default;
     await import('leaflet/dist/leaflet.css');
+
+    // Charge markercluster en lui passant L explicitement
+    if (browser) {
+      await import('leaflet.markercluster');
+      // Si le plugin ne s'attache pas automatiquement, force-le :
+      if (typeof L.markerClusterGroup !== 'function') {
+        // Fallback : charge le plugin via le global window.L
+        window.L = L;
+        await import('leaflet.markercluster');
+      }
+    }
 
     delete L.Icon.Default.prototype._getIconUrl;
     L.Icon.Default.mergeOptions({
@@ -141,6 +190,14 @@
       maxZoom: 19
     }).addTo(map);
 
+    markerClusterGroup = L.markerClusterGroup({
+      maxClusterRadius: 50,
+      spiderfyOnMaxZoom: true,
+      showCoverageOnHover: false,
+      zoomToBoundsOnClick: true,
+    });
+    map.addLayer(markerClusterGroup);
+
     mapInitialized = true;
     addLegend();
     setupMapEvents();
@@ -150,7 +207,9 @@
 
   function addEstablishmentMarkers(establishmentsList, userLocation) {
     if (!mapInitialized || !L) return;
-    markers.forEach(marker => map.removeLayer(marker));
+    if (!Array.isArray(establishmentsList)) return;
+    if (!markerClusterGroup) return;
+    markerClusterGroup.clearLayers();
     markers = [];
 
     establishmentsList.forEach((establishment, index) => {
@@ -230,7 +289,10 @@
       const marker = L.marker([establishment.lat, establishment.lng], {
         icon: customIcon,
         riseOnHover: true
-      }).addTo(map);
+      });
+      marker.ebossId = String(establishment.id);  // ← stocke l'id
+      marker.ebossData = establishment;            // ← stocke l'objet complet
+      markerClusterGroup.addLayer(marker);
 
       marker.on('click', () => {
         lastMarkerClickTime = Date.now();
@@ -324,6 +386,8 @@
 
   function updateEdgeMarkers(establishmentsList, userLocation) {
     if (!mapInitialized || !L) return;
+    if (!Array.isArray(establishmentsList)) return;
+    if (!markers || markers.length === 0) return; 
     edgeMarkers.forEach(marker => map.removeLayer(marker));
     edgeMarkers = [];
     if (userEdgeMarker) {
@@ -592,10 +656,27 @@
     `);
   }
 
-  $: if (mapInitialized && userLocation) {
-    addUserLocationMarker();
-    // Recentrer éventuellement
-    if (map) map.setView([userLocation.lat, userLocation.lng], 14);
+  let prevUserMarkerLoc = null;
+  let userMarkerScheduled = false;
+
+  $: {
+    if (mapInitialized && userLocation && !userMarkerScheduled) {
+      const changed =
+        userLocation.lat !== prevUserMarkerLoc?.lat ||
+        userLocation.lng !== prevUserMarkerLoc?.lng;
+
+      if (changed) {
+        prevUserMarkerLoc = userLocation;
+        userMarkerScheduled = true;
+
+        Promise.resolve().then(() => {
+          userMarkerScheduled = false;
+          if (!mapInitialized) return;
+          addUserLocationMarker();
+          if (map) map.setView([userLocation.lat, userLocation.lng], 14);
+        });
+      }
+    }
   }
 
   function addLegend() {
