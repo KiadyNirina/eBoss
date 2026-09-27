@@ -70,21 +70,25 @@
             {#if $studentSearched.length > 0}
 
                 {#each $studentSearched as searched}
-                    <a href="/school/list/students/{searched.id}">
-                        <div class="profile">
+                    <div class="profile">
+                        <a href="/school/list/students/{searched.id}">
                             <img src="/img/picture.png" alt="">
                             <div class="info">
                                 <span><b>{searched.student_name} {searched.student_lastname}</b></span><br>
                                 <span id="fonction">Classe: {searched.student_class}</span>
                             </div>
+                        </a>
 
-                            <div class="detail">
-                                <a href="a"><img src="/icons/modifier.png" alt=""></a><br>
-                                <a href="n"><img src="/icons/supprimer.png" alt=""></a><br>
-                            </div>    
-                
+                        <div class="detail">
+                            <a href="a">
+                                <img src="/icons/modifier.png" alt="Modifier">
+                            </a><br>
+                            <a href="n">
+                                <img src="/icons/supprimer.png" alt="Supprimer">
+                            </a><br>
                         </div>
-                    </a><hr>   
+                    </div>
+                    <hr>
                 {/each}
 
             {:else}
@@ -104,23 +108,29 @@
                 {#if selected}
                     {#if $students.length > 0}
                         {#each $students as student}
-                            <a href="/school/list/students/{student.id}">
-                                <div class="profile">
+                            <div class="profile">
+                                <a href="/school/list/students/{student.id}">
                                     {#if student.student_picture}
-                                        <img src="{student.student_picture}" alt={student.student_name} />
+                                        <img src={student.student_picture} alt={student.student_name} />
                                     {/if}
+
                                     <div class="info">
                                         <span><b>{student.student_name} {student.student_lastname}</b></span><br>
                                         <span id="fonction">Classe: {student.student_class}</span>
                                     </div>
+                                </a>
 
-                                    <div class="detail">
-                                        <a href="a"><img src="/icons/modifier.png" alt=""></a><br>
-                                        <a href="n"><img src="/icons/supprimer.png" alt=""></a><br>
-                                    </div>    
-                        
+                                <div class="detail">
+                                    <a href="a">
+                                        <img src="/icons/modifier.png" alt="Modifier">
+                                    </a><br>
+
+                                    <a href="n">
+                                        <img src="/icons/supprimer.png" alt="Supprimer">
+                                    </a><br>
                                 </div>
-                            </a><hr>   
+                            </div>
+                            <hr>
                         {/each}
                     {:else}
                             <p>Pas d'élève pour le moment</p>
