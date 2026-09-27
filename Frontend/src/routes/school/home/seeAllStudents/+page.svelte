@@ -166,7 +166,7 @@
 
                     <div class="container">
                         {#each $students as student}
-                            <a href="" class="profil">
+                            <!-- <a href="" class="profil">
                                 <img src="/icons/profile.png" alt="">
                                 <div class="name">
                                     <span>{student.username}</span><br>
@@ -176,7 +176,7 @@
                                     <a href=""><img src="/icons/modifier.png" alt=""></a>
                                     <a href=""><img src="/icons/supprimer.png" alt=""></a>
                                 </div>
-                            </a>
+                            </a> -->
                         {/each}
                     </div>
                     
