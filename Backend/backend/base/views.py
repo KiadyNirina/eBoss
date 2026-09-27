@@ -179,6 +179,14 @@ def nearby_schools_proxy(request):
         .filter(distance__lte=radius_meters)
         .order_by('distance')[:100]
     )
+    
+    TYPE_MAPPING = {
+        'school': 'ecole',
+        'college': 'college',
+        'lycee': 'lycee',
+        'university': 'universite',
+        'kindergarten': 'ecole',
+    }
 
     schools = []
     for e in qs:
@@ -188,7 +196,7 @@ def nearby_schools_proxy(request):
             'address': e.adresse or None,
             'lat': e.latitude,
             'lng': e.longitude,
-            'type': e.type_ecole,
+            'type': TYPE_MAPPING.get(e.type_ecole, 'ecole'),
             'distance': e.distance / 1000,  # en km
             'source': 'osm',
         })

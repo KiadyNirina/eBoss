@@ -10,6 +10,52 @@ OVERPASS_SERVERS = [
     'https://overpass.private.coffee/api/interpreter',
 ]
 
+def detect_type(tags):
+    """
+    Détecte le type d'école à partir des tags OSM.
+    Logique basée sur le nom en priorité, puis amenity, puis ISCED.
+    """
+    name = tags.get('name', '').lower()
+
+    # 1. École supérieure / institut supérieur → university
+    if any(w in name for w in [
+        'école sup', 'ecole sup', 'institut sup',
+        'université', 'university', 'faculté', 'faculty',
+        'école normale sup', 'ecole normale sup',
+    ]):
+        return 'university'
+    
+    # 2. Lycée → lycee
+    if any(w in name for w in ['lycée', 'lycee', 'high school']):
+        return 'lycee'
+
+    # 3. Collège → college
+    if any(w in name for w in ['collège', 'college', 'ceg', 'middle school']):
+        return 'college'
+
+    # 4. Maternelle / crèche / jardin d'enfants → kindergarten
+    if any(w in name for w in ['maternelle', 'kindergarten', 'crèche', 'creche', 'jardin d\'enfant']):
+        return 'kindergarten'
+
+    # 5. École (primaire) → school
+    if any(w in name for w in ['école', 'ecole', 'epp', 'primary', 'primaire']):
+        return 'school'
+
+    # 6. Tag amenity OSM (si le nom n'a rien donné)
+    amenity = tags.get('amenity', '').lower()
+    if amenity in ('school', 'college', 'university', 'kindergarten'):
+        return amenity
+
+    # 7. ISCED (classification UNESCO)
+    isced = tags.get('isced:level', '')
+    if isced:
+        if '5' in isced or '6' in isced or '7' in isced or '8' in isced:
+            return 'university'
+        if '1' in isced or '2' in isced or '3' in isced:
+            return 'school'
+
+    # 8. Défaut
+    return 'school'
 
 class Command(BaseCommand):
     help = "Importe les écoles depuis OpenStreetMap (Overpass API)"
@@ -94,7 +140,7 @@ class Command(BaseCommand):
                 ),
                 'latitude': lat_val,
                 'longitude': lng_val,
-                'type_ecole': tags.get('amenity', 'school'),
+                'type_ecole': detect_type(tags),
                 'source': 'osm',
             }
 

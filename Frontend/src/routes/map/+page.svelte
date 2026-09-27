@@ -204,7 +204,7 @@
             phone: 'Non disponible',
             email: 'Non disponible',
             profileImage: null,
-            type: 'school',
+            type: g.type || 'school',
             distance:
               distanceMeters(userLocation.lat, userLocation.lng, g.lat, g.lng) /
               1000,
@@ -294,12 +294,12 @@
   // ---------------------------------------------------------------
   function handleSearch(e) {
     searchQuery = e.detail;
-    loadAllEstablishments({ type: filterType, search: searchQuery });
+    applySourceFilter();
   }
 
   function handleFilter(e) {
     filterType = e.detail;
-    loadAllEstablishments({ type: filterType, search: searchQuery });
+    applySourceFilter();
   }
 
   function handleFilterSource(e) {
@@ -322,10 +322,36 @@
 
     // 2. Filtre par distance
     if (distanceFilter > 0) {
+      const maxKm = distanceFilter / 1000;
+      result = result.filter(e => e.distance != null && e.distance <= maxKm);
+    }
+
+    // 3. Filtre par TYPE (mapping inscrit ↔ OSM)
+    if (filterType !== 'all') {
       result = result.filter(e => {
-        // distance est en km dans ton code, on compare en km
-        const maxKm = distanceFilter / 1000;
-        return e.distance != null && e.distance <= maxKm;
+        if (e.source === 'osm') {
+          // Les OSM utilisent les tags OSM standards
+          const osmType = (e.type || '').toLowerCase();
+          const mapping = {
+            'ecole': ['school', 'primary_school', 'kindergarten'],
+            'college': ['college', 'secondary_school'],
+            'lycee': ['school', 'secondary_school'],  // pas de tag lycée dédié dans OSM
+            'universite': ['university', 'college'],
+          };
+          return (mapping[filterType] || []).includes(osmType);
+        }
+        // Pour les inscrits, comparaison directe
+        return e.type === filterType;
+      });
+    }
+
+    // 4. Filtre par texte (nom + adresse)
+    if (searchQuery && searchQuery.trim().length > 0) {
+      const q = searchQuery.trim().toLowerCase();
+      result = result.filter(e => {
+        const name = (e.name || '').toLowerCase();
+        const address = (e.address || '').toLowerCase();
+        return name.includes(q) || address.includes(q);
       });
     }
 
