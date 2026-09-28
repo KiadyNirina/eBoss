@@ -23,4 +23,4 @@ RUN python manage.py collectstatic --noinput
 
 EXPOSE 10000
 
-CMD ["daphne", "-b", "0.0.0.0", "-p", "10000", "backend.asgi:application"]
+CMD ["sh", "-c", "python manage.py migrate && daphne -b 0.0.0.0 -p 10000 backend.asgi:application"]
