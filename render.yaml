@@ -6,6 +6,7 @@ services:
     dockerfilePath: ./Backend/Dockerfile
     dockerContext: ./Backend
     healthCheckPath: /health/
+    preDeployCommand: python manage.py migrate
 
     envVars:
       - key: DATABASE_URL

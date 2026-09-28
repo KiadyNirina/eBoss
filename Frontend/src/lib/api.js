@@ -1,7 +1,7 @@
 // src/lib/api.js
 import { browser } from '$app/environment';
 
-const API_BASE_URL = 'http://127.0.0.1:8000/school';
+const API_BASE_URL = `${import.meta.env.VITE_API_BASE_URL}/school`;
 
 function formatDjangoError(errorData) {
     if (!errorData) return 'Erreur inconnue';

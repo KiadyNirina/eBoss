@@ -143,7 +143,7 @@
   // ---------------------------------------------------------------
   async function loadGoogleSchools() {
     try {
-      const base = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
       const res = await fetch(`${base}/school/api/nearby/`);
       if (!res.ok) return [];
       const data = await res.json();
