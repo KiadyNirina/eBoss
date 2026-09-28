@@ -30,4 +30,5 @@ urlpatterns = [
     path('api/geocode/', geocode_proxy, name='geocode-proxy'),
     path('api/reverse-geocode/', reverse_geocode_proxy, name='reverse-geocode-proxy'),
     path('api/nearby/', nearby_schools_proxy, name='nearby-schools'),
+    path('admin/import-osm/', ImportOSMSchoolsView.as_view(), name='import-osm-schools'),
 ]

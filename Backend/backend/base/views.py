@@ -3,7 +3,7 @@ from rest_framework.pagination import PageNumberPagination
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from rest_framework.permissions import SAFE_METHODS, AllowAny, IsAuthenticated
+from rest_framework.permissions import SAFE_METHODS, AllowAny, IsAuthenticated, IsAdminUser
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework_simplejwt.views import TokenObtainPairView
@@ -12,6 +12,7 @@ from django.http import HttpResponse, JsonResponse
 from django.db.models import Q, F, Value, ExpressionWrapper, FloatField
 from django.db.models.functions import ACos, Cos, Radians, Sin
 from django.utils import timezone
+from django.core.management import call_command
 from .serializers import (
     CustomTokenObtainPairSerializer,
     EtablissementSerializer, 
@@ -1016,3 +1017,31 @@ class UserProfileView(APIView):
     def get(self, request):
         serializer = UserProfileSerializer(request.user)
         return Response(serializer.data)
+    
+class ImportOSMSchoolsView(APIView):
+    """
+    Lance manuellement l'import des écoles depuis OpenStreetMap.
+    Accessible uniquement aux utilisateurs administrateurs.
+    """
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, IsAdminUser]
+
+    def post(self, request):
+        try:
+            call_command(
+                'import_osm_schools',
+                lat=-18.92018507,
+                lng=47.53656268,
+                radius=5000
+            )
+
+            return Response({
+                'success': True,
+                'message': 'Import OSM terminé.'
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            return Response({
+                'success': False,
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
