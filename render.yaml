@@ -29,6 +29,9 @@ services:
       - key: FRONTEND_URL
         sync: false
 
+      - key: CLOUDINARY_URL
+        sync: false
+
   - type: keyvalue
     name: sekora-redis
     plan: free

@@ -2,6 +2,8 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .views import *
+from django.conf import settings
+from django.conf.urls.static import static
 
 router = DefaultRouter()
 router.register(r'annees-scolaires', AnneeScolaireViewSet, basename='anneescolaire')
@@ -32,3 +34,9 @@ urlpatterns = [
     path('api/nearby/', nearby_schools_proxy, name='nearby-schools'),
     path('admin/import-osm/', ImportOSMSchoolsView.as_view(), name='import-osm-schools'),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(
+        settings.MEDIA_URL,
+        document_root=settings.MEDIA_ROOT
+    )

@@ -25,3 +25,5 @@ sqlparse==0.4.2
 typing_extensions==4.12.2
 urllib3==1.26.5
 channels-redis
+cloudinary
+django-cloudinary-storage
