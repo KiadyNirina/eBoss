@@ -170,7 +170,7 @@
           
           // Charger le logo
           if (userProfile.profile.user.profile_image) {
-            profileImagePreview = `${baseUrl}${userProfile.profile.user.profile_image}`;
+            profileImagePreview = `${userProfile.profile.user.profile_image}`;
           } else {
             profileImagePreview = null;
           }

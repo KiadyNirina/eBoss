@@ -93,7 +93,7 @@
             on:click={toggleDropdown}
           >
             {#if $user?.profile?.user?.profile_image}
-              <img src="{baseUrl}{$user.profile.user.profile_image}" class="h-8 w-8 rounded-full" alt="Profile Image" />
+              <img src="{$user.profile.user.profile_image}" class="h-8 w-8 rounded-full" alt="Profile Image" />
             {:else}
               <Icon icon="heroicons:user-circle" class="h-6 w-6 text-green-600" />
             {/if}

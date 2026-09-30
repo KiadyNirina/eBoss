@@ -72,7 +72,7 @@
     {#if $user}
       <div class="flex items-center">
         <div class="h-9 w-9 rounded-full bg-green-100 flex items-center justify-center">
-          <img src="{baseUrl}{$user.profile.user.profile_image}" class="h-10" alt="" />
+          <img src="{$user.profile.user.profile_image}" class="h-9 w-9" alt="" />
         </div>
 
         <div class="ml-3">
