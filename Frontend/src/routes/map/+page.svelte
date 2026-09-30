@@ -311,23 +311,9 @@
       result = result.filter(e => e.distance != null && e.distance <= maxKm);
     }
 
-    // 3. Filtre par TYPE (mapping inscrit ↔ OSM)
+    // 3. Filtre par TYPE
     if (filterType !== 'all') {
-      result = result.filter(e => {
-        if (e.source === 'osm') {
-          // Les OSM utilisent les tags OSM standards
-          const osmType = (e.type || '').toLowerCase();
-          const mapping = {
-            'ecole': ['school', 'primary_school', 'kindergarten'],
-            'college': ['college', 'secondary_school'],
-            'lycee': ['school', 'secondary_school'],  // pas de tag lycée dédié dans OSM
-            'universite': ['university', 'college'],
-          };
-          return (mapping[filterType] || []).includes(osmType);
-        }
-        // Pour les inscrits, comparaison directe
-        return e.type === filterType;
-      });
+      result = result.filter(e => e.type === filterType);
     }
 
     // 4. Filtre par texte (nom + adresse)
