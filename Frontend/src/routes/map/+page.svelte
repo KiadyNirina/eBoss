@@ -34,12 +34,20 @@
 
   let loadingGoogle = false;
 
+  // ---------------------------------------------------------------
+  // État du popup de géolocalisation
+  // ---------------------------------------------------------------
+  let showLocationModal = false;
+  let locationModalStatus = 'idle'; // 'idle' | 'requesting' | 'error' | 'success'
+  let locationModalError = null;
+  let hasAskedLocation = false; // pour ne pas redemander à chaque reload de la page dans la session
+
   const GOOGLE_CACHE_KEY = 'eboss_google_schools_cache';
   const GOOGLE_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 heures
   const GOOGLE_CACHE_RADIUS = 3000; // rayon utilisé pour la clé de cache
 
   // ---------------------------------------------------------------
-  // 1. Chargement silencieux des écoles INSCRITES (ton API)
+  // 1. Chargement silencieux des écoles INSCRITES
   // ---------------------------------------------------------------
   async function fetchRegistered(filters = {}) {
     const apiFilters = {
@@ -277,25 +285,10 @@
   // ---------------------------------------------------------------
   // 6. Handlers
   // ---------------------------------------------------------------
-  function handleSearch(e) {
-    searchQuery = e.detail;
-    applySourceFilter();
-  }
-
-  function handleFilter(e) {
-    filterType = e.detail;
-    applySourceFilter();
-  }
-
-  function handleFilterSource(e) {
-    sourceFilter = e.detail;
-    applySourceFilter();
-  }
-
-  function handleFilterDistance(e) {
-    distanceFilter = Number(e.detail) || 0;
-    applySourceFilter();
-  }
+  function handleSearch(e) { searchQuery = e.detail; applySourceFilter(); }
+  function handleFilter(e) { filterType = e.detail; applySourceFilter(); }
+  function handleFilterSource(e) { sourceFilter = e.detail; applySourceFilter(); }
+  function handleFilterDistance(e) { distanceFilter = Number(e.detail) || 0; applySourceFilter(); }
 
   function applySourceFilter() {
     let result = establishments;
@@ -343,6 +336,11 @@
   }
 
   function handleGoToUserLocation() {
+    if (!locationFound) {
+      // Si pas de position, on propose de la demander
+      requestUserLocation();
+      return;
+    }
     mapView?.goToUserLocation();
   }
 
@@ -351,7 +349,68 @@
   }
 
   // ---------------------------------------------------------------
-  // 7. Fonctions globales pour les popups Leaflet
+  // 7. Gestion de la géolocalisation (popup)
+  // ---------------------------------------------------------------
+  function openLocationModal() {
+    showLocationModal = true;
+  }
+
+  function closeLocationModal() {
+    showLocationModal = false;
+    locationModalStatus = 'idle';
+    locationModalError = null;
+  }
+
+  function requestUserLocation() {
+    if (!browser || !navigator.geolocation) {
+      locationModalStatus = 'error';
+      locationModalError =
+        "Votre navigateur ne supporte pas la géolocalisation. Veuillez utiliser un navigateur récent.";
+      return;
+    }
+
+    locationModalStatus = 'requesting';
+    locationModalError = null;
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        userLocation = {
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        };
+        locationFound = true;
+        locationModalStatus = 'success';
+
+        // Recharge avec la position
+        await loadAllEstablishments();
+
+        // Ferme automatiquement après un court délai
+        setTimeout(() => {
+          closeLocationModal();
+        }, 900);
+      },
+      (err) => {
+        locationModalStatus = 'error';
+        if (err.code === err.PERMISSION_DENIED) {
+          locationModalError =
+            "Vous avez refusé l'accès à votre position. Autorisez la géolocalisation dans les paramètres de votre navigateur pour voir les établissements proches.";
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          locationModalError =
+            'Votre position est actuellement indisponible. Vérifiez que le GPS / la localisation est activé.';
+        } else if (err.code === err.TIMEOUT) {
+          locationModalError =
+            'La demande de localisation a expiré. Réessayez.';
+        } else {
+          locationModalError =
+            "Impossible d'obtenir votre position. Veuillez réessayer.";
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  }
+
+  // ---------------------------------------------------------------
+  // 8. Fonctions globales pour les popups Leaflet
   // ---------------------------------------------------------------
   if (browser) {
     window.clearGoogleCache = clearGoogleCache;
@@ -362,28 +421,59 @@
   }
 
   // ---------------------------------------------------------------
-  // 8. Initialisation
+  // 9. Initialisation
   // ---------------------------------------------------------------
   onMount(async () => {
+    // 9.1 Chargement initial (sans position)
     await loadAllEstablishments();
     await tick();
 
+    // 9.2 Vérifie si la permission est déjà accordée pour éviter le popup
     if (browser && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          userLocation = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          };
-          locationFound = true;
-          setTimeout(() => loadAllEstablishments(), 200);
-        },
-        () => {
-          console.log('Géolocalisation non disponible ou refusée');
-          loadAllEstablishments();
-        },
-        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
-      );
+      try {
+        if (navigator.permissions && navigator.permissions.query) {
+          const status = await navigator.permissions.query({ name: 'geolocation' });
+          if (status.state === 'granted') {
+            // Déjà autorisée → on récupère directement
+            navigator.geolocation.getCurrentPosition(
+              (position) => {
+                userLocation = {
+                  lat: position.coords.latitude,
+                  lng: position.coords.longitude,
+                };
+                locationFound = true;
+                loadAllEstablishments();
+              },
+              () => {
+                // Si erreur malgré la permission, on ne bloque pas
+                console.warn('Géolocalisation indisponible malgré la permission accordée');
+              },
+              { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+            );
+          } else if (!hasAskedLocation) {
+            // 'prompt' ou 'denied' → on affiche le popup
+            hasAskedLocation = true;
+            openLocationModal();
+          }
+        } else {
+          // Pas d'API Permissions → on affiche le popup
+          if (!hasAskedLocation) {
+            hasAskedLocation = true;
+            openLocationModal();
+          }
+        }
+      } catch (e) {
+        // Certains navigateurs ne supportent pas 'geolocation' via permissions.query
+        if (!hasAskedLocation) {
+          hasAskedLocation = true;
+          openLocationModal();
+        }
+      }
+    } else if (browser) {
+      // Pas de support géoloc → on affiche un message d'erreur direct
+      locationModalStatus = 'error';
+      locationModalError = "Votre navigateur ne supporte pas la géolocalisation.";
+      openLocationModal();
     }
   });
 </script>
@@ -445,3 +535,128 @@
     on:close={closeProfilePanel}
   />
 </div>
+
+<!-- ============================================================= -->
+<!-- POPUP DE GÉOLOCALISATION                                     -->
+<!-- ============================================================= -->
+{#if showLocationModal}
+  <div
+    class="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-[fadeIn_0.2s_ease-out]"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="location-modal-title"
+  >
+    <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8 relative animate-[scaleIn_0.25s_ease-out]">
+      <!-- Bouton fermer (uniquement si pas en cours) -->
+      {#if locationModalStatus !== 'requesting'}
+        <button
+          type="button"
+          on:click={closeLocationModal}
+          class="absolute top-4 right-4 p-2 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors"
+          aria-label="Fermer"
+        >
+          <Icon icon="heroicons:x-mark" class="w-5 h-5" />
+        </button>
+      {/if}
+
+      <!-- Icône selon le statut -->
+      <div class="flex justify-center mb-5">
+        {#if locationModalStatus === 'idle'}
+          <div class="w-16 h-16 rounded-full bg-[#20784d]/10 flex items-center justify-center">
+            <Icon icon="heroicons:map-pin" class="w-8 h-8 text-[#20784d]" />
+          </div>
+        {:else if locationModalStatus === 'requesting'}
+          <div class="relative w-16 h-16">
+            <div class="animate-spin rounded-full h-16 w-16 border-4 border-gray-100 border-t-[#20784d]"></div>
+            <Icon icon="heroicons:map-pin" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-7 h-7 text-[#20784d]" />
+          </div>
+        {:else if locationModalStatus === 'success'}
+          <div class="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center">
+            <Icon icon="heroicons:check-circle" class="w-9 h-9 text-emerald-600" />
+          </div>
+        {:else if locationModalStatus === 'error'}
+          <div class="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center">
+            <Icon icon="heroicons:exclamation-triangle" class="w-8 h-8 text-red-600" />
+          </div>
+        {/if}
+      </div>
+
+      <!-- Titre -->
+      <h2 id="location-modal-title" class="text-xl font-bold text-gray-900 text-center mb-2">
+        {#if locationModalStatus === 'idle'}
+          Activer votre localisation
+        {:else if locationModalStatus === 'requesting'}
+          Localisation en cours...
+        {:else if locationModalStatus === 'success'}
+          Position trouvée !
+        {:else if locationModalStatus === 'error'}
+          Localisation impossible
+        {/if}
+      </h2>
+
+      <!-- Description -->
+      <p class="text-gray-600 text-center text-sm leading-relaxed mb-6">
+        {#if locationModalStatus === 'idle'}
+          Autorisez l'accès à votre position pour découvrir les établissements
+          scolaires proches de vous et améliorer votre expérience de recherche.
+        {:else if locationModalStatus === 'requesting'}
+          Veuillez patienter pendant que nous récupérons votre position...
+        {:else if locationModalStatus === 'success'}
+          Redirection vers les établissements autour de vous...
+        {:else if locationModalStatus === 'error'}
+          {locationModalError}
+        {/if}
+      </p>
+
+      <!-- Boutons d'action -->
+      {#if locationModalStatus === 'idle'}
+        <div class="flex flex-col sm:flex-row gap-3">
+          <button
+            type="button"
+            on:click={closeLocationModal}
+            class="flex-1 px-5 py-3 rounded-full border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+          >
+            Plus tard
+          </button>
+          <button
+            type="button"
+            on:click={requestUserLocation}
+            class="flex-1 px-5 py-3 rounded-full bg-[#20784d] text-white font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+          >
+            <Icon icon="heroicons:map-pin" class="w-5 h-5" />
+            Autoriser
+          </button>
+        </div>
+      {:else if locationModalStatus === 'error'}
+        <div class="flex flex-col sm:flex-row gap-3">
+          <button
+            type="button"
+            on:click={closeLocationModal}
+            class="flex-1 px-5 py-3 rounded-full border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+          >
+            Fermer
+          </button>
+          <button
+            type="button"
+            on:click={requestUserLocation}
+            class="flex-1 px-5 py-3 rounded-full bg-[#20784d] text-white font-medium hover:bg-green-700 transition-colors flex items-center justify-center gap-2"
+          >
+            <Icon icon="heroicons:arrow-path" class="w-5 h-5" />
+            Réessayer
+          </button>
+        </div>
+      {/if}
+    </div>
+  </div>
+{/if}
+
+<style>
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes scaleIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+</style>
