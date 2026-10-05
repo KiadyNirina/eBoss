@@ -42,6 +42,11 @@
   let locationModalError = null;
   let hasAskedLocation = false; // pour ne pas redemander à chaque reload de la page dans la session
 
+  // ---------------------------------------------------------------
+  // État d'affichage mobile : 'list' ou 'map'
+  // ---------------------------------------------------------------
+  let mobileView = 'list'; // 'list' | 'map'
+
   const GOOGLE_CACHE_KEY = 'eboss_google_schools_cache';
   const GOOGLE_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 heures
   const GOOGLE_CACHE_RADIUS = 3000; // rayon utilisé pour la clé de cache
@@ -333,6 +338,10 @@
   function handleSelectFromList(e) {
     selectedId = e.detail;
     mapView?.selectEstablishment(e.detail);
+    // Sur mobile, bascule vers la carte quand on sélectionne un établissement
+    if (browser && window.innerWidth < 768) {
+      mobileView = 'map';
+    }
   }
 
   function handleGoToUserLocation() {
@@ -346,6 +355,23 @@
 
   function filterEstablishments() {
     loadAllEstablishments({ type: filterType, search: searchQuery });
+  }
+
+  // ---------------------------------------------------------------
+  // Bascule liste / carte (mobile)
+  // ---------------------------------------------------------------
+  function showMapView() {
+    mobileView = 'map';
+    // Petit délai pour laisser le DOM se mettre à jour puis recalculer la taille de la carte
+    tick().then(() => {
+      setTimeout(() => {
+        mapView?.invalidateSize?.();
+      }, 100);
+    });
+  }
+
+  function showListView() {
+    mobileView = 'list';
   }
 
   // ---------------------------------------------------------------
@@ -482,9 +508,16 @@
   <title>Rechercher des établissements - Carte interactive</title>
 </svelte:head>
 
-<div class="flex flex-col-reverse md:flex-row h-screen bg-gray-50 overflow-hidden">
+<div class="flex flex-col md:flex-row h-screen bg-gray-50 overflow-hidden">
   <!-- Sidebar (Liste) -->
-  <div class="w-full md:w-[400px] lg:w-[450px] h-[50vh] md:h-full flex flex-col bg-white shadow-2xl z-20 shrink-0">
+  <div
+    class="
+      w-full md:w-[400px] lg:w-[450px]
+      h-full md:h-full
+      flex flex-col bg-white shadow-2xl z-20 shrink-0
+      {mobileView === 'list' ? 'flex' : 'hidden'} md:flex
+    "
+  >
     <EstablishmentList
       establishments={filteredEstablishments}
       userLocation={userLocation}
@@ -507,7 +540,12 @@
   </div>
 
   <!-- Zone de la Carte -->
-  <div class="flex-1 h-[50vh] md:h-full relative z-10 bg-gray-200 overflow-hidden">
+  <div
+    class="
+      flex-1 h-full relative z-10 bg-gray-200 overflow-hidden
+      {mobileView === 'map' ? 'block' : 'hidden'} md:block
+    "
+  >
     <MapView
       bind:this={mapView}
       establishments={filteredEstablishments}
@@ -535,6 +573,33 @@
     on:close={closeProfilePanel}
   />
 </div>
+
+<!-- ============================================================= -->
+<!-- BOUTON FLOTTANT DE BASCULE (mobile uniquement)               -->
+<!-- ============================================================= -->
+<button
+  type="button"
+  on:click={mobileView === 'map' ? showListView : showMapView}
+  class="
+    fixed bottom-6 left-1/2 -translate-x-1/2 z-[1000]
+    md:hidden
+    px-5 py-3 rounded-full
+    bg-[#20784d] text-white font-semibold
+    shadow-2xl shadow-black/30
+    hover:bg-green-700 active:scale-95
+    transition-all
+    flex items-center gap-2
+  "
+  aria-label={mobileView === 'map' ? 'Afficher la liste' : 'Afficher la carte'}
+>
+  {#if mobileView === 'map'}
+    <Icon icon="heroicons:list-bullet" class="w-5 h-5" />
+    <span>Voir la liste</span>
+  {:else}
+    <Icon icon="heroicons:map" class="w-5 h-5" />
+    <span>Voir la carte</span>
+  {/if}
+</button>
 
 <!-- ============================================================= -->
 <!-- POPUP DE GÉOLOCALISATION                                     -->
