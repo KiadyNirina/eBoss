@@ -94,8 +94,8 @@
     </p>
   </div>
 
-  <div class="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-    <div class="bg-white py-8 px-4 border border-gray-200 sm:rounded-[10%] sm:px-10">
+  <div class="mt-8 mx-auto w-full max-w-md">
+    <div class="bg-white py-8 px-4 border border-gray-200 rounded-[10%] px-10">
       <!-- Sélecteur de type d'utilisateur -->
       <div class="mb-6">
         <div class="flex space-x-0 overflow-x-auto pb-2">
