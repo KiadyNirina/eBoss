@@ -9,6 +9,7 @@
   let rememberMe = false;
   let isLoading = false;
   let errorMessage = '';
+  let showPassword = false;
   
   const userTypes = [
     { id: 'etablissement', label: 'Établissement', icon: 'heroicons:building-office-2' },
@@ -147,16 +148,27 @@
           <label for="password" class="block text-sm font-medium text-gray-700">
             Mot de passe
           </label>
-          <div class="mt-1">
+          <div class="mt-1 relative">
             <input
               id="password"
               name="password"
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               autocomplete="current-password"
               bind:value={password}
               required
-              class="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-full placeholder-gray-400 focus:outline-none focus:ring-[#20784d] focus:border-[#20784d] sm:text-sm"
+              class="appearance-none block w-full pl-3 pr-10 py-2 border border-gray-300 rounded-full placeholder-gray-400 focus:outline-none focus:ring-[#20784d] focus:border-[#20784d] sm:text-sm"
             />
+            <button
+              type="button"
+              on:click={() => showPassword = !showPassword}
+              class="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-400 hover:text-[#20784d] focus:outline-none"
+              aria-label={showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'}
+            >
+              <Icon
+                icon={showPassword ? 'heroicons:eye-slash' : 'heroicons:eye'}
+                class="h-5 w-5"
+              />
+            </button>
           </div>
         </div>
 
